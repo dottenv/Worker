@@ -24,7 +24,10 @@ def create_app():
     from app.routes import api_bp
     app.register_blueprint(api_bp, url_prefix="/api")
 
-    with app.app_context():
-        db.create_all()
+    @app.cli.command("init-db")
+    def init_db():
+        with app.app_context():
+            db.create_all()
+        print("Tables created")
 
     return app
