@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
-import { useAuth } from '../contexts/AuthContext';
 import {
   ArrowLeft, Plus, Trash2, Save,
   CheckCircle2, AlertCircle, X, Loader2,

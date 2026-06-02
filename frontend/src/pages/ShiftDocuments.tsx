@@ -12,7 +12,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 export default function ShiftDocuments() {
   const { entryId } = useParams<{ entryId: string }>();
   const navigate = useNavigate();
-  const { user, isOwner } = useAuth();
+  const { isOwner } = useAuth();
   const [entry, setEntry] = useState<any>(null);
   const [docs, setDocs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

@@ -49,7 +49,6 @@ export default function Dashboard() {
   const [closeModalEntry, setCloseModalEntry] = useState<any>(null);
   const [customFields, setCustomFields] = useState<any[]>([]);
   const [customValues, setCustomValues] = useState<Record<number, string>>({});
-  const [fieldsReady, setFieldsReady] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [recentDocs, setRecentDocs] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -289,7 +288,6 @@ export default function Dashboard() {
       // open close-shift modal
       setCloseModalEntry(entry);
       setCustomValues({});
-      setFieldsReady(false);
       setRecentDocs([]);
       // load custom fields
       const scId = entry.service_center_id;
@@ -303,12 +301,8 @@ export default function Dashboard() {
               if (carry[f.id]) vals[f.id] = carry[f.id];
             }
             setCustomValues(vals);
-            setFieldsReady(true);
-          }).catch(() => setFieldsReady(true));
-        } else {
-          setFieldsReady(true);
+          }).catch(() => {});
         }
-        // load existing docs
         api.shiftDocuments.list(entry.id).then(setRecentDocs).catch(() => {});
       }).catch(() => {});
       setClockMessage({ ok: true, text: 'Смена завершена' });
