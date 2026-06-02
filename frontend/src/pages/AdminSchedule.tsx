@@ -276,19 +276,6 @@ export default function AdminSchedule() {
     });
   };
 
-  const selectAllInDay = (day: string) => {
-    const dayIds = (byDay[day] || []).map((e: any) => e.id);
-    const allSelected = dayIds.every((id: number) => selectedIds.has(id));
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      for (const id of dayIds) {
-        if (allSelected) next.delete(id);
-        else next.add(id);
-      }
-      return next;
-    });
-  };
-
   const handleCopy = async () => {
     if (!activeCenterId) { setCopyMessage('Выберите склад'); return; }
     setCopyLoading(true); setCopyMessage('');
