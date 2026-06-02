@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Mail, Lock, User, AlertCircle } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function Register() {
   const [email, setEmail] = useState('');
@@ -76,8 +76,9 @@ export default function Register() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-indigo-600 text-white py-2.5 rounded-xl font-medium text-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full bg-indigo-600 text-white py-2.5 rounded-xl font-medium text-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
         >
+          {loading ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
           {loading ? 'Регистрация...' : 'Зарегистрироваться'}
         </button>
         <p className="text-center text-sm text-gray-400">
