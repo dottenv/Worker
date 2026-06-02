@@ -316,42 +316,46 @@ export default function AdminSchedule() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 shrink-0">
           <h1 className="text-xl font-bold text-gray-900">График работы</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-1 shrink-0">
           <button
             onClick={() => navigate('/swaps')}
-            className="flex items-center gap-1.5 bg-white border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
+            className="flex items-center justify-center gap-1.5 bg-white border border-gray-200 text-gray-600 px-2 sm:px-3 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm shrink-0"
+            title="Обмен сменами"
           >
             <ArrowRightLeft size={16} />
             <span className="hidden sm:inline">Обмен</span>
           </button>
           <button
             onClick={() => { setShowCopy(!showCopy); if (showCopy) setCopyMessage(''); }}
-            className="flex items-center gap-1.5 bg-white border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm font-medium hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-colors shadow-sm"
+            className="flex items-center justify-center gap-1.5 bg-white border border-gray-200 text-gray-600 px-2 sm:px-3 py-2 rounded-xl text-sm font-medium hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-colors shadow-sm shrink-0"
+            title="Копировать смены"
           >
             <Copy size={16} />
             <span className="hidden sm:inline">Копировать</span>
           </button>
           <button
             onClick={() => { setSelectMode(!selectMode); setSelectedIds(new Set()); }}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm ${
+            className={`flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm shrink-0 ${
               selectMode
                 ? 'bg-red-50 text-red-600 border border-red-200'
                 : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
             }`}
+            title={selectMode ? 'Отменить выбор' : 'Выбрать смены'}
           >
             {selectMode ? <X size={16} /> : <Plus size={16} className="rotate-45" />}
-            {selectMode ? 'Отменить' : 'Выбрать'}
+            <span className="hidden sm:inline">{selectMode ? 'Отменить' : 'Выбрать'}</span>
           </button>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-1.5 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm"
+            className="flex items-center justify-center gap-1.5 bg-indigo-600 text-white px-2 sm:px-4 py-2 rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm shrink-0"
+            title={showForm ? 'Закрыть' : 'Добавить смену'}
           >
             {showForm ? <X size={16} /> : <Plus size={16} />}
-            {showForm ? 'Закрыть' : 'Добавить'}
+            <span className="hidden sm:inline">{showForm ? 'Закрыть' : 'Добавить'}</span>
           </button>
         </div>
       </div>
