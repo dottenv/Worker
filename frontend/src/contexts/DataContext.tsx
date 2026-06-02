@@ -21,7 +21,7 @@ const DataContext = createContext<DataContextType>({
 export function DataProvider({ children }: { children: ReactNode }) {
   const { user, isOwner } = useAuth();
   const [loaded, setLoaded] = useState(false);
-  const [centers, setCenters] = useState<any[]>([]);
+  const [centers] = useState<any[]>([]);
   const [swaps, setSwaps] = useState<any[]>([]);
   const [schedule, setSchedule] = useState<any[]>([]);
 

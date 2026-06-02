@@ -193,7 +193,7 @@ export default function Dashboard() {
   useSocketEvent('time_entry:approved', (entry: any) => {
     loadAttendance();
     if (entry.user_id === user?.id) {
-      setActiveEntry(prev => prev && prev.id === entry.id ? { ...prev, status: entry.status } : prev);
+      setActiveEntry((prev: any) => prev && prev.id === entry.id ? { ...prev, status: entry.status } : prev);
     }
   });
   useSocketEvent('time_entry:rejected', (entry: any) => {

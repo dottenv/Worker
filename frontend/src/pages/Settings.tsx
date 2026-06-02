@@ -27,7 +27,7 @@ const NOTIF_TYPES: Record<string, { label: string; icon: any }> = {
 };
 
 export default function Settings() {
-  const { user, logout, isOwner } = useAuth();
+  const { user, logout, isOwner, refreshUser } = useAuth();
   const { mode, setMode } = useTheme();
   const { subscribed, supported, permission, subscribe, unsubscribe } = usePush();
   const { centers, activeCenterId, setActiveCenterId } = useCenters();
@@ -376,10 +376,11 @@ export default function Settings() {
               if (!user) return;
               setNavSaving(true);
               setNavMessage('');
-              try {
-                await api.auth.navConfig.update(navPinned);
-                setNavMessage('Сохранено');
-              } catch (err: any) {
+                try {
+                  await api.auth.navConfig.update(navPinned);
+                  refreshUser();
+                  setNavMessage('Сохранено');
+                } catch (err: any) {
                 setNavMessage(err.message);
               }
               setNavSaving(false);

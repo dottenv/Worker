@@ -15,6 +15,7 @@ import { getAvailableItems, DEFAULT_PINNED } from '../config/navItems';
 import InstallPrompt from './InstallPrompt';
 import ToastNotifications from './ToastNotifications';
 import PageTransition from './PageTransition';
+import UpdatePrompt from './UpdatePrompt';
 
 function NavLink({ to, label, icon: Icon, active, badge }: { to: string; label: string; icon: any; active: boolean; badge?: number }) {
   return (
@@ -176,6 +177,7 @@ export default function Layout() {
 
       <ToastNotifications />
       <InstallPrompt />
+      <UpdatePrompt />
 
       {user && (
         <nav
