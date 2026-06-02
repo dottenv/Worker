@@ -1,44 +1,20 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import jwt_required
 from models import TimeEntry, ServiceCenter, ServiceCenterMember, ScheduleEntry, Shift, User
 from models.finance_operation import FinanceOperation
 from extensions import db
 from datetime import datetime, date, time, timezone
 from socket_events import emit_to_users, emit_swap_event, emit_finance_event
 import json
+from helpers import get_current_user, is_manager, get_center_owner, is_finance_enabled_for_center
 
 time_entries_bp = Blueprint("time_entries", __name__, url_prefix="/api/time-entries")
-
-
-def get_current_user():
-    user_id = int(get_jwt_identity())
-    return User.query.get(user_id)
 
 
 def is_center_member(sc_id, user_id):
     return ServiceCenterMember.query.filter_by(
         service_center_id=sc_id, user_id=user_id, is_active=True
     ).first() is not None
-
-
-def is_manager(sc_id, user_id):
-    sc = ServiceCenter.query.get(sc_id)
-    if sc and sc.owner_id == user_id:
-        return True
-    member = ServiceCenterMember.query.filter_by(
-        service_center_id=sc_id, user_id=user_id, is_active=True
-    ).first()
-    return member and member.role in ("owner", "admin")
-
-
-def get_center_owner(sc_id):
-    sc = ServiceCenter.query.get(sc_id)
-    return sc.owner if sc else None
-
-
-def is_finance_enabled_for_center(sc_id: int) -> bool:
-    owner = get_center_owner(sc_id)
-    return bool(owner and owner.finance_enabled)
 
 
 def time_entry_payment_exists(entry_id: int, user_id: int) -> bool:
@@ -114,8 +90,8 @@ def process_time_entry_payment(entry: TimeEntry):
             f"Вам начислено {amount}₽ за смену в «{sc.name}»",
             "/finance",
         )
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to create notification for time entry payment %s: %s", entry.id, e)
 
     op = FinanceOperation(
         user_id=entry.user_id,
@@ -130,8 +106,8 @@ def process_time_entry_payment(entry: TimeEntry):
     db.session.commit()
     try:
         emit_finance_event(entry.user_id, "finance:updated", {})
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to emit finance:updated for time entry %s: %s", entry.id, e)
 
 
 # ---------- Employee: clock in ----------
@@ -166,8 +142,8 @@ def create_pending_entry(user, sc_id, today, data):
                     f"{user.full_name} хочет добавить смену в «{sc.name}»{reason}",
                     "/time-requests",
                 )
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to create pending entry notifications: %s", e)
 
     # socket event for pending request
     try:
@@ -182,8 +158,8 @@ def create_pending_entry(user, sc_id, today, data):
             entry_data["service_center_name"] = sc.name if sc else ""
             entry_data["service_center_address"] = sc.address if sc else ""
             emit_to_users(admin_ids, "time_entry:pending_clock_in", entry_data)
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to emit pending_clock_in socket event: %s", e)
 
     return jsonify(entry.to_dict()), 201
 
@@ -253,8 +229,8 @@ def clock_in():
                 entry_data["service_center_name"] = ServiceCenter.query.get(sc_id).name
                 entry_data["service_center_address"] = ServiceCenter.query.get(sc_id).address
                 emit_to_users(admin_ids, "time_entry:clock_in", entry_data)
-        except Exception:
-            pass
+        except Exception as e:
+            current_app.logger.error("Failed to emit clock_in socket event: %s", e)
 
         return jsonify(entry.to_dict()), 201
 
@@ -290,8 +266,8 @@ def clock_out():
     # auto-create salary payment from actual hours worked
     try:
         process_time_entry_payment(active)
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to process time entry payment on clock-out: %s", e)
 
     # notify admins via socket
     try:
@@ -307,8 +283,8 @@ def clock_out():
             entry_data["service_center_name"] = sc_obj.name if sc_obj else ""
             entry_data["service_center_address"] = sc_obj.address if sc_obj else ""
             emit_to_users(admin_ids, "time_entry:clock_out", entry_data)
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to emit clock_out socket event: %s", e)
 
     return jsonify(active.to_dict()), 200
 
@@ -416,8 +392,8 @@ def approve_entry(entry_id):
     # auto-create salary payment from actual hours worked
     try:
         process_time_entry_payment(entry)
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to process time entry payment on approve %s: %s", entry.id, e)
 
     # socket event for approved entry
     try:
@@ -434,8 +410,8 @@ def approve_entry(entry_id):
         admin_ids = [m.user_id for m in admins if m.user_id != entry.user_id and m.user_id != entry.reviewed_by_id]
         if admin_ids:
             emit_to_users(admin_ids, "time_entry:approved", entry_data)
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to emit time_entry:approved for entry %s: %s", entry.id, e)
 
     try:
         from notification_helper import create_notification
@@ -446,8 +422,8 @@ def approve_entry(entry_id):
             f"Ваша смена в «{sc.name}» подтверждена",
             "/",
         )
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to create approve notification for entry %s: %s", entry.id, e)
 
     return jsonify(entry.to_dict()), 200
 
@@ -474,8 +450,8 @@ def reject_entry(entry_id):
         entry_data = entry.to_dict()
         entry_data["user_name"] = user_obj.full_name if user_obj else ""
         emit_to_users([entry.user_id], "time_entry:rejected", entry_data)
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to emit time_entry:rejected for entry %s: %s", entry.id, e)
 
     try:
         from notification_helper import create_notification
@@ -486,8 +462,8 @@ def reject_entry(entry_id):
             f"Ваша смена в «{sc.name}» отклонена",
             "/",
         )
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to create reject notification for entry %s: %s", entry.id, e)
 
     return jsonify(entry.to_dict()), 200
 

@@ -79,13 +79,6 @@ export default function Settings() {
     setNavPinned(user.nav_config.pinned);
   }, [user]);
 
-  useEffect(() => {
-    if (!user) return;
-    setPushPrefs(user.push_prefs || {});
-    setPushSound(user.push_sound ?? true);
-    setPrefsLoaded(true);
-  }, [user]);
-
   // Форматирование номера телефона
   const formatPhone = (value: string) => {
     const digits = value.replace(/\D/g, '');
@@ -165,12 +158,6 @@ export default function Settings() {
       setMessage('Данные сохранены');
       setPassword('');
       setPasswordConfirm('');
-      // Обновить в контексте
-      if (user) {
-        user.full_name = fullName;
-        user.email = email;
-        user.phone = phone;
-      }
     } catch (err: any) {
       setIsSuccess(false);
       setMessage(err.response?.data?.error || err.message || 'Ошибка сохранения');
@@ -391,7 +378,6 @@ export default function Settings() {
               setNavMessage('');
               try {
                 await api.auth.navConfig.update(navPinned);
-                if (user) user.nav_config = { pinned: navPinned };
                 setNavMessage('Сохранено');
               } catch (err: any) {
                 setNavMessage(err.message);

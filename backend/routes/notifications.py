@@ -3,10 +3,10 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.notification import Notification
 from extensions import db
 
-notifications_bp = Blueprint("notifications", __name__)
+notifications_bp = Blueprint("notifications", __name__, url_prefix="/api/notifications")
 
 
-@notifications_bp.route("/api/notifications", methods=["GET"])
+@notifications_bp.route("", methods=["GET"])
 @jwt_required()
 def list_notifications():
     user_id = get_jwt_identity()
@@ -25,7 +25,7 @@ def list_notifications():
     })
 
 
-@notifications_bp.route("/api/notifications/<int:nid>/read", methods=["PUT"])
+@notifications_bp.route("/<int:nid>/read", methods=["PUT"])
 @jwt_required()
 def mark_read(nid):
     user_id = get_jwt_identity()
@@ -37,7 +37,7 @@ def mark_read(nid):
     return jsonify(n.to_dict())
 
 
-@notifications_bp.route("/api/notifications", methods=["DELETE"])
+@notifications_bp.route("", methods=["DELETE"])
 @jwt_required()
 def delete_all():
     user_id = get_jwt_identity()
@@ -46,7 +46,7 @@ def delete_all():
     return jsonify({"ok": True})
 
 
-@notifications_bp.route("/api/notifications/read-all", methods=["PUT"])
+@notifications_bp.route("/read-all", methods=["PUT"])
 @jwt_required()
 def mark_all_read():
     user_id = get_jwt_identity()
@@ -55,7 +55,7 @@ def mark_all_read():
     return jsonify({"ok": True})
 
 
-@notifications_bp.route("/api/notifications/read", methods=["DELETE"])
+@notifications_bp.route("/read", methods=["DELETE"])
 @jwt_required()
 def delete_read():
     user_id = get_jwt_identity()
@@ -64,7 +64,7 @@ def delete_read():
     return jsonify({"ok": True})
 
 
-@notifications_bp.route("/api/notifications/<int:nid>", methods=["DELETE"])
+@notifications_bp.route("/<int:nid>", methods=["DELETE"])
 @jwt_required()
 def delete_one(nid):
     user_id = get_jwt_identity()

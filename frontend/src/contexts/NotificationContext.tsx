@@ -44,6 +44,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const toastIdRef = useRef(0);
+  const toastTimersRef = useRef<Set<number>>(new Set());
 
   const fetch = useCallback(async () => {
     if (!token) { setNotifications([]); setUnreadCount(0); return; }
@@ -69,6 +70,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, [unreadCount]);
 
+  useEffect(() => {
+    return () => toastTimersRef.current.forEach(clearTimeout);
+  }, []);
+
   const dismissToast = useCallback((id: number) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
@@ -77,7 +82,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const id = ++toastIdRef.current;
     setToasts(prev => [...prev, { id, title: n.title, body: n.body, link: n.link, type: n.type }]);
     if (soundEnabled !== false) playNotificationSound();
-    setTimeout(() => dismissToast(id), 5000);
+    const timerId = window.setTimeout(() => { dismissToast(id); toastTimersRef.current.delete(timerId); }, 5000);
+    toastTimersRef.current.add(timerId);
   }, [dismissToast]);
 
   const { user } = useAuth();
@@ -102,9 +108,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const deleteRead = useCallback(async () => {
     await api.del('/notifications');
-    setNotifications([]);
-    setUnreadCount(0);
-  }, []);
+    const readCount = notifications.filter(n => n.read).length;
+    setNotifications(prev => prev.filter(n => !n.read));
+    setUnreadCount(prev => Math.max(0, prev - readCount));
+  }, [notifications]);
 
   return (
     <NotificationContext value={{ notifications, unreadCount, loading, toasts, dismissToast, markRead, markAllRead, deleteRead, refresh: fetch }}>

@@ -68,7 +68,7 @@ export default function CenterDetail() {
   }, [id]);
 
   const handleRemoveMember = async (memberId: number) => {
-    if (!confirm('Remove this member?')) return;
+    if (!confirm('Удалить сотрудника?')) return;
     try {
       await api.members.remove(Number(id), memberId);
       fetchData();

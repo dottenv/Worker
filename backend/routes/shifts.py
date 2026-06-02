@@ -1,29 +1,13 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import Shift, ServiceCenter, ServiceCenterMember, User
+from flask_jwt_extended import jwt_required
+from models import Shift, ServiceCenter, ServiceCenterMember
 from extensions import db
 from datetime import time
+from helpers import get_current_user, is_manager
 
 shifts_bp = Blueprint(
     "shifts", __name__, url_prefix="/api/service-centers/<int:sc_id>/shifts"
 )
-
-
-def get_current_user():
-    user_id = int(get_jwt_identity())
-    return User.query.get(user_id)
-
-
-def check_management_access(sc_id, user):
-    sc = ServiceCenter.query.get_or_404(sc_id)
-    if sc.owner_id == user.id:
-        return sc
-    member = ServiceCenterMember.query.filter_by(
-        service_center_id=sc_id, user_id=user.id, is_active=True
-    ).first()
-    if member and member.role in ("owner", "admin"):
-        return sc
-    return None
 
 
 @shifts_bp.route("", methods=["GET"])
@@ -45,8 +29,7 @@ def list_shifts(sc_id):
 @jwt_required()
 def create_shift(sc_id):
     user = get_current_user()
-    sc = check_management_access(sc_id, user)
-    if not sc:
+    if not is_manager(sc_id, user.id):
         return jsonify({"error": "Only owner or admin can manage shifts"}), 403
 
     data = request.get_json()
@@ -76,8 +59,7 @@ def create_shift(sc_id):
 @jwt_required()
 def update_shift(sc_id, shift_id):
     user = get_current_user()
-    sc = check_management_access(sc_id, user)
-    if not sc:
+    if not is_manager(sc_id, user.id):
         return jsonify({"error": "Access denied"}), 403
 
     shift = Shift.query.get_or_404(shift_id)
@@ -110,8 +92,7 @@ def update_shift(sc_id, shift_id):
 @jwt_required()
 def delete_shift(sc_id, shift_id):
     user = get_current_user()
-    sc = check_management_access(sc_id, user)
-    if not sc:
+    if not is_manager(sc_id, user.id):
         return jsonify({"error": "Access denied"}), 403
 
     shift = Shift.query.get_or_404(shift_id)

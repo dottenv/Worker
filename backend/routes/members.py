@@ -1,29 +1,13 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import jwt_required
 from models import ServiceCenter, ServiceCenterMember, Shift, User
 from extensions import db
 from socket_events import emit_to_users
+from helpers import get_current_user, is_manager
 
 members_bp = Blueprint(
     "members", __name__, url_prefix="/api/service-centers/<int:sc_id>/members"
 )
-
-
-def get_current_user():
-    user_id = int(get_jwt_identity())
-    return User.query.get(user_id)
-
-
-def check_management_access(sc_id, user):
-    sc = ServiceCenter.query.get_or_404(sc_id)
-    if sc.owner_id == user.id:
-        return sc
-    member = ServiceCenterMember.query.filter_by(
-        service_center_id=sc_id, user_id=user.id, is_active=True
-    ).first()
-    if member and member.role in ("owner", "admin"):
-        return sc
-    return None
 
 
 @members_bp.route("", methods=["GET"])
@@ -49,8 +33,8 @@ def list_members(sc_id):
 @jwt_required()
 def add_member(sc_id):
     user = get_current_user()
-    sc = check_management_access(sc_id, user)
-    if not sc:
+    sc = ServiceCenter.query.get_or_404(sc_id)
+    if not is_manager(sc_id, user.id):
         return jsonify({"error": "Only owner or admin can add members"}), 403
 
     data = request.get_json()
@@ -84,8 +68,8 @@ def add_member(sc_id):
         ).filter(ServiceCenterMember.role.in_(["owner", "admin"])).all()
         admin_ids = [m.user_id for m in admins]
         emit_to_users(admin_ids, "member:updated", {})
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to emit member:updated after adding member: %s", e)
 
     from notification_helper import create_notification
     create_notification(target.id, "center_access", "Доступ к складу",
@@ -117,8 +101,7 @@ def get_member(sc_id, member_id):
 @jwt_required()
 def update_member_settings(sc_id, member_id):
     user = get_current_user()
-    sc = check_management_access(sc_id, user)
-    if not sc:
+    if not is_manager(sc_id, user.id):
         return jsonify({"error": "Only owner or admin can update members"}), 403
 
     member = ServiceCenterMember.query.get_or_404(member_id)
@@ -151,8 +134,8 @@ def update_member_settings(sc_id, member_id):
         ).filter(ServiceCenterMember.role.in_(["owner", "admin"])).all()
         admin_ids = [m.user_id for m in admins]
         emit_to_users(admin_ids, "member:updated", {})
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to emit member:updated after settings update: %s", e)
 
     return jsonify(member.to_dict()), 200
 
@@ -161,8 +144,7 @@ def update_member_settings(sc_id, member_id):
 @jwt_required()
 def update_member(sc_id, member_id):
     user = get_current_user()
-    sc = check_management_access(sc_id, user)
-    if not sc:
+    if not is_manager(sc_id, user.id):
         return jsonify({"error": "Only owner or admin can update members"}), 403
 
     member = ServiceCenterMember.query.get_or_404(member_id)
@@ -188,8 +170,8 @@ def update_member(sc_id, member_id):
         ).filter(ServiceCenterMember.role.in_(["owner", "admin"])).all()
         admin_ids = [m.user_id for m in admins]
         emit_to_users(admin_ids, "member:updated", {})
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to emit member:updated after member update: %s", e)
 
     return jsonify(member.to_dict()), 200
 
@@ -198,8 +180,7 @@ def update_member(sc_id, member_id):
 @jwt_required()
 def remove_member(sc_id, member_id):
     user = get_current_user()
-    sc = check_management_access(sc_id, user)
-    if not sc:
+    if not is_manager(sc_id, user.id):
         return jsonify({"error": "Only owner or admin can remove members"}), 403
 
     member = ServiceCenterMember.query.get_or_404(member_id)
@@ -217,7 +198,7 @@ def remove_member(sc_id, member_id):
         ).filter(ServiceCenterMember.role.in_(["owner", "admin"])).all()
         admin_ids = [m.user_id for m in admins]
         emit_to_users(admin_ids, "member:updated", {})
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to emit member:updated after member removal: %s", e)
 
     return jsonify({"message": "Member removed"}), 200

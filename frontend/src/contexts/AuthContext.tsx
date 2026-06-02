@@ -58,9 +58,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('token', res.token);
     setToken(res.token);
     setUser(res.user);
-    const r = await api.auth.role();
-    setIsOwner(r.is_owner);
-    setIsAdmin(r.is_admin);
+    try {
+      const r = await api.auth.role();
+      setIsOwner(r.is_owner);
+      setIsAdmin(r.is_admin);
+    } catch {
+      setIsOwner(false);
+      setIsAdmin(false);
+    }
   };
 
   const register = async (email: string, password: string, full_name: string) => {
@@ -69,9 +74,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('token', res.token);
     setToken(res.token);
     setUser(res.user);
-    const r = await api.auth.role();
-    setIsOwner(r.is_owner);
-    setIsAdmin(r.is_admin);
+    try {
+      const r = await api.auth.role();
+      setIsOwner(r.is_owner);
+      setIsAdmin(r.is_admin);
+    } catch {
+      setIsOwner(false);
+      setIsAdmin(false);
+    }
   };
 
   const logout = () => {

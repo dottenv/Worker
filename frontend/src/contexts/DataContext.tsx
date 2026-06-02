@@ -28,8 +28,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const refresh = async () => {
     if (!user) return;
     try {
-      const [cs, sw, sc] = await Promise.all([
-        api.serviceCenters.list().catch(() => []),
+      const [sw, sc] = await Promise.all([
         (isOwner ? api.swaps.admin() : api.swaps.list()).catch(() => []),
         (() => {
           const scId = Number(localStorage.getItem("activeCenterId"));
@@ -39,7 +38,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
           return [];
         })(),
       ]);
-      setCenters(cs);
       setSwaps(sw);
       setSchedule(sc);
     } catch {

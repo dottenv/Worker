@@ -24,7 +24,7 @@ import { StatsSkeleton } from '../components/Skeleton';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function Dashboard() {
-  const { user, isOwner } = useAuth();
+  const { user, isOwner, isAdmin } = useAuth();
   const { centers } = useCenters();
   const [upcomingCount, setUpcomingCount] = useState(0);
   const [employeesCount, setEmployeesCount] = useState(0);
@@ -135,7 +135,7 @@ export default function Dashboard() {
 
   useEffect(() => { loadWeekSchedule(); }, [loadWeekSchedule]);
 
-  const isManager = isOwner;
+  const isManager = isOwner || isAdmin;
 
   useEffect(() => {
     if (!isManager) return;
@@ -191,13 +191,10 @@ export default function Dashboard() {
     })));
   });
   useSocketEvent('time_entry:approved', (entry: any) => {
-    setAttendanceByCenter(prev => prev.map(c => {
-      if (c.centerId !== entry.service_center_id) return c;
-      return {
-        ...c,
-        clocked: c.clocked.map((e: any) => e.id === entry.id ? { ...e, status: 'approved' } : e),
-      };
-    }));
+    loadAttendance();
+    if (entry.user_id === user?.id) {
+      setActiveEntry(prev => prev && prev.id === entry.id ? { ...prev, status: entry.status } : prev);
+    }
   });
   useSocketEvent('time_entry:rejected', (entry: any) => {
     setAttendanceByCenter(prev => prev.map(c => ({
@@ -206,11 +203,6 @@ export default function Dashboard() {
     })));
     // employee: clear activeEntry if rejected
     setActiveEntry((prev: any) => prev && prev.id === entry.id ? null : prev);
-  });
-
-  // employee: when a pending entry is approved, update activeEntry so clock-out becomes available
-  useSocketEvent('time_entry:approved', (entry: any) => {
-    setActiveEntry((prev: any) => prev && prev.id === entry.id && prev.status === 'pending' ? { ...prev, status: 'approved' } : prev);
   });
 
   // schedule changes → refresh data for both employee and owner

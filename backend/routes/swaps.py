@@ -1,27 +1,13 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required
 from models import SwapRequest, ScheduleEntry, ServiceCenter, ServiceCenterMember, User
 from extensions import db
 from datetime import date, datetime, timezone
 from push_helper import send_push
 from socket_events import emit_swap_event
+from helpers import get_current_user, is_manager
 
 swaps_bp = Blueprint("swaps", __name__, url_prefix="/api/swaps")
-
-
-def get_current_user():
-    user_id = int(get_jwt_identity())
-    return User.query.get(user_id)
-
-
-def is_manager(sc_id, user_id):
-    sc = ServiceCenter.query.get(sc_id)
-    if sc and sc.owner_id == user_id:
-        return True
-    member = ServiceCenterMember.query.filter_by(
-        service_center_id=sc_id, user_id=user_id, is_active=True
-    ).first()
-    return member and member.role in ("owner", "admin")
 
 
 def shares_owner(user_a_id, user_b_id):

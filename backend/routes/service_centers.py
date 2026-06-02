@@ -1,17 +1,13 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import ServiceCenter, ServiceCenterMember, User
+from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import jwt_required
+from models import ServiceCenter, ServiceCenterMember
 from extensions import db
 from socket_events import emit_to_users
+from helpers import get_current_user
 
 service_centers_bp = Blueprint(
     "service_centers", __name__, url_prefix="/api/service-centers"
 )
-
-
-def get_current_user():
-    user_id = int(get_jwt_identity())
-    return User.query.get(user_id)
 
 
 @service_centers_bp.route("", methods=["GET"])
@@ -64,8 +60,8 @@ def create_center():
 
     try:
         emit_to_users([user.id], "center:updated", {})
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to emit center:updated for user %s: %s", user.id, e)
 
     return jsonify(sc.to_dict()), 201
 
@@ -111,8 +107,8 @@ def update_center(sc_id):
         ).all()
         member_ids = [m.user_id for m in members]
         emit_to_users(member_ids, "center:updated", {})
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to emit center:updated for center %s: %s", sc_id, e)
 
     return jsonify(sc.to_dict()), 200
 
@@ -132,8 +128,8 @@ def delete_center(sc_id):
 
     try:
         emit_to_users(member_ids, "center:updated", {})
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to emit center:updated on delete for center %s: %s", sc.id, e)
 
     return jsonify({"message": "Deleted"}), 200
 

@@ -1,61 +1,14 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import jwt_required
 from models import ScheduleEntry, ServiceCenter, ServiceCenterMember, User, SwapRequest, Shift, TimeEntry
 from models.finance_operation import FinanceOperation
 from extensions import db
 from datetime import date, time, datetime, timedelta
 import json
 from socket_events import emit_finance_event, emit_to_users
+from helpers import get_current_user, is_manager, get_center_owner, is_finance_enabled_for_center, schedule_payment_exists, compute_schedule_amount
 
 schedule_bp = Blueprint("schedule", __name__, url_prefix="/api/schedule")
-
-
-def get_current_user():
-    user_id = int(get_jwt_identity())
-    return User.query.get(user_id)
-
-
-def get_center_owner(sc_id: int):
-    sc = ServiceCenter.query.get(sc_id)
-    return sc.owner if sc else None
-
-
-def is_finance_enabled_for_center(sc_id: int) -> bool:
-    owner = get_center_owner(sc_id)
-    return bool(owner and owner.finance_enabled)
-
-
-def schedule_payment_exists(entry_id: int, user_id: int) -> bool:
-    ops = FinanceOperation.query.filter_by(user_id=user_id).all()
-    for op in ops:
-        if not op.details:
-            continue
-        try:
-            details = json.loads(op.details)
-        except (ValueError, TypeError):
-            continue
-        if any(
-            isinstance(item, dict) and item.get("schedule_entry_id") == entry_id
-            for item in details
-        ):
-            return True
-    return False
-
-
-def compute_schedule_amount(entry: ScheduleEntry) -> float:
-    if not entry.hourly_rate:
-        return 0.0
-    rate = float(entry.hourly_rate)
-    if entry.type == "hourly":
-        if entry.start_time and entry.end_time:
-            start_dt = datetime.combine(entry.date, entry.start_time)
-            end_dt = datetime.combine(entry.date, entry.end_time)
-            duration = (end_dt - start_dt).total_seconds() / 3600
-            if duration <= 0:
-                return 0.0
-            return round(rate * duration, 2)
-        return 0.0
-    return rate
 
 
 def process_schedule_payment(entry: ScheduleEntry):
@@ -102,8 +55,8 @@ def process_schedule_payment(entry: ScheduleEntry):
             f"Вам начислена оплата за смену {entry.date.isoformat()}",
             "/finance",
         )
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to notify payment for entry %s: %s", entry.id, e)
 
     op = FinanceOperation(
         user_id=entry.user_id,
@@ -117,16 +70,6 @@ def process_schedule_payment(entry: ScheduleEntry):
     db.session.add(op)
     db.session.commit()
     emit_finance_event(entry.user_id, "finance:updated", {})
-
-
-def is_manager(sc_id, user_id):
-    sc = ServiceCenter.query.get(sc_id)
-    if sc and sc.owner_id == user_id:
-        return True
-    member = ServiceCenterMember.query.filter_by(
-        service_center_id=sc_id, user_id=user_id, is_active=True
-    ).first()
-    return member and member.role in ("owner", "admin")
 
 
 # ---- Admin: full view across all owned centers ----
@@ -170,7 +113,7 @@ def admin_schedule():
     ).all()
 
     for entry in entries:
-        process_schedule_payment(entry)
+        process_schedule_payment(entry)  # FIXME: migrate to background processing, side-effect creates FinanceOperation records
 
     # group by employee x center
     employees = {}
@@ -398,8 +341,8 @@ def copy_schedule():
         affected_user_ids = set(e.user_id for e in source_entries)
         for uid in affected_user_ids:
             emit_to_users([uid], "schedule:updated", {})
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to emit schedule:updated after copy: %s", e)
 
     return jsonify({"created": created, "updated": updated}), 200
 
@@ -425,7 +368,7 @@ def my_schedule():
 
     entries = query.order_by(ScheduleEntry.date.desc()).all()
     for entry in entries:
-        process_schedule_payment(entry)
+        process_schedule_payment(entry)  # FIXME: migrate to background processing
     return jsonify([e.to_dict() for e in entries]), 200
 
 
@@ -456,7 +399,7 @@ def my_schedule_grouped():
 
     entries = query.order_by(ScheduleEntry.date).all()
     for entry in entries:
-        process_schedule_payment(entry)
+        process_schedule_payment(entry)  # FIXME: migrate to background processing
 
     # group by date
     by_date = {}
@@ -511,8 +454,8 @@ def update_entry(entry_id):
         admin_ids = [m.user_id for m in admins if m.user_id != int(entry.user_id)]
         if admin_ids:
             emit_to_users(admin_ids, "schedule:updated", {})
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to emit schedule:updated after entry update: %s", e)
 
     if int(entry.user_id) != user.id:
         from notification_helper import create_notification
@@ -548,8 +491,8 @@ def delete_entry(entry_id):
         admin_ids = [m.user_id for m in admins if m.user_id != int(target_user_id)]
         if admin_ids:
             emit_to_users(admin_ids, "schedule:updated", {})
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Failed to emit schedule:updated after entry deletion: %s", e)
 
     if int(target_user_id) != user.id:
         from notification_helper import create_notification

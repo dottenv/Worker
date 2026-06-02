@@ -57,7 +57,6 @@ export default function Modules() {
       if (moduleId === 'finance') {
         await api.finance.toggle(!enabled);
         setLocalFinance(!enabled);
-        user.finance_enabled = !enabled;
       }
       setIsSuccess(true);
       setMessage('Сохранено');

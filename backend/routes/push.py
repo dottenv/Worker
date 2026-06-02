@@ -1,16 +1,12 @@
 import json
 import os
 from flask import Blueprint, request, jsonify, current_app
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required
 from models import User, PushSubscription
 from extensions import db
+from helpers import get_current_user
 
 push_bp = Blueprint("push", __name__, url_prefix="/api/push")
-
-
-def get_current_user():
-    user_id = int(get_jwt_identity())
-    return User.query.get(user_id)
 
 
 @push_bp.route("/subscribe", methods=["POST"])

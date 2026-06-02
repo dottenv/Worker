@@ -8,6 +8,7 @@ from models.schedule_entry import ScheduleEntry
 from models.service_center import ServiceCenter
 from extensions import db
 from datetime import date, datetime
+from socket_events import emit_to_users
 
 finance_bp = Blueprint("finance", __name__, url_prefix="/api/finance")
 
@@ -62,14 +63,6 @@ def is_user_owner(user_id: int) -> bool:
     return ServiceCenterMember.query.filter_by(
         user_id=user_id, role="owner"
     ).count() > 0
-
-
-def emit_finance_event(user_id, event, data):
-    try:
-        from socket_events import emit_swap_event
-        emit_swap_event(user_id, event, data)
-    except Exception:
-        pass
 
 
 def notify_finance(target_user_id, title, body):
@@ -239,8 +232,8 @@ def create_operation():
     # notify target employee
     notify_finance(target_user_id, "Финансы: новая операция",
                    f"{FINANCE_TYPES.get(op_type, op_type)} на {amount} ₽ от {current_user.full_name if current_user else ''}")
-    emit_finance_event(target_user_id, "finance:updated", {})
-    emit_finance_event(user_id, "finance:updated", {})
+    emit_to_users([target_user_id], "finance:updated", {})
+    emit_to_users([user_id], "finance:updated", {})
 
     return jsonify(op.to_dict()), 201
 
@@ -275,8 +268,8 @@ def update_operation(op_id):
             return jsonify({"error": "Invalid date format"}), 400
 
     db.session.commit()
-    emit_finance_event(op.user_id, "finance:updated", {})
-    emit_finance_event(user_id, "finance:updated", {})
+    emit_to_users([op.user_id], "finance:updated", {})
+    emit_to_users([user_id], "finance:updated", {})
 
     return jsonify(op.to_dict())
 
@@ -294,8 +287,8 @@ def delete_operation(op_id):
     db.session.delete(op)
     db.session.commit()
 
-    emit_finance_event(target_user_id, "finance:updated", {})
-    emit_finance_event(user_id, "finance:updated", {})
+    emit_to_users([target_user_id], "finance:updated", {})
+    emit_to_users([user_id], "finance:updated", {})
 
     return jsonify({"ok": True})
 
@@ -334,7 +327,7 @@ def toggle_finance():
             .all()
         ]
         for eid in employee_ids:
-            emit_finance_event(eid, "finance:updated", {})
+            emit_to_users([eid], "finance:updated", {})
 
     return jsonify({"finance_enabled": user.finance_enabled})
 
