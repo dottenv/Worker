@@ -66,6 +66,7 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route element={<PrivateRoute />}>
         <Route element={<MainTabs />}>
+          <Route index element={<Navigate to="/sessions" replace />} />
           <Route path="/sessions" element={<SessionsPage />} />
           <Route path="/clock" element={<div />} />
           <Route path="/profile" element={<ProfilePage />} />
