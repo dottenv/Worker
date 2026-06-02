@@ -88,8 +88,8 @@ ok "База данных: $DATABASE_URL"
 
 # ─── VAPID keys (optional) ───
 echo ""
-read -rp "$(echo -e ${CYAN}VAPID Private Key (Enter = пропустить):${NC} ) " VAPID_PRIVATE_KEY
-read -rp "$(echo -e ${CYAN}VAPID Public Key  (Enter = пропустить):${NC} ) " VAPID_PUBLIC_KEY
+read -rp "$(echo -e "${CYAN}VAPID Private Key [Enter = skip]:${NC} ")" VAPID_PRIVATE_KEY
+read -rp "$(echo -e "${CYAN}VAPID Public Key  [Enter = skip]:${NC} ")" VAPID_PUBLIC_KEY
 
 # ─── Write .env ───
 info "Записываю .env..."
