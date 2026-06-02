@@ -448,9 +448,7 @@ def my_schedule_grouped():
     date_from = request.args.get("from")
     date_to = request.args.get("to")
 
-    query = ScheduleEntry.query.filter_by(
-        user_id=user.id, service_center_id=sc_id
-    )
+    query = ScheduleEntry.query.filter_by(service_center_id=sc_id)
     if date_from:
         query = query.filter(ScheduleEntry.date >= date.fromisoformat(date_from))
     if date_to:

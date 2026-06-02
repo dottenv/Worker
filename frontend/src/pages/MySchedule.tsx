@@ -239,6 +239,13 @@ export default function MySchedule() {
                               : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
                           }`}
                         >
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <span
+                              className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: e.user_color || '#6366f1' }}
+                            />
+                            <span className="font-medium truncate">{e.user_name}</span>
+                          </div>
                           <div className="font-medium">
                             {e.type === 'full_day' ? 'Весь день' : `${e.start_time || ''}–${e.end_time || ''}`}
                           </div>
@@ -292,6 +299,10 @@ export default function MySchedule() {
                             e.type === 'full_day' ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
                           }`}
                         >
+                          <span
+                            className="w-1 h-1 rounded-full inline-block mr-0.5 align-middle"
+                            style={{ backgroundColor: e.user_color || '#6366f1' }}
+                          />
                           {e.type === 'full_day' ? 'Весь день' : `${e.start_time || ''}`}
                         </div>
                       ))}
