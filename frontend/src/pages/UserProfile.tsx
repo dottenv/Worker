@@ -58,7 +58,7 @@ export default function UserProfile() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
           <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <Building2 size={15} className="text-gray-400" />
-            Сервис-центры
+            Склады
           </h3>
           <div className="space-y-2">
             {centers.map((sc: any) => (

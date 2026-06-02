@@ -1,7 +1,7 @@
 {
   "name": "Worker",
   "short_name": "Worker",
-  "description": "Управление графиком сервис-центра",
+  "description": "Управление графиком склада",
   "theme_color": "#034788",
   "background_color": "#f9fafb",
   "display": "standalone",

@@ -50,7 +50,7 @@ export default function ScheduleDetailModal({ entry, onClose, onDelete }: Props)
                   <Building2 size={14} className="text-emerald-600" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Сервисный центр</div>
+                  <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Склад</div>
                   <div className="text-sm font-medium text-gray-900 truncate">{entry.service_center_address ? `${entry.service_center_name} (${entry.service_center_address})` : entry.service_center_name}</div>
                 </div>
               </div>

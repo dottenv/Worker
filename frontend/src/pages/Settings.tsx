@@ -265,7 +265,7 @@ export default function Settings() {
           
           {/* Сервис-центр */}
           <div className="mb-4">
-            <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--text-secondary)' }}>Текущий сервис-центр</label>
+            <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--text-secondary)' }}>Текущий склад</label>
             <div className="relative">
               <select value={activeCenterId || ''}
                 onChange={(e) => setActiveCenterId(Number(e.target.value))}
@@ -504,7 +504,7 @@ export default function Settings() {
         </div>
       </div>
 
-      <p className="text-center text-xs pb-2" style={{ color: 'var(--text-disabled)' }}>ServiceApp v1.0</p>
+      <p className="text-center text-xs pb-2" style={{ color: 'var(--text-disabled)' }}>Worker v1.0</p>
     </div>
   );
 }

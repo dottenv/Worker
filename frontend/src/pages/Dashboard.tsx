@@ -485,7 +485,7 @@ export default function Dashboard() {
           </div>
           <h2 className="text-lg font-bold text-gray-900 mb-1">Создайте свою организацию</h2>
           <p className="text-sm text-gray-400 text-center mb-6 max-w-xs">
-            У вас пока нет сервисных центров. Создайте свою организацию и начните управлять сменами сотрудников.
+            У вас пока нет складов. Создайте свою организацию и начните управлять сменами сотрудников.
           </p>
           <Link
             to="/centers"
@@ -636,7 +636,7 @@ export default function Dashboard() {
                 <Building2 size={16} className="text-emerald-500" />
               </div>
               <p className="text-lg font-bold text-gray-900">{centers.length}</p>
-              <p className="text-xs text-gray-400">Сервис-центров</p>
+              <p className="text-xs text-gray-400">Складов</p>
             </div>
           </div>
 

@@ -103,7 +103,7 @@ export default function Layout() {
               </Link>
             ) : (
               <Link to="/" className="font-bold text-lg text-indigo-600 tracking-tight">
-                ServiceApp
+                Worker
               </Link>
             )}
             {user && (

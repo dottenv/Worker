@@ -4,7 +4,7 @@
 Использование:
     python make_owner.py email@example.com
 
-Создаёт первый сервис-центр для пользователя, если у него его нет.
+Создаёт первый склад для пользователя, если у него его нет.
 """
 
 import sys
@@ -32,7 +32,7 @@ with app.app_context():
         sys.exit(0)
 
     sc = ServiceCenter(
-        name='Мой сервис-центр',
+        name='Мой склад',
         description='',
         owner_id=user.id,
     )
@@ -47,4 +47,4 @@ with app.app_context():
     db.session.add(member)
     db.session.commit()
 
-    print(f'Готово. Для {user.full_name} ({email}) создан сервис-центр "Мой сервис-центр" (id={sc.id}).')
+    print(f'Готово. Для {user.full_name} ({email}) создан склад "Мой склад" (id={sc.id}).')

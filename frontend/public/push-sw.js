@@ -10,11 +10,11 @@ self.addEventListener("push", (event) => {
       data: { url: data.url || "/swaps" },
     };
     event.waitUntil(
-      self.registration.showNotification(data.title || "Service App", options)
+      self.registration.showNotification(data.title || "Worker", options)
     );
   } catch {
     event.waitUntil(
-      self.registration.showNotification("Service App", {
+      self.registration.showNotification("Worker", {
         body: event.data.text(),
         icon: "/icon-192.svg",
         badge: "/icon-192.svg",

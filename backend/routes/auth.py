@@ -30,7 +30,7 @@ def register():
     db.session.commit()
 
     from notification_helper import create_notification
-    create_notification(user.id, "welcome", "Добро пожаловать!", "Вы успешно зарегистрировались. Дождитесь доступа к сервисному центру от администратора или создайте свой.", "/settings")
+    create_notification(user.id, "welcome", "Добро пожаловать!", "Вы успешно зарегистрировались. Дождитесь доступа к складу от администратора или создайте свой.", "/settings")
 
     token = create_access_token(identity=str(user.id))
     return jsonify({"token": token, "user": user.to_dict()}), 201

@@ -116,7 +116,7 @@ export default function MySchedule() {
     return (
       <div className="text-center py-12">
         <Sun size={32} className="text-gray-200 mx-auto mb-3" />
-        <p className="text-sm text-gray-400">Нет доступных сервис-центров</p>
+        <p className="text-sm text-gray-400">Нет доступных складов</p>
       </div>
     );
   }

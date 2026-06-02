@@ -15,7 +15,7 @@ self.addEventListener("push", (event) => {
     const { title, body, url } = data;
 
     event.waitUntil(
-      self.registration.showNotification(title || "Service App", {
+      self.registration.showNotification(title || "Worker", {
         body: body || "",
         icon: "/icon-192.svg",
         badge: "/icon-192.svg",
@@ -24,7 +24,7 @@ self.addEventListener("push", (event) => {
     );
   } catch {
     event.waitUntil(
-      self.registration.showNotification("Service App", {
+      self.registration.showNotification("Worker", {
         body: event.data.text(),
         icon: "/icon-192.svg",
         badge: "/icon-192.svg",

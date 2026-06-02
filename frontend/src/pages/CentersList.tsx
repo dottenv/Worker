@@ -58,9 +58,9 @@ export default function CentersList() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Центры</h1>
+          <h1 className="text-xl font-bold text-gray-900">Склады</h1>
           <p className="text-sm text-gray-400">
-            {centers.length} {centers.length === 1 ? 'центр' : 'центров'}
+            {centers.length} {centers.length === 1 ? 'склад' : 'складов'}
           </p>
         </div>
         <button
@@ -79,7 +79,7 @@ export default function CentersList() {
         >
           <input
             type="text"
-            placeholder="Название центра"
+            placeholder="Название склада"
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full px-3.5 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:bg-white transition-colors"
@@ -109,12 +109,12 @@ export default function CentersList() {
           <div className="p-3 rounded-xl bg-gray-50 mb-3">
             <Building2 size={28} className="text-gray-300" />
           </div>
-          <p className="text-sm font-medium text-gray-400">Нет сервисных центров</p>
+          <p className="text-sm font-medium text-gray-400">Нет складов</p>
           <button
             onClick={() => setShowForm(true)}
             className="mt-3 text-sm text-indigo-600 font-medium hover:underline"
           >
-            Создать первый
+            Создать первый склад
           </button>
         </div>
       ) : (

@@ -75,7 +75,7 @@ def send_push(user_id: int, title: str, body: str, url: str = "/swaps", notifica
                 data=payload,
                 vapid_private_key=vapid,
                 vapid_claims={
-                    "sub": f"mailto:admin@serviceapp.local",
+                    "sub": f"mailto:admin@worker.app",
                 },
             )
         except WebPushException as e:

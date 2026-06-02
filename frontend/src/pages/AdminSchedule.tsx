@@ -253,7 +253,7 @@ export default function AdminSchedule() {
   };
 
   const handleCopy = async () => {
-    if (!activeCenterId) { setCopyMessage('Выберите сервис-центр'); return; }
+    if (!activeCenterId) { setCopyMessage('Выберите склад'); return; }
     setCopyLoading(true); setCopyMessage('');
     try {
       const monday = (offset: number) => {

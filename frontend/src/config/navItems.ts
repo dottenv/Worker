@@ -23,7 +23,7 @@ export interface NavItemDef {
 
 export const ALL_NAV_ITEMS: NavItemDef[] = [
   { id: 'dashboard', label: 'Главная', icon: Home, path: '/' },
-  { id: 'centers', label: 'Центры', icon: Building2, path: '/centers', requiresOwner: true },
+  { id: 'centers', label: 'Склады', icon: Building2, path: '/centers', requiresOwner: true },
   { id: 'schedule', label: 'График', icon: Calendar, path: '/schedule' },
   { id: 'schedule_admin', label: 'График (админ)', icon: CalendarCheck, path: '/schedule/admin', requiresOwner: true },
   { id: 'swaps', label: 'Обмены', icon: ArrowRightLeft, path: '/swaps' },

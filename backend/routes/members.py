@@ -88,8 +88,8 @@ def add_member(sc_id):
         pass
 
     from notification_helper import create_notification
-    create_notification(target.id, "center_access", "Доступ к сервисному центру",
-                        f"Вам предоставлен доступ к сервисному центру «{sc.name}».",
+    create_notification(target.id, "center_access", "Доступ к складу",
+                        f"Вам предоставлен доступ к складу «{sc.name}».",
                         "/schedule")
 
     return jsonify(member.to_dict()), 201

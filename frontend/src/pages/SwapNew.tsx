@@ -249,7 +249,7 @@ export default function SwapNew() {
       {/* Step 1: Center */}
       <section className="p-4 rounded-2xl" style={{ backgroundColor: 'var(--bg-card)' }}>
         <label className="flex items-center gap-1.5 text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-          <Building2 size={13} /> Сервисный центр
+          <Building2 size={13} /> Склад
         </label>
         <select value={scId} onChange={(e) => setScId(e.target.value)}
           className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none transition-colors"
@@ -349,11 +349,11 @@ export default function SwapNew() {
           {swapType === 'substitution' && (
             <section className="p-4 rounded-2xl" style={{ backgroundColor: 'var(--bg-card)' }}>
               <label className="flex items-center gap-1.5 text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-                <Building2 size={13} /> Другой сервисный центр
+                <Building2 size={13} /> Другой склад
               </label>
               {otherCenters.length === 0 ? (
                 <p className="text-sm py-3 text-center" style={{ color: 'var(--text-disabled)' }}>
-                  Нет других центров того же владельца
+                  Нет других складов того же владельца
                 </p>
               ) : (
                 <div className="space-y-1.5 max-h-48 overflow-y-auto">
@@ -653,7 +653,7 @@ export default function SwapNew() {
           {swapType === 'substitution' && !targetCenterId && (
             <div className="flex items-center gap-2 p-3 rounded-xl text-sm" style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
               <ArrowRight size={14} />
-              <span>Выберите другой сервисный центр</span>
+              <span>Выберите другой склад</span>
             </div>
           )}
           {swapType === 'substitution' && targetCenterId && !targetUserId && (

@@ -97,7 +97,7 @@ export default function TimeTracker() {
         <div className="space-y-1.5">
           <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
             <Building2 size={14} />
-            Сервисный центр
+            Склад
           </label>
           <select
             value={selectedCenter}
