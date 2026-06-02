@@ -261,6 +261,8 @@ def clock_out():
         active.notes = data.get("notes", active.notes or "")
     if active.status == "pending":
         return jsonify({"error": "Смена ещё не подтверждена администратором"}), 400
+    if active.status == "rejected":
+        return jsonify({"error": "Смена отклонена администратором"}), 400
     db.session.commit()
 
     # auto-create salary payment from actual hours worked
@@ -440,6 +442,7 @@ def reject_entry(entry_id):
         return jsonify({"error": "Access denied"}), 403
 
     entry.status = "rejected"
+    entry.clock_out = datetime.now(timezone.utc)
     entry.reviewed_by_id = user.id
     entry.reviewed_at = datetime.now(timezone.utc)
     db.session.commit()
@@ -489,7 +492,9 @@ def my_entries():
 @jwt_required()
 def active_entry():
     user = get_current_user()
-    entry = TimeEntry.query.filter_by(user_id=user.id, clock_out=None).first()
+    entry = TimeEntry.query.filter_by(user_id=user.id, clock_out=None).filter(
+        TimeEntry.status.in_(["approved", "pending"])
+    ).first()
     if not entry:
         return jsonify(None), 200
     return jsonify(entry.to_dict()), 200

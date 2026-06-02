@@ -152,7 +152,7 @@ export default function Dashboard() {
       const scheduled = scheduleData.flatMap((g: any) =>
         (g.entries || []).map((e: any) => ({ ...e, user_name: g.user_name, user_color: g.user_color }))
       );
-      const clocked = (timeEntries || []).filter((e: any) => e.status === 'approved' || e.status === 'pending');
+      const clocked = (timeEntries || []).filter((e: any) => (e.status === 'approved' || e.status === 'pending') && !e.clock_out);
       return {
         centerId: c.id,
         centerName: c.address ? `${c.name} (${c.address})` : c.name,
@@ -230,7 +230,7 @@ export default function Dashboard() {
         const scheduled = scheduleData.flatMap((g: any) =>
           (g.entries || []).map((e: any) => ({ ...e, user_name: g.user_name, user_color: g.user_color }))
         );
-        const clocked = (timeEntries || []).filter((e: any) => e.status === 'approved' || e.status === 'pending');
+        const clocked = (timeEntries || []).filter((e: any) => (e.status === 'approved' || e.status === 'pending') && !e.clock_out);
         return {
           centerId: c.id,
           centerName: c.address ? `${c.name} (${c.address})` : c.name,
