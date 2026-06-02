@@ -9,7 +9,7 @@ import {
   CheckCircle2, AlertCircle, Sun, Moon, Monitor,
   Bell, BellOff, Volume2, VolumeX, ArrowRightLeft,
   CalendarSync, Building2 as BuildingIcon, Zap, XCircle, Puzzle, Eye, EyeOff,
-  ChevronUp, ChevronDown,
+  ChevronUp, ChevronDown, Copy, Check,
 } from 'lucide-react';
 import { api } from '../api/client';
 import { getAvailableItems } from '../config/navItems';
@@ -27,11 +27,20 @@ const NOTIF_TYPES: Record<string, { label: string; icon: any }> = {
 };
 
 export default function Settings() {
-  const { user, isOwner, logout } = useAuth();
-  const { mode, setMode } = useTheme();
+  const { user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const { subscribed, supported, permission, subscribe, unsubscribe } = usePush();
   const { centers, activeCenterId, setActiveCenterId } = useCenters();
   const navigate = useNavigate();
+  const [copied, setCopied] = useState(false);
+  const buildHash = import.meta.env.VITE_GIT_HASH || 'unknown';
+
+  const copyBuildHash = () => {
+    navigator.clipboard.writeText(buildHash).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {});
+  };
 
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -504,7 +513,12 @@ export default function Settings() {
         </div>
       </div>
 
-      <p className="text-center text-xs pb-2" style={{ color: 'var(--text-disabled)' }}>Worker v1.0</p>
+      <div className="flex items-center justify-center gap-1.5 pb-2">
+        <span className="text-xs" style={{ color: 'var(--text-disabled)' }}>Сборка {buildHash}</span>
+        <button onClick={copyBuildHash} className="p-0.5 rounded hover:opacity-70 transition-opacity" style={{ color: 'var(--text-disabled)' }}>
+          {copied ? <Check size={11} /> : <Copy size={11} />}
+        </button>
+      </div>
     </div>
   );
 }

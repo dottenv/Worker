@@ -36,7 +36,10 @@ services:
         max-file: "3"
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        GIT_HASH: ${GIT_HASH:-unknown}
     container_name: sc-frontend
     restart: unless-stopped
     expose:

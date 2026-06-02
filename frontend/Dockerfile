@@ -1,4 +1,9 @@
+ARG GIT_HASH=unknown
+
 FROM node:22-alpine AS builder
+
+ARG GIT_HASH
+ENV VITE_GIT_HASH=${GIT_HASH}
 
 WORKDIR /app
 COPY package.json package-lock.json ./
