@@ -1,0 +1,43 @@
+{$APP_DOMAIN} {
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle /socket.io/* {
+        reverse_proxy backend:5000 {
+            header_up Upgrade {>Upgrade}
+            header_up Connection {>Connection}
+        }
+    }
+    handle {
+        reverse_proxy frontend:80
+    }
+
+    tls {$LETSENCRYPT_EMAIL} {
+        protocols tls1.2 tls1.3
+    }
+
+    encode gzip
+    header {
+        X-Frame-Options SAMEORIGIN
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+
+    log {
+        output stdout
+        format console
+    }
+}
+
+{$API_DOMAIN} {
+    reverse_proxy backend:5000
+
+    tls {$LETSENCRYPT_EMAIL} {
+        protocols tls1.2 tls1.3
+    }
+
+    log {
+        output stdout
+        format console
+    }
+}
