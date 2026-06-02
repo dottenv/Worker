@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { X, Building2, User, Calendar, Clock, DollarSign, FileText, UserCircle } from 'lucide-react';
 
 interface Props {
@@ -61,7 +62,7 @@ export default function ScheduleDetailModal({ entry, onClose, onDelete }: Props)
                 </div>
                 <div className="min-w-0">
                   <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Сотрудник</div>
-                  <div className="text-sm font-medium text-gray-900 truncate">{entry.user_name}</div>
+                  <Link to={`/profile/${entry.user_id}`} onClick={(e) => e.stopPropagation()} className="text-sm font-medium text-indigo-600 hover:text-indigo-800 truncate">{entry.user_name}</Link>
                 </div>
               </div>
 

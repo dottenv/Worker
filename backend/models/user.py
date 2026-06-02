@@ -26,6 +26,8 @@ class User(db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     full_name = db.Column(db.String(120), nullable=False)
     phone = db.Column(db.String(20))
+    telegram = db.Column(db.String(120), default='')
+    max_link = db.Column(db.String(300), default='')
     color = db.Column(db.String(7), default='')
     created_at = db.Column(
         db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
@@ -66,6 +68,8 @@ class User(db.Model):
             "email": self.email,
             "full_name": self.full_name,
             "phone": self.phone,
+            "telegram": self.telegram,
+            "max_link": self.max_link,
             "color": self.color,
             "finance_enabled": self.finance_enabled,
             "messenger_enabled": self.messenger_enabled,

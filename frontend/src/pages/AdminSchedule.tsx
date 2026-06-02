@@ -102,6 +102,8 @@ export default function AdminSchedule() {
   const { user } = useAuth();
   const financeEnabled = !!user?.finance_enabled;
   const [detailEntry, setDetailEntry] = useState<any>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [showCopy, setShowCopy] = useState(false);
   const [copySrcOffset, setCopySrcOffset] = useState(-1);
   const [copyTgtOffset, setCopyTgtOffset] = useState(0);
@@ -252,6 +254,41 @@ export default function AdminSchedule() {
     catch (err: any) { alert(err.message); }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Удалить ${selectedIds.size} смен?`)) return;
+    try {
+      await api.post('/schedule/bulk-delete', { ids: Array.from(selectedIds) });
+      setSelectedIds(new Set());
+      setSelectMode(false);
+      loadData();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllInDay = (day: string) => {
+    const dayIds = (byDay[day] || []).map((e: any) => e.id);
+    const allSelected = dayIds.every((id: number) => selectedIds.has(id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of dayIds) {
+        if (allSelected) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+  };
+
   const handleCopy = async () => {
     if (!activeCenterId) { setCopyMessage('Выберите склад'); return; }
     setCopyLoading(true); setCopyMessage('');
@@ -310,6 +347,17 @@ export default function AdminSchedule() {
           >
             <Copy size={16} />
             <span className="hidden sm:inline">Копировать</span>
+          </button>
+          <button
+            onClick={() => { setSelectMode(!selectMode); setSelectedIds(new Set()); }}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm ${
+              selectMode
+                ? 'bg-red-50 text-red-600 border border-red-200'
+                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            {selectMode ? <X size={16} /> : <Plus size={16} className="rotate-45" />}
+            {selectMode ? 'Отменить' : 'Выбрать'}
           </button>
           <button
             onClick={() => setShowForm(!showForm)}
@@ -619,6 +667,22 @@ export default function AdminSchedule() {
         </button>
       </div>
 
+      {selectMode && selectedIds.size > 0 && (
+        <div className="flex items-center justify-between bg-red-50 p-3 rounded-2xl border border-red-200 shadow-sm">
+          <span className="text-sm font-medium text-red-700">Выбрано: {selectedIds.size}</span>
+          <div className="flex gap-2">
+            <button onClick={() => setSelectedIds(new Set())}
+              className="px-3 py-1.5 rounded-xl text-xs font-medium text-gray-600 bg-white hover:bg-gray-50 transition-colors">
+              Снять все
+            </button>
+            <button onClick={handleBulkDelete}
+              className="px-4 py-1.5 rounded-xl text-xs font-medium text-white bg-red-600 hover:bg-red-700 transition-colors">
+              Удалить
+            </button>
+          </div>
+        </div>
+      )}
+
       {Object.keys(byDay).length === 0 ? (
         <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-gray-200">
           <div className="p-3 rounded-xl bg-gray-50 inline-flex mb-3">
@@ -649,21 +713,31 @@ export default function AdminSchedule() {
                     <div className="space-y-0.5">
                       {dayEntries.map((e: any) => {
                         const color = e.user_color || '#6366f1';
+                        const checked = selectedIds.has(e.id);
                         return (
                         <div key={e.id}
-                          onClick={() => setDetailEntry(e)}
-                          className="text-[10px] px-1 py-0.5 rounded leading-tight truncate cursor-pointer hover:opacity-80"
-                          style={{ backgroundColor: color + '20', color }}
+                          onClick={() => selectMode ? toggleSelect(e.id) : setDetailEntry(e)}
+                          className={`text-[10px] px-1 py-0.5 rounded leading-tight truncate cursor-pointer hover:opacity-80 ${
+                            selectMode && checked ? 'ring-2 ring-indigo-400' : ''
+                          }`}
+                          style={{ backgroundColor: selectMode && checked ? '#eef2ff' : color + '20', color }}
                           title={`${e.user_name}${e.notes ? ': ' + e.notes : ''}`}
                         >
                           <div className="flex items-center gap-1">
+                            {selectMode && (
+                              <input type="checkbox" checked={checked}
+                                onChange={() => toggleSelect(e.id)}
+                                className="shrink-0 accent-indigo-500 w-2.5 h-2.5" />
+                            )}
                             <span className="font-medium truncate">{e.user_name}</span>
-                            <button
-                              onClick={(ev) => { ev.stopPropagation(); handleDelete(e.id); }}
-                              className="shrink-0 ml-auto text-gray-400 hover:text-red-500"
-                            >
-                              <X size={7} />
-                            </button>
+                            {!selectMode && (
+                              <button
+                                onClick={(ev) => { ev.stopPropagation(); handleDelete(e.id); }}
+                                className="shrink-0 ml-auto text-gray-400 hover:text-red-500"
+                              >
+                                <X size={7} />
+                              </button>
+                            )}
                           </div>
                         </div>
                         );
@@ -703,13 +777,23 @@ export default function AdminSchedule() {
                     <div className="space-y-0.5">
                       {dayEntries.slice(0, 3).map((e: any) => {
                         const color = e.user_color || '#6366f1';
+                        const checked = selectedIds.has(e.id);
                         return (
                         <div key={e.id}
-                          onClick={() => setDetailEntry(e)}
-                          className="text-[8px] px-0.5 py-0.5 rounded leading-tight truncate cursor-pointer hover:opacity-80"
-                          style={{ backgroundColor: color + '20', color }}
+                          onClick={() => selectMode ? toggleSelect(e.id) : setDetailEntry(e)}
+                          className={`text-[8px] px-0.5 py-0.5 rounded leading-tight truncate cursor-pointer hover:opacity-80 ${
+                            selectMode && checked ? 'ring-1 ring-indigo-400' : ''
+                          }`}
+                          style={{ backgroundColor: selectMode && checked ? '#eef2ff' : color + '20', color }}
                         >
-                          {e.user_name}
+                          <div className="flex items-center gap-0.5">
+                            {selectMode && (
+                              <input type="checkbox" checked={checked}
+                                onChange={() => toggleSelect(e.id)}
+                                className="shrink-0 accent-indigo-500 w-2 h-2" />
+                            )}
+                            <span className="truncate">{e.user_name}</span>
+                          </div>
                         </div>
                         );
                       })}

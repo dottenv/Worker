@@ -1,15 +1,23 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../api/client';
-import { ArrowLeft, Phone, Building2, Calendar } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { ArrowLeft, Phone, Building2, Calendar, MessageCircle, Globe, Save, X } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function UserProfile() {
   const { userId } = useParams();
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [centers, setCenters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [editTelegram, setEditTelegram] = useState('');
+  const [editMax, setEditMax] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const isOwn = String(currentUser?.id) === userId;
 
   useEffect(() => {
     if (!userId) return;
@@ -23,6 +31,24 @@ export default function UserProfile() {
       .then(setCenters)
       .catch(() => {});
   }, [userId]);
+
+  const startEditing = () => {
+    setEditTelegram(profile?.telegram || '');
+    setEditMax(profile?.max_link || '');
+    setEditing(true);
+  };
+
+  const saveSocial = async () => {
+    setSaving(true);
+    try {
+      const updated = await api.put('/auth/profile', { telegram: editTelegram, max_link: editMax });
+      setProfile((prev: any) => ({ ...prev, telegram: updated.telegram, max_link: updated.max_link }));
+      setEditing(false);
+    } catch (err: any) {
+      alert(err.message);
+    }
+    setSaving(false);
+  };
 
   if (loading) return <LoadingSpinner />;
   if (!profile) return <p className="text-sm text-gray-400 text-center py-8">Пользователь не найден</p>;
@@ -51,6 +77,68 @@ export default function UserProfile() {
             <Phone size={13} />
             {profile.phone}
           </div>
+        )}
+
+        {(profile.telegram || profile.max_link || isOwn) && (
+          <div className="flex items-center justify-center gap-3 mt-3">
+            {editing ? (
+              <div className="flex flex-col gap-2 w-full">
+                <div className="flex items-center gap-2">
+                  <MessageCircle size={14} className="text-sky-500 shrink-0" />
+                  <input type="text" value={editTelegram} onChange={e => setEditTelegram(e.target.value)}
+                    placeholder="@username"
+                    className="flex-1 px-3 py-1.5 bg-gray-50 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Globe size={14} className="text-gray-400 shrink-0" />
+                  <input type="text" value={editMax} onChange={e => setEditMax(e.target.value)}
+                    placeholder="https://"
+                    className="flex-1 px-3 py-1.5 bg-gray-50 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40" />
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={saveSocial} disabled={saving}
+                    className="flex-1 flex items-center justify-center gap-1 bg-indigo-600 text-white py-1.5 rounded-xl text-xs font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                    <Save size={13} /> {saving ? '...' : 'Сохранить'}
+                  </button>
+                  <button onClick={() => setEditing(false)}
+                    className="px-3 py-1.5 rounded-xl text-xs font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors">
+                    <X size={13} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {profile.telegram && (
+                  <a href={`https://t.me/${profile.telegram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-sky-600 bg-sky-50 px-3 py-1.5 rounded-xl hover:bg-sky-100 transition-colors">
+                    <MessageCircle size={13} />
+                    {profile.telegram}
+                  </a>
+                )}
+                {profile.max_link && (
+                  <a href={profile.max_link.startsWith('http') ? profile.max_link : `https://${profile.max_link}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-3 py-1.5 rounded-xl hover:bg-gray-100 transition-colors">
+                    <Globe size={13} />
+                    Max
+                  </a>
+                )}
+                {isOwn && !profile.telegram && !profile.max_link && (
+                  <button onClick={startEditing}
+                    className="text-xs text-indigo-600 hover:text-indigo-800 transition-colors">
+                    + Добавить соцсети
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {isOwn && !editing && (profile.telegram || profile.max_link) && (
+          <button onClick={startEditing}
+            className="mt-2 text-xs text-gray-400 hover:text-gray-600 transition-colors">
+            Редактировать
+          </button>
         )}
       </div>
 

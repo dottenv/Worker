@@ -36,6 +36,8 @@ def create_app():
         db.create_all()
         for col, spec in [
             ("color", "VARCHAR(7) DEFAULT ''"),
+            ("telegram", "VARCHAR(120) DEFAULT ''"),
+            ("max_link", "VARCHAR(300) DEFAULT ''"),
             ("finance_enabled", "BOOLEAN DEFAULT 0"),
             ("push_sound", "BOOLEAN DEFAULT 1"),
             ("push_prefs", "TEXT DEFAULT ''"),

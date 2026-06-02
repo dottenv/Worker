@@ -504,6 +504,61 @@ def delete_entry(entry_id):
     return jsonify({"message": "Deleted"}), 200
 
 
+@schedule_bp.route("/bulk-delete", methods=["POST"])
+@jwt_required()
+def bulk_delete_entries():
+    user = get_current_user()
+    data = request.get_json()
+    if not data or "ids" not in data or not isinstance(data["ids"], list):
+        return jsonify({"error": "ids array is required"}), 400
+
+    ids = data["ids"]
+    if not ids:
+        return jsonify({"message": "No entries to delete"}), 200
+
+    entries = ScheduleEntry.query.filter(ScheduleEntry.id.in_(ids)).all()
+    if not entries:
+        return jsonify({"error": "No entries found"}), 404
+
+    affected_users = set()
+    sc_ids = set()
+    for entry in entries:
+        if not is_manager(entry.service_center_id, user.id):
+            return jsonify({"error": f"Access denied for entry {entry.id}"}), 403
+        affected_users.add(int(entry.user_id))
+        sc_ids.add(entry.service_center_id)
+        db.session.delete(entry)
+
+    db.session.commit()
+
+    for uid in affected_users:
+        try:
+            emit_to_users([uid], "schedule:updated", {})
+        except Exception:
+            pass
+
+    for sc_id in sc_ids:
+        try:
+            admins = ServiceCenterMember.query.filter_by(
+                service_center_id=sc_id, is_active=True
+            ).filter(ServiceCenterMember.role.in_(["owner", "admin"])).all()
+            admin_ids = [m.user_id for m in admins if m.user_id not in affected_users]
+            if admin_ids:
+                emit_to_users(admin_ids, "schedule:updated", {})
+        except Exception as e:
+            current_app.logger.error("Failed to emit schedule:updated after bulk delete: %s", e)
+
+    for entry in entries:
+        if int(entry.user_id) != user.id:
+            from notification_helper import create_notification
+            sc_name = ServiceCenter.query.get(entry.service_center_id).name
+            create_notification(int(entry.user_id), "schedule_update", "Изменение графика",
+                                f"Ваша смена на {entry.date.isoformat()} в «{sc_name}» удалена",
+                                "/schedule")
+
+    return jsonify({"deleted": len(entries)}), 200
+
+
 @schedule_bp.route("/history", methods=["GET"])
 @jwt_required()
 def admin_history():

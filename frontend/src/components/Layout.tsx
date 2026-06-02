@@ -16,6 +16,7 @@ import InstallPrompt from './InstallPrompt';
 import ToastNotifications from './ToastNotifications';
 import PageTransition from './PageTransition';
 import UpdatePrompt from './UpdatePrompt';
+import { useHapticFeedback } from '../utils/haptic';
 
 function NavLink({ to, label, icon: Icon, active, badge }: { to: string; label: string; icon: any; active: boolean; badge?: number }) {
   return (
@@ -56,6 +57,7 @@ function BellButton() {
 }
 
 export default function Layout() {
+  useHapticFeedback();
   const { user, isOwner } = useAuth();
   const { state } = useHeader();
   const location = useLocation();
