@@ -10,6 +10,7 @@ from .finance import finance_bp
 from .time_entries import time_entries_bp
 from .custom_fields import custom_fields_bp
 from .shift_documents import shift_documents_bp
+from .vapid import vapid_bp
 __all__ = [
     "auth_bp",
     "service_centers_bp",
@@ -23,4 +24,5 @@ __all__ = [
     "time_entries_bp",
     "custom_fields_bp",
     "shift_documents_bp",
+    "vapid_bp",
 ]

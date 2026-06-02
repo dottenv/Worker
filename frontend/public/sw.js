@@ -7,36 +7,52 @@ workbox.core.clientsClaim();
 
 workbox.precaching.precacheAndRoute(self.__WB_MANIFEST);
 
+self.addEventListener("install", () => {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(clients.claim());
+});
+
 self.addEventListener("push", (event) => {
   if (!event.data) return;
 
+  let title = "Worker";
+  let options = {
+    body: event.data.text(),
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    silent: false,
+    requireInteraction: true,
+    data: { url: "/swaps" },
+  };
+
   try {
     const data = event.data.json();
-    const options = {
-      body: data.body || "",
-      icon: "/icon-192.png",
-      badge: "/icon-192.png",
-      silent: data.sound === false,
-      requireInteraction: true,
-      data: { url: data.url || "/swaps" },
-    };
-    event.waitUntil(
-      self.registration.showNotification(data.title || "Worker", options)
-    );
-  } catch {
-    event.waitUntil(
-      self.registration.showNotification("Worker", {
-        body: event.data.text(),
-        icon: "/icon-192.png",
-        badge: "/icon-192.png",
-      })
-    );
-  }
+    title = data.title || title;
+    options.body = data.body || options.body;
+    options.icon = data.icon || options.icon;
+    options.badge = data.badge || options.badge;
+    options.silent = data.sound === false;
+    options.data.url = data.url || options.data.url;
+  } catch {}
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = event.notification.data?.url || "/swaps";
+
+  const openWindow = () => {
+    if (clients.openWindow) {
+      return clients.openWindow(url);
+    }
+  };
+
   event.waitUntil(
     clients
       .matchAll({ type: "window", includeUncontrolled: true })
@@ -48,10 +64,9 @@ self.addEventListener("notificationclick", (event) => {
             return;
           }
         }
-        if (clients.openWindow) {
-          clients.openWindow(url);
-        }
+        return openWindow();
       })
+      .catch(() => openWindow())
   );
 });
 
@@ -62,20 +77,17 @@ self.addEventListener("message", (event) => {
 });
 
 self.addEventListener("pushsubscriptionchange", (event) => {
-  const vapidKey =
-    event.oldSubscription?.options?.applicationServerKey ||
-    new Uint8Array([
-      4, 154, 180, 151, 49, 71, 23, 170, 107, 148, 236, 218, 2, 24, 82, 142,
-      40, 186, 136, 99, 18, 178, 39, 232, 109, 124, 136, 218, 163, 25, 208,
-      213, 106, 55, 252, 164, 63, 22, 41, 81, 228, 108, 188, 31, 65, 232, 222,
-      45, 77, 134, 194, 229, 154, 32, 73, 27, 26, 55, 116, 130, 75, 66, 172,
-      208, 20,
-    ]);
   event.waitUntil(
-    self.registration.pushManager
-      .subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: vapidKey,
+    fetch("/api/vapid/public-key")
+      .then((res) => res.json())
+      .then((data) => {
+        const vapidKey = data.publicKey;
+        if (!vapidKey) throw new Error("No VAPID key");
+
+        return self.registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidKey),
+        });
       })
       .then((newSub) => {
         const toBase64Url = (buf) =>
@@ -99,3 +111,12 @@ self.addEventListener("pushsubscriptionchange", (event) => {
       .catch(() => {})
   );
 });
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const output = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) output[i] = rawData.charCodeAt(i);
+  return output;
+}

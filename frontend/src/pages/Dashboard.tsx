@@ -20,10 +20,7 @@ import {
   ChevronUp,
   Plus,
   Upload,
-  Image,
   DollarSign,
-  Hash,
-  Type,
   FileText,
 } from 'lucide-react';
 import { StatsSkeleton } from '../components/Skeleton';
@@ -52,7 +49,7 @@ export default function Dashboard() {
   const [closeModalEntry, setCloseModalEntry] = useState<any>(null);
   const [customFields, setCustomFields] = useState<any[]>([]);
   const [customValues, setCustomValues] = useState<Record<number, string>>({});
-  const [carryOverLoaded, setCarryOverLoaded] = useState(false);
+  const [fieldsReady, setFieldsReady] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [recentDocs, setRecentDocs] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -292,13 +289,12 @@ export default function Dashboard() {
       // open close-shift modal
       setCloseModalEntry(entry);
       setCustomValues({});
-      setCarryOverLoaded(false);
+      setFieldsReady(false);
       setRecentDocs([]);
       // load custom fields
       const scId = entry.service_center_id;
       api.customFields.list(scId).then(fields => {
         setCustomFields(fields);
-        const requiredFields = fields.filter((f: any) => f.required);
         const carryFields = fields.filter((f: any) => f.carry_over);
         if (carryFields.length > 0) {
           api.customFields.carryOver(scId).then(carry => {
@@ -307,10 +303,10 @@ export default function Dashboard() {
               if (carry[f.id]) vals[f.id] = carry[f.id];
             }
             setCustomValues(vals);
-            setCarryOverLoaded(true);
-          }).catch(() => setCarryOverLoaded(true));
+            setFieldsReady(true);
+          }).catch(() => setFieldsReady(true));
         } else {
-          setCarryOverLoaded(true);
+          setFieldsReady(true);
         }
         // load existing docs
         api.shiftDocuments.list(entry.id).then(setRecentDocs).catch(() => {});

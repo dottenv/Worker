@@ -15,7 +15,7 @@ import random
 from routes import (auth_bp, service_centers_bp, members_bp, shifts_bp,
                     schedule_bp, swaps_bp, push_bp, notifications_bp,
                     finance_bp, time_entries_bp,
-                    custom_fields_bp, shift_documents_bp)
+                    custom_fields_bp, shift_documents_bp, vapid_bp)
 from socket_events import register_socket_handlers
 
 
@@ -40,6 +40,7 @@ def create_app():
     app.register_blueprint(time_entries_bp)
     app.register_blueprint(custom_fields_bp)
     app.register_blueprint(shift_documents_bp)
+    app.register_blueprint(vapid_bp)
 
     with app.app_context():
         db.create_all()

@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   ArrowLeft, Upload, Trash2, Image, FileText,
   Clock, Save, Loader2, CheckCircle2, AlertCircle,
-  X, Download,
+  Download,
 } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 

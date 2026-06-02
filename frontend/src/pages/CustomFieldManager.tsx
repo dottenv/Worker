@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  ArrowLeft, Plus, Trash2, Save, GripVertical,
+  ArrowLeft, Plus, Trash2, Save,
   CheckCircle2, AlertCircle, X, Loader2,
   Hash, DollarSign, Type,
 } from 'lucide-react';
@@ -18,7 +18,6 @@ const FIELD_TYPES = [
 export default function CustomFieldManager() {
   const { scId } = useParams<{ scId: string }>();
   const navigate = useNavigate();
-  const { isOwner } = useAuth();
   const [fields, setFields] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
