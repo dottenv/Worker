@@ -647,10 +647,17 @@ export default function Dashboard() {
                 </>
               )}
               {activeEntry.status === 'pending' && (
+                <>
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 text-amber-700 text-sm">
                   <Clock size={16} />
                   Ожидает подтверждения администратора
                 </div>
+                  <Link to={`/shift-documents/${activeEntry.id}`}
+                    className="mt-2 block w-full text-center py-2 rounded-xl text-sm font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors">
+                    <FileText size={14} className="inline mr-1" />
+                    Документы смены
+                  </Link>
+                </>
               )}
             </div>
           )}
