@@ -1,19 +1,16 @@
 services:
-  caddy:
-    image: caddy:latest
-    container_name: caddy
+  cloudpub:
+    image: cloudpub/cloudpub:latest
+    container_name: cloudpub
     restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
     environment:
-      - APP_DOMAIN=${APP_DOMAIN}
-      - API_DOMAIN=${API_DOMAIN}
-      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
+      - TOKEN=${CLOUDPUB_TOKEN}
+      - HTTP=frontend:80
+    command: run
+    depends_on:
+      - frontend
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+      - cloudpub-config:/home/cloudpub
     networks:
       - app_network
 
@@ -59,5 +56,4 @@ networks:
 
 volumes:
   app_data:
-  caddy_data:
-  caddy_config:
+  cloudpub-config:

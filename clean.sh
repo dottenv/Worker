@@ -7,10 +7,10 @@ echo "=== Полная зачистка Docker ==="
 docker compose --env-file .env down 2>/dev/null || true
 
 # Удалить ВСЕ volume проекта
-docker volume rm worker_app_data worker_acme_data 2>/dev/null || true
+docker volume rm worker_app_data worker_cloudpub-config 2>/dev/null || true
 
 # Удалить все контейнеры проекта
-docker rm -f traefik sc-backend sc-frontend 2>/dev/null || true
+docker rm -f sc-backend sc-frontend cloudpub 2>/dev/null || true
 
 # Удалить сеть
 docker network rm worker_app_network 2>/dev/null || true

@@ -16,7 +16,7 @@ error() { echo -e "${RED}✗${NC} $1"; }
 
 echo ""
 echo -e "${CYAN}════════════════════════════════════════${NC}"
-echo -e "${CYAN}   Worker — Production Setup${NC}"
+echo -e "${CYAN}   Worker — Production Setup (CloudPub)${NC}"
 echo -e "${CYAN}════════════════════════════════════════${NC}"
 echo ""
 
@@ -47,29 +47,32 @@ JWT_SECRET_KEY=$(openssl rand -hex 32)
 ok "Секреты сгенерированы"
 
 echo ""
-read -rp "$(echo -e "${CYAN}Email для SSL [admin@appsht.ru]:${NC} ")" LETSENCRYPT_EMAIL
-LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-admin@appsht.ru}"
-ok "Email: $LETSENCRYPT_EMAIL"
-
+info "CloudPub — сервис туннелирования с автоматическим HTTPS"
+info "1. Зарегистрируйтесь на https://cloudpub.ru/dashboard"
+info "2. Скопируйте токен из личного кабинета"
 echo ""
-read -rp "$(echo -e "${CYAN}Frontend домен [app.appsht.ru]:${NC} ")" APP_DOMAIN
-APP_DOMAIN="${APP_DOMAIN:-app.appsht.ru}"
-
-read -rp "$(echo -e "${CYAN}API домен [api.appsht.ru]:${NC} ")" API_DOMAIN
-API_DOMAIN="${API_DOMAIN:-api.appsht.ru}"
-ok "Домены: $APP_DOMAIN / $API_DOMAIN"
+read -rp "$(echo -e "${CYAN}Токен CloudPub:${NC} ")" CLOUDPUB_TOKEN
+if [ -z "$CLOUDPUB_TOKEN" ]; then
+  error "Токен обязателен"
+  exit 1
+fi
+ok "Токен сохранён"
 
 DATABASE_URL="sqlite:////data/app.db"
 ok "База данных: $DATABASE_URL"
 
 echo ""
+info "Для использования своего домена (app.appsht.ru):"
+info "  1. Опубликуйте сервис через CloudPub — получите URL вида https://xxx.cloudpub.ru"
+info "  2. В личном кабинете CloudPub → Домены → Добавить домен"
+info "  3. Настройте CNAME-запись у регистратора согласно инструкции CloudPub"
+echo ""
+
 cat > "$ENV_FILE" <<EOF
 SECRET_KEY=${SECRET_KEY}
 JWT_SECRET_KEY=${JWT_SECRET_KEY}
-LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
-APP_DOMAIN=${APP_DOMAIN}
-API_DOMAIN=${API_DOMAIN}
 DATABASE_URL=${DATABASE_URL}
+CLOUDPUB_TOKEN=${CLOUDPUB_TOKEN}
 EOF
 
 ok ".env записан"
@@ -80,4 +83,8 @@ echo -e "${GREEN}   Настройка завершена!${NC}"
 echo -e "${GREEN}════════════════════════════════════════${NC}"
 echo ""
 echo "  $COMPOSE_CMD --env-file .env up --build -d"
+echo ""
+
+echo -e "${YELLOW}После запуска выполните:${NC}"
+echo "  docker compose logs cloudpub    # посмотреть URL сервиса"
 echo ""
