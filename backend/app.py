@@ -34,12 +34,18 @@ def create_app():
 
     with app.app_context():
         db.create_all()
-        # migration: add color column for existing databases
-        try:
-            db.session.execute(db.text('ALTER TABLE users ADD COLUMN color VARCHAR(7) DEFAULT \'\''))
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
+        for col, spec in [
+            ("color", "VARCHAR(7) DEFAULT ''"),
+            ("finance_enabled", "BOOLEAN DEFAULT 0"),
+            ("push_sound", "BOOLEAN DEFAULT 1"),
+            ("push_prefs", "TEXT DEFAULT ''"),
+            ("nav_config", "TEXT DEFAULT ''"),
+        ]:
+            try:
+                db.session.execute(db.text(f'ALTER TABLE users ADD COLUMN {col} {spec}'))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
         # assign colors to existing users that have none
         no_color = User.query.filter(db.or_(User.color.is_(None), User.color == '')).all()
         if no_color:
@@ -48,47 +54,28 @@ def create_app():
             for u in no_color:
                 u.color = avail.pop() if avail else random.choice(USER_COLORS)
             db.session.commit()
-        # migration: add finance_enabled column for existing databases
-        try:
-            db.session.execute(db.text('ALTER TABLE users ADD COLUMN finance_enabled BOOLEAN DEFAULT 0'))
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-        # migration: add push_sound and push_prefs columns
-        try:
-            db.session.execute(db.text('ALTER TABLE users ADD COLUMN push_sound BOOLEAN DEFAULT 1'))
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-        try:
-            db.session.execute(db.text('ALTER TABLE users ADD COLUMN push_prefs TEXT DEFAULT \'\''))
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-        # migration: add finance details column
-        try:
-            db.session.execute(db.text('ALTER TABLE finance_operations ADD COLUMN details TEXT DEFAULT \'\''))
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-        # migration: add address and phone columns for service_centers
-        try:
-            db.session.execute(db.text('ALTER TABLE service_centers ADD COLUMN address VARCHAR(300) DEFAULT \'\''))
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-        try:
-            db.session.execute(db.text('ALTER TABLE service_centers ADD COLUMN phone VARCHAR(20) DEFAULT \'\''))
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-        # migration: add shift_id column for schedule_entries
+        for col, spec in [
+            ("details", "TEXT DEFAULT ''"),
+        ]:
+            try:
+                db.session.execute(db.text(f'ALTER TABLE finance_operations ADD COLUMN {col} {spec}'))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+        for col, spec in [
+            ("address", "VARCHAR(300) DEFAULT ''"),
+            ("phone", "VARCHAR(20) DEFAULT ''"),
+        ]:
+            try:
+                db.session.execute(db.text(f'ALTER TABLE service_centers ADD COLUMN {col} {spec}'))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
         try:
             db.session.execute(db.text('ALTER TABLE schedule_entries ADD COLUMN shift_id INTEGER REFERENCES shifts(id)'))
             db.session.commit()
         except Exception:
             db.session.rollback()
-        # migration: create time_entries table
         try:
             db.session.execute(db.text(
                 'CREATE TABLE IF NOT EXISTS time_entries ('
@@ -109,12 +96,6 @@ def create_app():
             db.session.commit()
         except Exception:
             db.session.rollback()
-        # migration: add nav_config column for users
-        try:
-            db.session.execute(db.text('ALTER TABLE users ADD COLUMN nav_config TEXT DEFAULT \'\''))
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
 
     socketio.init_app(app)
     register_socket_handlers(socketio)
@@ -122,6 +103,7 @@ def create_app():
     return app
 
 
+app = create_app()
+
 if __name__ == "__main__":
-    app = create_app()
     socketio.run(app, debug=True, host="0.0.0.0", port=5000)

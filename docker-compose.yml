@@ -1,0 +1,92 @@
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - "--global.sendAnonymousUsage=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL:-admin@app.appsht.ru}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/acme/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "acme_data:/acme"
+    networks:
+      - app_network
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  backend:
+    build: ./backend
+    container_name: sc-backend
+    restart: unless-stopped
+    expose:
+      - "5000"
+    volumes:
+      - app_data:/app/data
+    environment:
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      - DATABASE_URL=sqlite:///data/app.db
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.backend-svc.loadbalancer.server.port=5000"
+      - "traefik.http.routers.backend-api.rule=Host(`api.appsht.ru`)"
+      - "traefik.http.routers.backend-api.service=backend-svc"
+      - "traefik.http.routers.backend-api.entrypoints=websecure"
+      - "traefik.http.routers.backend-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend-app.rule=Host(`app.appsht.ru`) && (PathPrefix(`/api`) || PathPrefix(`/socket.io`))"
+      - "traefik.http.routers.backend-app.service=backend-svc"
+      - "traefik.http.routers.backend-app.entrypoints=websecure"
+      - "traefik.http.routers.backend-app.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend-app.priority=100"
+    networks:
+      - app_network
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    build: ./frontend
+    container_name: sc-frontend
+    restart: unless-stopped
+    expose:
+      - "80"
+    depends_on:
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.frontend-svc.loadbalancer.server.port=80"
+      - "traefik.http.routers.frontend.rule=Host(`app.appsht.ru`)"
+      - "traefik.http.routers.frontend.service=frontend-svc"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+    networks:
+      - app_network
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  app_data:
+  acme_data:
