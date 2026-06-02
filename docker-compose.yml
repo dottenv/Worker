@@ -5,20 +5,12 @@ services:
     restart: unless-stopped
     environment:
       - TOKEN=${CLOUDPUB_TOKEN}
-    entrypoint: ""
-    command: >
-      sh -c "
-        if [ ! -f /home/cloudpub/.initialized ]; then
-          touch /home/cloudpub/.initialized;
-          clo publish http frontend:80;
-        else
-          clo run;
-        fi
-      "
+      - HTTP=frontend:80
+    command: run
     depends_on:
       - frontend
     volumes:
-      - ./cloudpub-data:/home/cloudpub
+      - cloudpub-config:/home/cloudpub
     networks:
       - app_network
 
@@ -61,3 +53,6 @@ services:
 networks:
   app_network:
     driver: bridge
+
+volumes:
+  cloudpub-config:
