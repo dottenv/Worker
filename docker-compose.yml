@@ -13,8 +13,13 @@ services:
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL:-admin@app.appsht.ru}"
+      - "--certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL}"
       - "--certificatesresolvers.letsencrypt.acme.storage=/acme/acme.json"
+      - "--certificatesresolvers.letsencrypt-staging.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt-staging.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt-staging.acme.email=${LETSENCRYPT_EMAIL}"
+      - "--certificatesresolvers.letsencrypt-staging.acme.storage=/acme/acme-staging.json"
+      - "--certificatesresolvers.letsencrypt-staging.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
     ports:
       - "80:80"
       - "443:443"
@@ -35,24 +40,24 @@ services:
     expose:
       - "5000"
     volumes:
-      - app_data:/app/data
+      - "app_data:/data"
     environment:
-      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
-      - DATABASE_URL=sqlite:///data/app.db
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - DATABASE_URL=${DATABASE_URL}
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
       - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
     labels:
       - "traefik.enable=true"
       - "traefik.http.services.backend-svc.loadbalancer.server.port=5000"
-      - "traefik.http.routers.backend-api.rule=Host(`api.appsht.ru`)"
+      - "traefik.http.routers.backend-api.rule=Host(`${API_DOMAIN}`)"
       - "traefik.http.routers.backend-api.service=backend-svc"
       - "traefik.http.routers.backend-api.entrypoints=websecure"
-      - "traefik.http.routers.backend-api.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.backend-app.rule=Host(`app.appsht.ru`) && (PathPrefix(`/api`) || PathPrefix(`/socket.io`))"
+      - "traefik.http.routers.backend-api.tls.certresolver=${CERT_RESOLVER}"
+      - "traefik.http.routers.backend-app.rule=Host(`${APP_DOMAIN}`) && (PathPrefix(`/api`) || PathPrefix(`/socket.io`))"
       - "traefik.http.routers.backend-app.service=backend-svc"
       - "traefik.http.routers.backend-app.entrypoints=websecure"
-      - "traefik.http.routers.backend-app.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend-app.tls.certresolver=${CERT_RESOLVER}"
       - "traefik.http.routers.backend-app.priority=100"
     networks:
       - app_network
@@ -72,10 +77,10 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.services.frontend-svc.loadbalancer.server.port=80"
-      - "traefik.http.routers.frontend.rule=Host(`app.appsht.ru`)"
+      - "traefik.http.routers.frontend.rule=Host(`${APP_DOMAIN}`)"
       - "traefik.http.routers.frontend.service=frontend-svc"
       - "traefik.http.routers.frontend.entrypoints=websecure"
-      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.frontend.tls.certresolver=${CERT_RESOLVER}"
     networks:
       - app_network
     logging:

@@ -4,8 +4,9 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential libffi-dev \
-    && rm -rf /var/lib/apt/lists/* && \
-    mkdir -p /app/data
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /data && chown -R nobody:nogroup /data
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir --no-compile gunicorn && \
@@ -15,4 +16,4 @@ COPY . .
 
 EXPOSE 5000
 
-CMD ["gunicorn", "-k", "geventwebsocket.gunicorn.workers.GeventWebSocketWorker", "-w", "1", "--bind", "0.0.0.0:5000", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
+CMD ["sh", "-c", "mkdir -p /data && gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 --bind 0.0.0.0:5000 --access-logfile - --error-logfile - app:app"]
