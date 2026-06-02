@@ -27,8 +27,8 @@ const NOTIF_TYPES: Record<string, { label: string; icon: any }> = {
 };
 
 export default function Settings() {
-  const { user, logout } = useAuth();
-  const { theme, setTheme } = useTheme();
+  const { user, logout, isOwner } = useAuth();
+  const { mode, setMode } = useTheme();
   const { subscribed, supported, permission, subscribe, unsubscribe } = usePush();
   const { centers, activeCenterId, setActiveCenterId } = useCenters();
   const navigate = useNavigate();

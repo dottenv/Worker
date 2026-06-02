@@ -17,6 +17,22 @@ import ScheduleDetailModal from '../components/ScheduleDetailModal';
 const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 const STORAGE_VIEW_KEY = 'scheduleViewMode';
 
+const USER_COLORS = [
+  '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e',
+  '#ef4444', '#f97316', '#eab308', '#22c55e',
+  '#10b981', '#06b6d4', '#3b82f6', '#a855f7',
+  '#d946ef', '#14b8a6', '#84cc16', '#e11d48',
+];
+
+function userColor(name: string, fallback: string | null): string {
+  if (fallback) return fallback;
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return USER_COLORS[Math.abs(hash) % USER_COLORS.length];
+}
+
 type ViewMode = 'week' | 'month';
 
 export default function MySchedule() {
@@ -242,7 +258,7 @@ export default function MySchedule() {
                           <div className="flex items-center gap-1 mb-0.5">
                             <span
                               className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: e.user_color || '#6366f1' }}
+                              style={{ backgroundColor: userColor(e.user_name, e.user_color) }}
                             />
                             <span className="font-medium truncate">{e.user_name}</span>
                           </div>
@@ -301,7 +317,7 @@ export default function MySchedule() {
                         >
                           <span
                             className="w-1 h-1 rounded-full inline-block mr-0.5 align-middle"
-                            style={{ backgroundColor: e.user_color || '#6366f1' }}
+                            style={{ backgroundColor: userColor(e.user_name, e.user_color) }}
                           />
                           {e.type === 'full_day' ? 'Весь день' : `${e.start_time || ''}`}
                         </div>
