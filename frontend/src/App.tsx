@@ -1,0 +1,170 @@
+import { useLayoutEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { HeaderProvider } from './contexts/HeaderContext';
+import { useHeader } from './contexts/useHeader';
+import { PushProvider } from './contexts/PushContext';
+import { SocketProvider } from './contexts/SocketContext';
+import { DataProvider, useData } from './contexts/DataContext';
+import { CenterProvider } from './contexts/CenterContext';
+import { NotificationProvider } from './contexts/NotificationContext';
+import Layout from './components/Layout';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import CentersList from './pages/CentersList';
+import CenterDetail from './pages/CenterDetail';
+import Settings from './pages/Settings';
+import Modules from './pages/Modules';
+import EmployeeCard from './pages/EmployeeCard';
+import MySchedule from './pages/MySchedule';
+import AdminSchedule from './pages/AdminSchedule';
+import SwapList from './pages/SwapList';
+import SwapDetail from './pages/SwapDetail';
+import SwapNew from './pages/SwapNew';
+import UserProfile from './pages/UserProfile';
+import Notifications from './pages/Notifications';
+import Finance from './pages/Finance';
+import FinanceAdmin from './pages/FinanceAdmin';
+import TimeRequests from './pages/TimeRequests';
+import ShiftManager from './pages/ShiftManager';
+import LoadingSpinner from './components/LoadingSpinner';
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingSpinner />;
+  if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function PublicRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="text-center py-8 text-gray-400">Загрузка...</div>;
+  if (user) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
+function HeaderSync() {
+  const { setBack } = useHeader();
+  const path = useLocation().pathname;
+
+  useLayoutEffect(() => {
+    if (path === '/centers/new') {
+      setBack('/centers', 'Центры');
+    } else if (/^\/centers\/\d+$/.test(path)) {
+      setBack('/centers', 'Центры');
+    } else if (/^\/centers\/\d+\/employees\/\d+$/.test(path)) {
+      const scId = path.split('/')[2];
+      setBack(`/centers/${scId}`, 'Центры');
+    } else if (/^\/centers\/\d+\/shifts$/.test(path)) {
+      const scId = path.split('/')[2];
+      setBack(`/centers/${scId}`, 'Центры');
+    } else if (path === '/swaps') {
+      setBack(null);
+    } else if (path === '/swaps/new') {
+      setBack('/swaps', 'Обмен');
+    } else if (/^\/swaps\/\d+$/.test(path)) {
+      setBack('/swaps', 'Обмен');
+    } else if (path === '/schedule/admin') {
+      setBack('/schedule', 'График');
+    } else if (path === '/modules') {
+      setBack('/settings', 'Настройки');
+    } else {
+      setBack(null);
+    }
+  }, [path]);
+
+  return null;
+}
+
+function AppShell() {
+  const { loaded } = useData();
+  if (!loaded) {
+    return (
+      <div className="min-h-dvh flex items-center justify-center" style={{ backgroundColor: 'var(--bg-primary)' }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
+  return <Layout />;
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route
+        path="/login"
+        element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <PublicRoute>
+            <Register />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <SocketProvider>
+            <PushProvider>
+            <CenterProvider>
+            <NotificationProvider>
+            <DataProvider>
+              <HeaderProvider>
+                <HeaderSync />
+                <AppShell />
+              </HeaderProvider>
+            </DataProvider>
+            </NotificationProvider>
+            </CenterProvider>
+            </PushProvider>
+            </SocketProvider>
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Dashboard />} />
+        <Route path="centers" element={<CentersList />} />
+        <Route path="centers/new" element={<CentersList />} />
+        <Route path="centers/:id" element={<CenterDetail />} />
+        <Route path="centers/:scId/employees/:memberId" element={<EmployeeCard />} />
+        <Route path="centers/:scId/shifts" element={<ShiftManager />} />
+        <Route path="schedule" element={<MySchedule />} />
+        <Route path="schedule/admin" element={<AdminSchedule />} />
+        <Route path="swaps" element={<SwapList />} />
+        <Route path="swaps/new" element={<SwapNew />} />
+        <Route path="swaps/:id" element={<SwapDetail />} />
+        <Route path="notifications" element={<Notifications />} />
+        <Route path="finance" element={<Finance />} />
+        <Route path="finance/admin" element={<FinanceAdmin />} />
+        <Route path="time-requests" element={<TimeRequests />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="profile/:userId" element={<UserProfile />} />
+        <Route path="modules" element={<Modules />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </BrowserRouter>
+    </ThemeProvider>
+  );
+}
