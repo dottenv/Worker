@@ -1,11 +1,12 @@
 import { Table, DatePicker, Select, Space, Typography } from "antd";
 import { useEffect, useState } from "react";
+import dayjs, { Dayjs } from "dayjs";
 import api from "../api";
 
 export default function SessionsPage() {
   const [sessions, setSessions] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(dayjs().format("YYYY-MM-DD"));
   const [warehouseId, setWarehouseId] = useState<number | undefined>();
 
   const fetch = () => {
@@ -43,8 +44,11 @@ export default function SessionsPage() {
       <Typography.Title level={4}>Сессии</Typography.Title>
       <Space style={{ marginBottom: 16 }}>
         <DatePicker
-          value={date ? undefined : undefined}
-          onChange={(_, d) => setDate(d || new Date().toISOString().split("T")[0])}
+          value={dayjs(date)}
+          onChange={(_: Dayjs | null, ds: string | string[]) => {
+            const val = Array.isArray(ds) ? ds[0] : ds;
+            setDate(val || dayjs().format("YYYY-MM-DD"));
+          }}
         />
         <Select
           placeholder="Все склады"
