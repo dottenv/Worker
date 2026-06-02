@@ -132,15 +132,17 @@ export default function Layout() {
       {/* Sidebar overlay */}
       <div className={`fixed inset-0 z-20 flex pointer-events-none ${sidebarOpen ? 'pointer-events-auto' : ''}`}>
         <div
-          className={`flex-1 transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}
-          style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}
+          className={`flex-1 transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}
+          style={{ backgroundColor: 'rgba(0,0,0,0.3)', transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
           onClick={() => setSidebarOpen(false)}
         />
         <div
-          className={`w-72 shadow-xl border-l border-gray-100 p-5 overflow-y-auto transition-all duration-300 ${
-            sidebarOpen ? 'translate-x-0' : 'translate-x-full'
-          }`}
-          style={{ backgroundColor: 'var(--bg-card)' }}
+          className={`w-72 shadow-xl border-l border-gray-100 p-5 overflow-y-auto`}
+          style={{
+            backgroundColor: 'var(--bg-card)',
+            transform: sidebarOpen ? 'translateX(0)' : 'translateX(100%)',
+            transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
         >
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Все разделы</span>

@@ -214,8 +214,8 @@ export default function CenterDetail() {
       </Link>
 
       {showEdit && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-end sm:items-center justify-center z-20 p-5 animate-fade-in">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl space-y-3 animate-slide-up">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-end sm:items-center justify-center z-20 p-5 animate-modal-overlay">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl space-y-3 animate-modal-body">
             <h3 className="text-sm font-semibold text-gray-900">
               Редактировать центр
             </h3>
@@ -269,8 +269,8 @@ export default function CenterDetail() {
       )}
 
       {showInvite && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-end sm:items-center justify-center z-20 p-5 animate-fade-in">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl animate-slide-up">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-end sm:items-center justify-center z-20 p-5 animate-modal-overlay">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl animate-modal-body">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">
               Пригласить сотрудника
             </h3>
