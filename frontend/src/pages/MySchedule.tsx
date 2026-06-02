@@ -203,24 +203,6 @@ export default function MySchedule() {
         </button>
       </div>
 
-      <label className="flex items-center gap-2 cursor-pointer select-none">
-        <span className="text-sm text-gray-500">Только мои</span>
-        <button
-          role="checkbox"
-          aria-checked={onlyMine}
-          onClick={() => setOnlyMine((p) => !p)}
-          className={`relative w-9 h-5 rounded-full transition-colors ${
-            onlyMine ? 'bg-indigo-500' : 'bg-gray-300'
-          }`}
-        >
-          <span
-            className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-xs transition-transform ${
-              onlyMine ? 'translate-x-4' : 'translate-x-0'
-            }`}
-          />
-        </button>
-      </label>
-
       <div className="flex items-center justify-between bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
         <button
           onClick={() => viewMode === 'week' ? setWeekOffset((p) => p - 1) : setMonthOffset((p) => p - 1)}
@@ -240,6 +222,21 @@ export default function MySchedule() {
           className="p-1.5 rounded-lg hover:bg-gray-50 text-gray-400 hover:text-indigo-600"
         >
           <ChevronRight size={16} />
+        </button>
+        <button
+          onClick={() => setOnlyMine((p) => !p)}
+          className={`ml-auto flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
+            onlyMine
+              ? 'bg-indigo-50 text-indigo-600'
+              : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          {onlyMine ? (
+            <svg viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5"><path d="M8 1a3 3 0 100 6 3 3 0 000-6zM2 13v-1a3 3 0 013-3h1.1a4.5 4.5 0 00-.1 1c0 .7.18 1.37.5 1.95A8.5 8.5 0 012 13zM12.5 7a2.5 2.5 0 100 5 2.5 2.5 0 000-5zM10 13.5c.33.32.73.55 1.18.68a2.5 2.5 0 002.64-.68H10z"/></svg>
+          ) : (
+            <svg viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5"><path d="M8 1a3 3 0 100 6 3 3 0 000-6zM2 13v-1a3 3 0 013-3h6a3 3 0 013 3v1H2z"/></svg>
+          )}
+          Только мои
         </button>
       </div>
 
