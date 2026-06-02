@@ -696,9 +696,9 @@ export default function SwapNew() {
 
       {/* Confirm dialog */}
       {confirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
           style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="w-full max-w-sm p-5 rounded-2xl" style={{ backgroundColor: 'var(--bg-card)' }}>
+          <div className="w-full max-w-sm p-5 rounded-2xl animate-scale-in" style={{ backgroundColor: 'var(--bg-card)' }}>
             <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
               Подтвердите действие
             </h3>

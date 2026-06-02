@@ -14,9 +14,9 @@ const TYPE_LABELS: Record<string, string> = {
 export default function ScheduleDetailModal({ entry, onClose, onDelete }: Props) {
   return (
     <>
-      <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/30 z-40 animate-fade-in" onClick={onClose} />
       <div className="fixed inset-x-4 bottom-0 z-50 sm:inset-x-auto sm:max-w-md sm:mx-auto sm:top-1/2 sm:-translate-y-1/2">
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-slide-up">
           <div className="flex items-center justify-between px-5 pt-5 pb-3">
             <h2 className="text-base font-bold text-gray-900">Детали смены</h2>
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-50 text-gray-400 hover:text-gray-600">

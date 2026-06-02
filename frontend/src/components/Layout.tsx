@@ -14,6 +14,7 @@ import { api } from '../api/client';
 import { getAvailableItems, DEFAULT_PINNED } from '../config/navItems';
 import InstallPrompt from './InstallPrompt';
 import ToastNotifications from './ToastNotifications';
+import PageTransition from './PageTransition';
 
 function NavLink({ to, label, icon: Icon, active, badge }: { to: string; label: string; icon: any; active: boolean; badge?: number }) {
   return (
@@ -125,43 +126,51 @@ export default function Layout() {
         </header>
 
       <main className="flex-1 max-w-lg mx-auto w-full px-5 py-6 pb-24">
-        <Outlet />
+        <PageTransition><Outlet /></PageTransition>
       </main>
 
       {/* Sidebar overlay */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-20 flex">
-          <div className="flex-1 bg-black/30 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <div className="w-72 bg-white shadow-xl border-l border-gray-100 p-5 overflow-y-auto" style={{ backgroundColor: 'var(--bg-card)' }}>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-semibold text-gray-900">Все разделы</span>
-              <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="space-y-1">
-              {availableItems.map((item) => {
-                const active = isActive(item.path);
-                return (
-                  <Link
-                    key={item.id}
-                    to={item.path}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                      active
-                        ? 'bg-indigo-50 text-indigo-700'
-                        : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <item.icon size={18} strokeWidth={active ? 2.5 : 1.8} />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
+      <div className={`fixed inset-0 z-20 flex pointer-events-none ${sidebarOpen ? 'pointer-events-auto' : ''}`}>
+        <div
+          className={`flex-1 transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}
+          style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}
+          onClick={() => setSidebarOpen(false)}
+        />
+        <div
+          className={`w-72 shadow-xl border-l border-gray-100 p-5 overflow-y-auto transition-all duration-300 ${
+            sidebarOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+          style={{ backgroundColor: 'var(--bg-card)' }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Все разделы</span>
+            <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
+              <X size={18} />
+            </button>
+          </div>
+          <div className="space-y-1">
+            {availableItems.map((item) => {
+              const active = isActive(item.path);
+              return (
+                <Link
+                  key={item.id}
+                  to={item.path}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                    active
+                      ? 'bg-indigo-50 text-indigo-700'
+                      : 'hover:bg-gray-50'
+                  }`}
+                  style={{ color: active ? undefined : 'var(--text-secondary)' }}
+                >
+                  <item.icon size={18} strokeWidth={active ? 2.5 : 1.8} />
+                  {item.label}
+                </Link>
+              );
+            })}
           </div>
         </div>
-      )}
+      </div>
 
       <ToastNotifications />
       <InstallPrompt />

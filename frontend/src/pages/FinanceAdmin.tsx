@@ -287,9 +287,9 @@ export default function FinanceAdmin() {
       )}
 
       {showAdd && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 animate-fade-in"
           style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
-          <div className="w-full max-w-md rounded-2xl p-5 space-y-4" style={{ backgroundColor: 'var(--bg-card)' }}>
+          <div className="w-full max-w-md rounded-2xl p-5 space-y-4 animate-slide-up" style={{ backgroundColor: 'var(--bg-card)' }}>
             <div className="flex items-center justify-between">
               <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Новая операция</h3>
               <button onClick={() => setShowAdd(false)} className="p-1 rounded-lg hover:bg-gray-100">

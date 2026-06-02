@@ -131,8 +131,8 @@ export default function TimeRequests() {
 
       {/* Approve modal */}
       {approving && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-end sm:items-center justify-center z-20 p-5">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl space-y-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-end sm:items-center justify-center z-20 p-5 animate-fade-in">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl space-y-4 animate-slide-up">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-900">Настройки смены</h3>
               <button onClick={() => setApproving(null)} className="p-1 rounded-lg text-gray-400 hover:text-gray-600">

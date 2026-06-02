@@ -38,7 +38,7 @@ export default function InstallPrompt() {
   };
 
   return (
-    <div className="fixed bottom-24 left-4 right-4 z-50 max-w-lg mx-auto">
+    <div className="fixed bottom-24 left-4 right-4 z-50 max-w-lg mx-auto animate-slide-up">
       <div
         className="flex items-center gap-3 px-4 py-3 rounded-2xl shadow-lg border"
         style={{
