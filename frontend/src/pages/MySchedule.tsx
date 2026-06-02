@@ -62,6 +62,16 @@ export default function MySchedule() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [monthOffset, setMonthOffset] = useState(0);
   const [detailEntry, setDetailEntry] = useState<any>(null);
+  const [onlyMine, setOnlyMine] = useState(false);
+
+  const filteredData: Record<string, any[]> = {};
+  if (onlyMine && user) {
+    for (const day of Object.keys(grouped)) {
+      const mine = grouped[day].filter((e: any) => e.user_id === user.id);
+      if (mine.length) filteredData[day] = mine;
+    }
+  }
+  const displayData = onlyMine && user ? filteredData : grouped;
 
   useEffect(() => {
     if (isOwner || isAdmin) {
@@ -193,6 +203,24 @@ export default function MySchedule() {
         </button>
       </div>
 
+      <label className="flex items-center gap-2 cursor-pointer select-none">
+        <span className="text-sm text-gray-500">Только мои</span>
+        <button
+          role="checkbox"
+          aria-checked={onlyMine}
+          onClick={() => setOnlyMine((p) => !p)}
+          className={`relative w-9 h-5 rounded-full transition-colors ${
+            onlyMine ? 'bg-indigo-500' : 'bg-gray-300'
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-xs transition-transform ${
+              onlyMine ? 'translate-x-4' : 'translate-x-0'
+            }`}
+          />
+        </button>
+      </label>
+
       <div className="flex items-center justify-between bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
         <button
           onClick={() => viewMode === 'week' ? setWeekOffset((p) => p - 1) : setMonthOffset((p) => p - 1)}
@@ -234,7 +262,7 @@ export default function MySchedule() {
           </div>
           <div className="grid grid-cols-7">
             {weekDays.map((day) => {
-              const dayEntries = grouped[day] || [];
+              const dayEntries = displayData[day] || [];
               const isToday = day === todayStr;
               return (
                 <div
@@ -293,7 +321,7 @@ export default function MySchedule() {
               <div key={`empty-${i}`} className="min-h-[72px] bg-gray-50/30" />
             ))}
             {monthDays.map((day) => {
-              const dayEntries = grouped[day] || [];
+              const dayEntries = displayData[day] || [];
               const isToday = day === todayStr;
               return (
                 <div
