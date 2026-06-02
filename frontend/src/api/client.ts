@@ -264,5 +264,46 @@ export const api = {
       const s = q.toString();
       return request<any[]>(`/time-entries/center/${sc_id}${s ? '?' + s : ''}`);
     },
+    update: (entryId: number, data: any) =>
+      request<any>(`/time-entries/${entryId}`, { method: 'PUT', body: JSON.stringify(data) }),
+  },
+  customFields: {
+    list: (scId: number) => request<any[]>(`/service-centers/${scId}/custom-fields`),
+    create: (scId: number, data: any) =>
+      request<any>(`/service-centers/${scId}/custom-fields`, { method: 'POST', body: JSON.stringify(data) }),
+    update: (scId: number, fieldId: number, data: any) =>
+      request<any>(`/service-centers/${scId}/custom-fields/${fieldId}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (scId: number, fieldId: number) =>
+      request<any>(`/service-centers/${scId}/custom-fields/${fieldId}`, { method: 'DELETE' }),
+    getValues: (scId: number, entryId: number) =>
+      request<any[]>(`/service-centers/${scId}/custom-fields/values/${entryId}`),
+    updateValues: (scId: number, entryId: number, values: { custom_field_id: number; value: string }[]) =>
+      request<any[]>(`/service-centers/${scId}/custom-fields/values/${entryId}`, {
+        method: 'PUT', body: JSON.stringify({ values }),
+      }),
+    carryOver: (scId: number) =>
+      request<Record<number, string>>(`/service-centers/${scId}/custom-fields/carry-over`),
+  },
+  shiftDocuments: {
+    list: (entryId: number) => request<any[]>(`/shift-documents/by-entry/${entryId}`),
+    upload: (entryId: number, file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('time_entry_id', String(entryId));
+      const token = localStorage.getItem('token');
+      return fetch('/api/shift-documents/upload', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      }).then(async res => {
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+          throw new Error(err.error || 'Upload failed');
+        }
+        return res.json();
+      });
+    },
+    delete: (docId: number) =>
+      request<any>(`/shift-documents/${docId}`, { method: 'DELETE' }),
   },
 };

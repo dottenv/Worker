@@ -29,6 +29,8 @@ import Finance from './pages/Finance';
 import FinanceAdmin from './pages/FinanceAdmin';
 import TimeRequests from './pages/TimeRequests';
 import ShiftManager from './pages/ShiftManager';
+import ShiftDocuments from './pages/ShiftDocuments';
+import CustomFieldManager from './pages/CustomFieldManager';
 import LoadingSpinner from './components/LoadingSpinner';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -70,6 +72,13 @@ function HeaderSync() {
       setBack('/schedule', 'График');
     } else if (path === '/modules') {
       setBack('/settings', 'Настройки');
+    } else if (path === '/settings') {
+      setBack(null);
+    } else if (/^\/shift-documents\/\d+$/.test(path)) {
+      setBack(null);
+    } else if (/^\/centers\/\d+\/custom-fields$/.test(path)) {
+      const scId = path.split('/')[2];
+      setBack(`/centers/${scId}`, 'Центры');
     } else {
       setBack(null);
     }
@@ -148,6 +157,8 @@ function AppRoutes() {
         <Route path="finance" element={<Finance />} />
         <Route path="finance/admin" element={<FinanceAdmin />} />
         <Route path="time-requests" element={<TimeRequests />} />
+        <Route path="shift-documents/:entryId" element={<ShiftDocuments />} />
+        <Route path="centers/:scId/custom-fields" element={<CustomFieldManager />} />
         <Route path="settings" element={<Settings />} />
         <Route path="profile/:userId" element={<UserProfile />} />
         <Route path="modules" element={<Modules />} />

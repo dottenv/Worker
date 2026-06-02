@@ -8,5 +8,13 @@ from .push_subscription import PushSubscription
 from .notification import Notification
 from .finance_operation import FinanceOperation
 from .time_entry import TimeEntry
+from .custom_field import CustomField
+from .custom_field_value import CustomFieldValue
+from .shift_document import ShiftDocument
 
-__all__ = ["User", "ServiceCenter", "ServiceCenterMember", "Shift", "ScheduleEntry", "SwapRequest", "PushSubscription", "Notification", "FinanceOperation", "TimeEntry"]
+__all__ = [
+    "User", "ServiceCenter", "ServiceCenterMember", "Shift",
+    "ScheduleEntry", "SwapRequest", "PushSubscription",
+    "Notification", "FinanceOperation", "TimeEntry",
+    "CustomField", "CustomFieldValue", "ShiftDocument",
+]

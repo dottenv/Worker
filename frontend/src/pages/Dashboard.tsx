@@ -19,6 +19,12 @@ import {
   ChevronDown,
   ChevronUp,
   Plus,
+  Upload,
+  Image,
+  DollarSign,
+  Hash,
+  Type,
+  FileText,
 } from 'lucide-react';
 import { StatsSkeleton } from '../components/Skeleton';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -41,6 +47,15 @@ export default function Dashboard() {
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [expandedCenters, setExpandedCenters] = useState<Set<number>>(new Set());
   const [workStats, setWorkStats] = useState<{ weekHours: number; monthHours: number; completedShifts: number } | null>(null);
+
+  // Close shift modal
+  const [closeModalEntry, setCloseModalEntry] = useState<any>(null);
+  const [customFields, setCustomFields] = useState<any[]>([]);
+  const [customValues, setCustomValues] = useState<Record<number, string>>({});
+  const [carryOverLoaded, setCarryOverLoaded] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [recentDocs, setRecentDocs] = useState<any[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     api.timeEntries.active().then(e => {
@@ -272,14 +287,66 @@ export default function Dashboard() {
     setClockLoading(true);
     setClockMessage(null);
     try {
-      await api.timeEntries.clockOut();
+      const entry = await api.timeEntries.clockOut();
       setActiveEntry(null);
+      // open close-shift modal
+      setCloseModalEntry(entry);
+      setCustomValues({});
+      setCarryOverLoaded(false);
+      setRecentDocs([]);
+      // load custom fields
+      const scId = entry.service_center_id;
+      api.customFields.list(scId).then(fields => {
+        setCustomFields(fields);
+        const requiredFields = fields.filter((f: any) => f.required);
+        const carryFields = fields.filter((f: any) => f.carry_over);
+        if (carryFields.length > 0) {
+          api.customFields.carryOver(scId).then(carry => {
+            const vals: Record<number, string> = {};
+            for (const f of carryFields) {
+              if (carry[f.id]) vals[f.id] = carry[f.id];
+            }
+            setCustomValues(vals);
+            setCarryOverLoaded(true);
+          }).catch(() => setCarryOverLoaded(true));
+        } else {
+          setCarryOverLoaded(true);
+        }
+        // load existing docs
+        api.shiftDocuments.list(entry.id).then(setRecentDocs).catch(() => {});
+      }).catch(() => {});
       setClockMessage({ ok: true, text: 'Смена завершена' });
     } catch (err: any) {
       setClockMessage({ ok: false, text: err.message });
     }
     setClockLoading(false);
     setTimeout(() => setClockMessage(null), 4000);
+  };
+
+  const handleCloseModalDone = async () => {
+    if (!closeModalEntry) return;
+    const scId = closeModalEntry.service_center_id;
+    const values = Object.entries(customValues)
+      .filter(([_, v]) => v !== '')
+      .map(([fieldId, value]) => ({ custom_field_id: Number(fieldId), value }));
+    if (values.length > 0) {
+      try {
+        await api.customFields.updateValues(scId, closeModalEntry.id, values);
+      } catch {}
+    }
+    setCloseModalEntry(null);
+  };
+
+  const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !closeModalEntry) return;
+    setUploadingPhoto(true);
+    try {
+      const doc = await api.shiftDocuments.upload(closeModalEntry.id, file);
+      setRecentDocs(prev => [doc, ...prev]);
+    } catch {}
+    setUploadingPhoto(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
@@ -405,7 +472,9 @@ export default function Dashboard() {
                           <div className="px-3.5 pb-2.5 space-y-1">
                             {allEntries.length === 0 ? (
                               <p className="text-xs text-gray-400 text-center py-2">Нет запланированных смен</p>
-                            ) : allEntries.map((entry: any, i: number) => (
+                            ) : allEntries.map((entry: any, i: number) => {
+                              const clockedEntry = entry._clocked || entry._pending;
+                              return (
                               <div key={entry.id || i}
                                 className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white shadow-sm">
                                 <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[10px] font-medium text-white"
@@ -420,19 +489,27 @@ export default function Dashboard() {
                                     <p className="text-[10px] text-gray-400">Весь день</p>
                                   )}
                                 </div>
-                                {entry._clocked ? (
-                                  <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                                    <CheckCircle2 size={10} /> На месте
-                                  </span>
-                                ) : entry._pending ? (
-                                  <span className="flex items-center gap-1 text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                                    <Loader2 size={10} className="animate-spin" /> Ожидание
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px] text-gray-300">Нет</span>
-                                )}
+                                <div className="flex items-center gap-1">
+                                  {clockedEntry && (
+                                    <Link to={`/shift-documents/${clockedEntry.id}`}
+                                      className="text-[10px] text-indigo-500 hover:text-indigo-700 font-medium px-1.5 py-0.5 rounded hover:bg-indigo-50 transition-colors">
+                                      <FileText size={12} />
+                                    </Link>
+                                  )}
+                                  {entry._clocked ? (
+                                    <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                      <CheckCircle2 size={10} /> На месте
+                                    </span>
+                                  ) : entry._pending ? (
+                                    <span className="flex items-center gap-1 text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                                      <Loader2 size={10} className="animate-spin" /> Ожидание
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] text-gray-300">Нет</span>
+                                  )}
+                                </div>
                               </div>
-                            ))}
+                            );})}
                           </div>
                         )}
                       </div>
@@ -535,11 +612,18 @@ export default function Dashboard() {
                 <p>Начало: {new Date(activeEntry.clock_in).toLocaleString('ru', { hour: '2-digit', minute: '2-digit' })}</p>
               </div>
               {activeEntry.status !== 'pending' && (
+                <>
                 <button onClick={handleClockOut} disabled={clockLoading}
                   className="w-full flex items-center justify-center gap-2 py-3 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 disabled:opacity-40 transition-colors">
                   {clockLoading ? <Loader2 size={16} className="animate-spin" /> : <Square size={16} />}
                   Завершить смену
                 </button>
+                  <Link to={`/shift-documents/${activeEntry.id}`}
+                    className="mt-2 block w-full text-center py-2 rounded-xl text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors">
+                    <FileText size={14} className="inline mr-1" />
+                    Документы смены
+                  </Link>
+                </>
               )}
               {activeEntry.status === 'pending' && (
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 text-amber-700 text-sm">
@@ -702,6 +786,98 @@ export default function Dashboard() {
             </Link>
           </div>
         </>
+      )}
+
+      {/* Close shift modal */}
+      {closeModalEntry && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-end sm:items-center justify-center z-20 p-5 animate-modal-overlay">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl space-y-4 animate-modal-body max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={18} className="text-emerald-500" />
+                <h3 className="text-sm font-semibold text-gray-900">Смена завершена</h3>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-400">
+              {closeModalEntry.service_center_name} &middot; {closeModalEntry.date}
+              <br />
+              {closeModalEntry.clock_in && `Начало: ${new Date(closeModalEntry.clock_in).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}`}
+              {closeModalEntry.clock_out && ` · Конец: ${new Date(closeModalEntry.clock_out).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}`}
+            </p>
+
+            {/* Custom fields */}
+            {customFields.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-gray-700">Дополнительные поля</p>
+                {customFields.map(field => (
+                  <div key={field.id}>
+                    <label className="text-xs font-medium text-gray-500 mb-1 block">
+                      {field.name}
+                      {field.required && <span className="text-red-500 ml-0.5">*</span>}
+                      {field.carry_over && <span className="text-indigo-400 ml-1">(перенос)</span>}
+                    </label>
+                    {field.field_type === 'money' || field.field_type === 'number' ? (
+                      <div className="relative">
+                        {field.field_type === 'money' && (
+                          <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        )}
+                        <input type="number" step={field.field_type === 'money' ? '0.01' : '1'}
+                          value={customValues[field.id] ?? ''}
+                          onChange={e => setCustomValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                          placeholder={field.field_type === 'money' ? '0.00' : '0'}
+                          className={`w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 ${field.field_type === 'money' ? 'pl-8' : ''}`} />
+                      </div>
+                    ) : (
+                      <input type="text" value={customValues[field.id] ?? ''}
+                        onChange={e => setCustomValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                        placeholder="..."
+                        className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Photo upload */}
+            <div>
+              <p className="text-xs font-semibold text-gray-700 mb-2">Фотоотчёт</p>
+              <input type="file" ref={fileInputRef} onChange={handleUploadPhoto}
+                accept="image/*" className="hidden" />
+              <button onClick={() => fileInputRef.current?.click()} disabled={uploadingPhoto}
+                className="w-full flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition-colors disabled:opacity-50">
+                {uploadingPhoto ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                {uploadingPhoto ? 'Загрузка...' : 'Прикрепить фото'}
+              </button>
+              {recentDocs.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {recentDocs.slice(0, 6).map(doc => (
+                    <div key={doc.id} className="relative group">
+                      {doc.mime_type?.startsWith('image/') ? (
+                        <img src={doc.url} alt={doc.original_name}
+                          className="w-14 h-14 rounded-lg object-cover border border-gray-200" />
+                      ) : (
+                        <div className="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center">
+                          <FileText size={18} className="text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {recentDocs.length > 6 && (
+                    <div className="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center text-xs text-gray-400 font-medium">
+                      +{recentDocs.length - 6}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <button onClick={handleCloseModalDone}
+              className="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors">
+              Готово
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

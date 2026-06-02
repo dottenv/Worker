@@ -1,14 +1,21 @@
 from gevent import monkey
 monkey.patch_all()
 
+import os
 from flask import Flask
 from flask_cors import CORS
 from config import Config
 from extensions import db, jwt, socketio
-from models import User, ServiceCenter, ServiceCenterMember, Shift, ScheduleEntry, SwapRequest, PushSubscription, Notification, FinanceOperation, TimeEntry
+from models import (User, ServiceCenter, ServiceCenterMember, Shift,
+                    ScheduleEntry, SwapRequest, PushSubscription,
+                    Notification, FinanceOperation, TimeEntry,
+                    CustomField, CustomFieldValue, ShiftDocument)
 from models.user import USER_COLORS
 import random
-from routes import auth_bp, service_centers_bp, members_bp, shifts_bp, schedule_bp, swaps_bp, push_bp, notifications_bp, finance_bp, time_entries_bp
+from routes import (auth_bp, service_centers_bp, members_bp, shifts_bp,
+                    schedule_bp, swaps_bp, push_bp, notifications_bp,
+                    finance_bp, time_entries_bp,
+                    custom_fields_bp, shift_documents_bp)
 from socket_events import register_socket_handlers
 
 
@@ -31,6 +38,8 @@ def create_app():
     app.register_blueprint(notifications_bp)
     app.register_blueprint(finance_bp)
     app.register_blueprint(time_entries_bp)
+    app.register_blueprint(custom_fields_bp)
+    app.register_blueprint(shift_documents_bp)
 
     with app.app_context():
         db.create_all()
@@ -98,6 +107,54 @@ def create_app():
             db.session.commit()
         except Exception:
             db.session.rollback()
+        for table_ddl in [
+            (
+                "custom_fields",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                "service_center_id INTEGER NOT NULL REFERENCES service_centers(id), "
+                "name VARCHAR(100) NOT NULL, "
+                "field_type VARCHAR(20) NOT NULL DEFAULT 'text', "
+                "required BOOLEAN DEFAULT 0, "
+                "carry_over BOOLEAN DEFAULT 0, "
+                "sort_order INTEGER DEFAULT 0"
+            ),
+            (
+                "custom_field_values",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                "time_entry_id INTEGER NOT NULL REFERENCES time_entries(id), "
+                "custom_field_id INTEGER NOT NULL REFERENCES custom_fields(id), "
+                "value TEXT DEFAULT ''"
+            ),
+            (
+                "shift_documents",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                "time_entry_id INTEGER NOT NULL REFERENCES time_entries(id), "
+                "filename VARCHAR(255) NOT NULL, "
+                "original_name VARCHAR(255) NOT NULL, "
+                "mime_type VARCHAR(100) DEFAULT 'image/jpeg', "
+                "file_size INTEGER DEFAULT 0, "
+                "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
+            ),
+        ]:
+            try:
+                db.session.execute(db.text(
+                    f"CREATE TABLE IF NOT EXISTS {table_ddl[0]} ({table_ddl[1]})"
+                ))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+        for idx_ddl in [
+            "CREATE INDEX IF NOT EXISTS ix_custom_fields_sc ON custom_fields(service_center_id)",
+            "CREATE INDEX IF NOT EXISTS ix_custom_field_values_te ON custom_field_values(time_entry_id)",
+            "CREATE INDEX IF NOT EXISTS ix_shift_documents_te ON shift_documents(time_entry_id)",
+        ]:
+            try:
+                db.session.execute(db.text(idx_ddl))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+        # ensure upload dir
+        os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'shift_docs'), exist_ok=True)
 
     socketio.init_app(app)
     register_socket_handlers(socketio)

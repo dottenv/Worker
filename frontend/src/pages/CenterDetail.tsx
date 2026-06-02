@@ -205,6 +205,15 @@ export default function CenterDetail() {
           Типы смен
         </Link>
       )}
+      {['owner', 'admin'].includes(center.role) && (
+        <Link
+          to={`/centers/${id}/custom-fields`}
+          className="flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 py-3 rounded-2xl text-sm font-medium hover:bg-emerald-100 transition-colors"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Поля закрытия смены
+        </Link>
+      )}
       <Link
         to={['owner', 'admin'].includes(center.role) ? '/schedule/admin' : '/schedule'}
         className="flex items-center justify-center gap-2 bg-indigo-600 text-white py-3 rounded-2xl text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm"
