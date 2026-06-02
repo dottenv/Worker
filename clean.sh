@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "=== Полная зачистка Docker ==="
+echo "=== Полная зачистка Docker (БЕЗ удаления данных) ==="
 
 # Остановить всё
 docker compose --env-file .env down 2>/dev/null || true
-
-# Удалить ВСЕ volume проекта
-docker volume rm worker_app_data worker_cloudpub-config 2>/dev/null || true
 
 # Удалить все контейнеры проекта
 docker rm -f sc-backend sc-frontend cloudpub 2>/dev/null || true
@@ -18,7 +15,11 @@ docker network rm worker_app_network 2>/dev/null || true
 # Удалить старые образы
 docker image prune -f 2>/dev/null || true
 
-echo "=== Готово. Запускаю с нуля ==="
+echo ""
+echo "=== База данных и CloudPub конфиг НЕ ТРОНУТЫ ==="
+echo "  data/          — SQLite база данных"
+echo "  cloudpub-data/ — конфиг CloudPub (домен сохраняется)"
+echo ""
 
 # Пересобрать и запустить
 docker compose --env-file .env up --build -d

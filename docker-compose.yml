@@ -5,12 +5,20 @@ services:
     restart: unless-stopped
     environment:
       - TOKEN=${CLOUDPUB_TOKEN}
-      - HTTP=frontend:80
-    command: run
+    entrypoint: ""
+    command: >
+      sh -c "
+        if [ ! -f /home/cloudpub/.initialized ]; then
+          touch /home/cloudpub/.initialized;
+          clo publish http frontend:80;
+        else
+          clo run;
+        fi
+      "
     depends_on:
       - frontend
     volumes:
-      - cloudpub-config:/home/cloudpub
+      - ./cloudpub-data:/home/cloudpub
     networks:
       - app_network
 
@@ -21,7 +29,7 @@ services:
     expose:
       - "5000"
     volumes:
-      - "app_data:/data"
+      - ./data:/data
     environment:
       - SECRET_KEY=${SECRET_KEY}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
@@ -53,7 +61,3 @@ services:
 networks:
   app_network:
     driver: bridge
-
-volumes:
-  app_data:
-  cloudpub-config:

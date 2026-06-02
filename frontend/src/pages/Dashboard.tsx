@@ -18,6 +18,7 @@ import {
   XCircle,
   ChevronDown,
   ChevronUp,
+  Plus,
 } from 'lucide-react';
 import { StatsSkeleton } from '../components/Skeleton';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -476,6 +477,27 @@ export default function Dashboard() {
             </div>
           )}
         </>
+      ) : centers.length === 0 ? (
+        /* ---- NO CENTERS — create org prompt ---- */
+        <div className="flex flex-col items-center justify-center py-12 px-4">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-100 flex items-center justify-center mb-5">
+            <Building2 size={32} className="text-indigo-600" />
+          </div>
+          <h2 className="text-lg font-bold text-gray-900 mb-1">Создайте свою организацию</h2>
+          <p className="text-sm text-gray-400 text-center mb-6 max-w-xs">
+            У вас пока нет сервисных центров. Создайте свою организацию и начните управлять сменами сотрудников.
+          </p>
+          <Link
+            to="/centers"
+            className="inline-flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm"
+          >
+            <Plus size={18} />
+            Создать организацию
+          </Link>
+          <p className="text-xs text-gray-400 mt-4">
+            Или попросите администратора добавить вас в существующий центр
+          </p>
+        </div>
       ) : (
         /* ---- EMPLOYEE DASHBOARD ---- */
         <>
