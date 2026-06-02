@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Phone, Building2, Calendar, MessageCircle, Globe, Save, X } from 'lucide-react';
+import { Phone, Building2, Calendar, MessageCircle, Globe, Save, X } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function UserProfile() {
   const { userId } = useParams();
-  const navigate = useNavigate();
   const { user: currentUser } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [centers, setCenters] = useState<any[]>([]);
@@ -55,12 +54,6 @@ export default function UserProfile() {
 
   return (
     <div className="space-y-5">
-      <button onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700"
-      >
-        <ArrowLeft size={16} />
-        Назад
-      </button>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
         <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3"

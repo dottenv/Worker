@@ -22,6 +22,8 @@ import {
   Upload,
   DollarSign,
   FileText,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { StatsSkeleton } from '../components/Skeleton';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -44,6 +46,10 @@ export default function Dashboard() {
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [expandedCenters, setExpandedCenters] = useState<Set<number>>(new Set());
   const [workStats, setWorkStats] = useState<{ weekHours: number; monthHours: number; completedShifts: number } | null>(null);
+  const [displayMonth, setDisplayMonth] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
 
   // Close shift modal
   const [closeModalEntry, setCloseModalEntry] = useState<any>(null);
@@ -72,20 +78,30 @@ export default function Dashboard() {
     try {
       const entries = await (isOwner ? api.schedule.admin() : api.schedule.my());
       const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthStart = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1);
+      const monthEnd = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 0);
 
       if (isOwner) {
         const allEntries = entries.flatMap((g: any) => g.entries || []);
         setUpcomingCount(allEntries.filter((e: any) => new Date(e.date) >= now).length);
-        setEmployeesCount(new Set(entries.map((g: any) => g.user_id)).size);
-        setShiftsThisMonth(allEntries.filter((e: any) => new Date(e.date) >= startOfMonth).length);
+        setEmployeesCount(new Set(allEntries.filter((e: any) => {
+          const d = new Date(e.date);
+          return d >= monthStart && d <= monthEnd;
+        }).map((g: any) => g.user_id)).size);
+        setShiftsThisMonth(allEntries.filter((e: any) => {
+          const d = new Date(e.date);
+          return d >= monthStart && d <= monthEnd;
+        }).length);
       } else {
         setUpcomingCount(entries.filter((e: any) => new Date(e.date) >= now).length);
-        setShiftsThisMonth(entries.filter((e: any) => new Date(e.date) >= startOfMonth).length);
+        setShiftsThisMonth(entries.filter((e: any) => {
+          const d = new Date(e.date);
+          return d >= monthStart && d <= monthEnd;
+        }).length);
       }
     } catch {}
     finally { setLoading(false); }
-  }, [isOwner]);
+  }, [isOwner, displayMonth]);
 
   const loadStatsRef = useRef(loadStats);
   loadStatsRef.current = loadStats;
@@ -118,8 +134,8 @@ export default function Dashboard() {
     const now = new Date();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay() + 1);
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const monthStart = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1);
+    const monthEnd = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 0);
     api.timeEntries.my().then((entries: any[]) => {
       const approved = entries.filter((e: any) => e.status === 'approved' && e.clock_in && e.clock_out);
       const weekEntries = approved.filter((e: any) => {
@@ -128,16 +144,16 @@ export default function Dashboard() {
       });
       const monthEntries = approved.filter((e: any) => {
         const d = new Date(e.date);
-        return d >= startOfMonth && d <= monthEnd;
+        return d >= monthStart && d <= monthEnd;
       });
       const toHours = (ms: number) => Math.round(ms / 3600000 * 10) / 10;
       const weekHours = weekEntries.reduce((sum: number, e: any) =>
         sum + toHours(new Date(e.clock_out).getTime() - new Date(e.clock_in).getTime()), 0);
       const monthHours = monthEntries.reduce((sum: number, e: any) =>
         sum + toHours(new Date(e.clock_out).getTime() - new Date(e.clock_in).getTime()), 0);
-      setWorkStats({ weekHours, monthHours, completedShifts: approved.length });
+      setWorkStats({ weekHours, monthHours, completedShifts: monthEntries.length });
     }).catch(() => {});
-  }, [isOwner]);
+  }, [isOwner, displayMonth]);
 
   const loadWorkStatsRef = useRef(loadWorkStats);
   loadWorkStatsRef.current = loadWorkStats;
@@ -347,6 +363,21 @@ export default function Dashboard() {
           <h1 className="text-xl font-bold text-gray-900">{user.full_name}</h1>
         </div>
       )}
+
+      {/* Month selector */}
+      <div className="flex items-center justify-between bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
+        <button onClick={() => setDisplayMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+          className="p-1.5 rounded-lg hover:bg-gray-50 text-gray-400 hover:text-indigo-600 transition-colors">
+          <ChevronLeft size={18} />
+        </button>
+        <span className="text-sm font-semibold text-gray-900">
+          {displayMonth.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
+        </span>
+        <button onClick={() => setDisplayMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+          className="p-1.5 rounded-lg hover:bg-gray-50 text-gray-400 hover:text-indigo-600 transition-colors">
+          <ChevronRight size={18} />
+        </button>
+      </div>
 
       {loading ? (
         <StatsSkeleton />
@@ -683,7 +714,7 @@ export default function Dashboard() {
                 </div>
                 <div className="text-center p-2.5 rounded-xl bg-amber-50">
                   <p className="text-lg font-bold text-amber-700">{workStats.completedShifts}</p>
-                  <p className="text-[10px] text-amber-500">смен всего</p>
+                  <p className="text-[10px] text-amber-500">смен за месяц</p>
                 </div>
               </div>
             </div>

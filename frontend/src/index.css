@@ -102,6 +102,18 @@
   background-color: color-mix(in srgb, var(--bg-card) 80%, transparent) !important;
 }
 
+/* Inputs in dark mode */
+.dark input,
+.dark textarea,
+.dark select {
+  color: var(--text-primary) !important;
+  background-color: var(--bg-tertiary) !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--text-disabled) !important;
+}
+
 /* Status badges */
 .dark .bg-amber-50.text-amber-600 {
   background-color: rgba(245, 158, 11, 0.15) !important;

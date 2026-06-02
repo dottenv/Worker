@@ -74,8 +74,12 @@ function HeaderSync() {
       setBack('/settings', 'Настройки');
     } else if (path === '/settings') {
       setBack(null);
+    } else if (path === '/time-requests') {
+      setBack('/');
+    } else if (/^\/profile\/\d+$/.test(path)) {
+      setBack('/');
     } else if (/^\/shift-documents\/\d+$/.test(path)) {
-      setBack(null);
+      setBack('/');
     } else if (/^\/centers\/\d+\/custom-fields$/.test(path)) {
       const scId = path.split('/')[2];
       setBack(`/centers/${scId}`, 'Центры');

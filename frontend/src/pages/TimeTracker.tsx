@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import {
   Clock,
   Building2,
-  ArrowLeft,
   Save,
   Coffee,
   FileText,
@@ -79,13 +78,6 @@ export default function TimeTracker() {
   return (
     <div className="space-y-5">
       <div>
-        <Link
-          to={preselectedCenter ? `/centers/${preselectedCenter}` : '/'}
-          className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-indigo-600 transition-colors mb-2"
-        >
-          <ArrowLeft size={14} />
-          Назад
-        </Link>
         <h1 className="text-xl font-bold text-gray-900">Учёт времени</h1>
         <p className="text-sm text-gray-400">Добавьте запись о работе</p>
       </div>

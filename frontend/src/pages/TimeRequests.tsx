@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
-import { CheckCircle2, XCircle, Clock, ArrowLeft, Loader2, Save, X } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Loader2, Save, X } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function TimeRequests() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<number | null>(null);
@@ -74,14 +72,9 @@ export default function TimeRequests() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
-          <ArrowLeft size={18} className="text-gray-500" />
-        </button>
-        <div>
-          <h1 className="text-lg font-bold text-gray-900">Запросы на выход</h1>
-          <p className="text-xs text-gray-400">Подтверждение смен без графика</p>
-        </div>
+      <div>
+        <h1 className="text-lg font-bold text-gray-900">Запросы на выход</h1>
+        <p className="text-xs text-gray-400">Подтверждение смен без графика</p>
       </div>
 
       {loading ? (

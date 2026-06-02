@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Wallet, CheckCircle2, AlertCircle, Zap
+  Wallet, CheckCircle2, AlertCircle, Zap
 } from 'lucide-react';
 import { api } from '../api/client';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -19,7 +18,6 @@ const MODULES = [
 
 export default function Modules() {
   const { user, isOwner } = useAuth();
-  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
@@ -36,12 +34,6 @@ export default function Modules() {
   if (!isOwner) {
     return (
       <div className="space-y-5">
-        <button onClick={() => navigate('/settings')}
-          className="flex items-center gap-2 text-sm font-medium"
-          style={{ color: 'var(--text-secondary)' }}>
-          <ArrowLeft size={16} />
-          Назад
-        </button>
         <div className="text-center py-8">
           <AlertCircle size={32} className="mx-auto mb-3" style={{ color: 'var(--text-disabled)' }} />
           <p style={{ color: 'var(--text-primary)' }}>Доступ только для владельцев</p>
@@ -70,16 +62,9 @@ export default function Modules() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-2">
-        <button onClick={() => navigate('/settings')}
-          className="p-2 rounded-lg transition-colors"
-          style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
-          <ArrowLeft size={18} />
-        </button>
-        <div>
-          <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Модули</h1>
-          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Управление функционалом для сотрудников</p>
-        </div>
+      <div>
+        <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Модули</h1>
+        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Управление функционалом для сотрудников</p>
       </div>
 
       <div className="rounded-2xl p-5 flex items-center gap-3 border" 

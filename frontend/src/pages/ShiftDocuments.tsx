@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  ArrowLeft, Upload, Trash2, Image, FileText,
+  Upload, Trash2, Image, FileText,
   Clock, Save, Loader2, CheckCircle2, AlertCircle,
   Download,
 } from 'lucide-react';
@@ -11,7 +11,6 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function ShiftDocuments() {
   const { entryId } = useParams<{ entryId: string }>();
-  const navigate = useNavigate();
   const { isOwner } = useAuth();
   const [entry, setEntry] = useState<any>(null);
   const [docs, setDocs] = useState<any[]>([]);
@@ -96,16 +95,11 @@ export default function ShiftDocuments() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
-          <ArrowLeft size={18} className="text-gray-500" />
-        </button>
-        <div>
-          <h1 className="text-lg font-bold text-gray-900">Документы смены</h1>
-          <p className="text-xs text-gray-400">
-            {entry.service_center_name} &middot; {entry.date}
-          </p>
-        </div>
+      <div>
+        <h1 className="text-lg font-bold text-gray-900">Документы смены</h1>
+        <p className="text-xs text-gray-400">
+          {entry.service_center_name} &middot; {entry.date}
+        </p>
       </div>
 
       {/* Time editing */}

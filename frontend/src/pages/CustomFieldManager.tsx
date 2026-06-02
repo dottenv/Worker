@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import {
-  ArrowLeft, Plus, Trash2, Save,
+  Plus, Trash2, Save,
   CheckCircle2, AlertCircle, X, Loader2,
   Hash, DollarSign, Type,
 } from 'lucide-react';
@@ -16,7 +16,6 @@ const FIELD_TYPES = [
 
 export default function CustomFieldManager() {
   const { scId } = useParams<{ scId: string }>();
-  const navigate = useNavigate();
   const [fields, setFields] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -119,14 +118,9 @@ export default function CustomFieldManager() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
-          <ArrowLeft size={18} className="text-gray-500" />
-        </button>
-        <div>
-          <h1 className="text-lg font-bold text-gray-900">Поля закрытия смены</h1>
-          <p className="text-xs text-gray-400">Настройка дополнительных полей при закрытии смены</p>
-        </div>
+      <div>
+        <h1 className="text-lg font-bold text-gray-900">Поля закрытия смены</h1>
+        <p className="text-xs text-gray-400">Настройка дополнительных полей при закрытии смены</p>
       </div>
 
       {/* Info card */}

@@ -90,7 +90,7 @@ export default function Layout() {
   return (
     <div className="min-h-dvh flex flex-col" style={{ backgroundColor: 'var(--bg-primary)' }}>
       <header
-        className="sticky top-0 z-10"
+        className="top-0 z-10"
         style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
       >
           <div className="max-w-lg mx-auto px-5 h-14 flex items-center justify-between">
@@ -111,8 +111,18 @@ export default function Layout() {
               </Link>
             )}
             {user && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
                 <BellButton />
+                {hasMore && (
+                  <button
+                    onClick={() => setSidebarOpen(true)}
+                    className="p-2 rounded-xl transition-colors hover:bg-gray-100"
+                    style={{ color: 'var(--text-secondary)' }}
+                    title="Все разделы"
+                  >
+                    <Grid size={20} strokeWidth={1.8} />
+                  </button>
+                )}
                 <Link
                   to={`/profile/${user.id}`}
                   className="flex items-center gap-2 text-sm transition-colors"
@@ -128,7 +138,7 @@ export default function Layout() {
           </div>
         </header>
 
-      <main className="flex-1 max-w-lg mx-auto w-full px-5 py-6 pb-24">
+      <main className="flex-1 max-w-lg mx-auto w-full px-5 py-6 pb-20">
         <PageTransition><Outlet /></PageTransition>
       </main>
 
@@ -200,18 +210,6 @@ export default function Layout() {
                 active={isActive(item.path)}
               />
             ))}
-            {hasMore && (
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="flex flex-col items-center gap-0.5 px-3 py-1.5 transition-all"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                <div className="p-1.5 rounded-xl">
-                  <Grid size={20} strokeWidth={1.8} />
-                </div>
-                <span className="text-[10px] font-medium leading-none opacity-70">Ещё</span>
-              </button>
-            )}
           </div>
         </nav>
       )}

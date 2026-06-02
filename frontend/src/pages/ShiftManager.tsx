@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import {
-  ArrowLeft,
   Plus,
   X,
   Save,
@@ -90,13 +89,6 @@ export default function ShiftManager() {
   return (
     <div className="space-y-5">
       <div>
-        <Link
-          to={`/centers/${scId}`}
-          className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-indigo-600 transition-colors mb-2"
-        >
-          <ArrowLeft size={14} />
-          Назад к центру
-        </Link>
         <h1 className="text-xl font-bold text-gray-900">Смены</h1>
         <p className="text-sm text-gray-400">Управление шаблонами смен</p>
       </div>
