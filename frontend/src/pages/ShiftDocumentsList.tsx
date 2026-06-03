@@ -10,7 +10,6 @@ import {
   Image,
   Loader2,
   Trash2,
-  Download,
 } from 'lucide-react';
 import PhotoLightbox from '../components/PhotoLightbox';
 
@@ -53,7 +52,6 @@ export default function ShiftDocumentsList() {
   const [groups, setGroups] = useState<CenterGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
-  const [expandedEntries, setExpandedEntries] = useState<Set<number>>(new Set());
   const [lightbox, setLightbox] = useState<{ docs: DocItem[]; index: number } | null>(null);
 
   const isManager = isOwner;
@@ -78,6 +76,7 @@ export default function ShiftDocumentsList() {
       const data = await api.timeEntries.withDocuments();
       setGroups(data as CenterGroup[]);
     } catch { /* ignore */ }
+    setLightbox(null);
   };
 
   const handleDeleteEntry = async (entryId: number) => {
@@ -108,14 +107,6 @@ export default function ShiftDocumentsList() {
 
   const toggleCenter = (id: number) => {
     setExpanded(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-
-  const toggleEntry = (id: number) => {
-    setExpandedEntries(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
@@ -156,117 +147,78 @@ export default function ShiftDocumentsList() {
               {center.entries.map(entry => {
                 const hasDocs = entry.documents.length > 0;
                 const hasCustom = entry.custom_values?.length > 0;
-                const isExpanded = expandedEntries.has(entry.id);
                 return (
-                  <div key={entry.id}>
-                    <button onClick={() => toggleEntry(entry.id)}
-                      className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-gray-50 transition-colors">
+                  <div key={entry.id} className="px-4 py-3 space-y-2">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 min-w-0">
-                        <Clock size={14} className="text-gray-400 shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {entry.date}
-                          </p>
-                          <p className="text-[10px] text-gray-400">
-                            {entry.clock_in && new Date(entry.clock_in).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
-                            {entry.clock_out && ` – ${new Date(entry.clock_out).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}`}
-                            {isOwner && entry.user_name && ` · ${entry.user_name}`}
-                          </p>
-                        </div>
+                        <Clock size={13} className="text-gray-400 shrink-0" />
+                        <span className="text-sm font-medium text-gray-900 whitespace-nowrap">
+                          {entry.date}
+                        </span>
+                        <span className="text-[11px] text-gray-400 whitespace-nowrap">
+                          {entry.clock_in && new Date(entry.clock_in).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
+                          {entry.clock_out && ` – ${new Date(entry.clock_out).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}`}
+                        </span>
+                        {isOwner && entry.user_name && (
+                          <span className="text-[11px] text-indigo-500 font-medium whitespace-nowrap">
+                            {entry.user_name}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         {isManager && (
-                          <button onClick={(e) => { e.stopPropagation(); handleDeleteEntry(entry.id); }}
+                          <button onClick={() => handleDeleteEntry(entry.id)}
                             className="p-1 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
                             title="Удалить смену">
                             <Trash2 size={13} />
                           </button>
                         )}
                         {hasDocs && (
-                          <span className="flex items-center gap-1 text-[10px] text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-full">
+                          <span className="flex items-center gap-1 text-[10px] text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-full whitespace-nowrap">
                             <Image size={10} />
                             {entry.documents.length}
                           </span>
                         )}
-                        {isExpanded
-                          ? <ChevronUp size={14} className="text-gray-400" />
-                          : <ChevronDown size={14} className="text-gray-400" />}
                       </div>
-                    </button>
+                    </div>
 
-                    {isExpanded && (
-                      <div className="px-4 pb-4 space-y-3">
-                        {entry.notes && (
-                          <p className="text-xs text-gray-500 bg-gray-50 rounded-xl p-2.5">
-                            {entry.notes}
-                          </p>
-                        )}
+                    {entry.notes && (
+                      <p className="text-xs text-gray-500">{entry.notes}</p>
+                    )}
 
-                        {/* Custom fields */}
-                        {hasCustom && (
-                          <div className="grid grid-cols-2 gap-2">
-                            {entry.custom_values.map(cv => (
-                              <div key={cv.id} className="bg-gray-50 rounded-xl p-2.5">
-                                <p className="text-[10px] text-gray-400 mb-0.5">{cv.field_name}</p>
-                                <p className="text-sm font-medium text-gray-800">
-                                  {cv.field_type === 'money'
-                                    ? `${Number(cv.value).toLocaleString('ru')} ₽`
-                                    : cv.value}
-                                </p>
+                    {hasCustom && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {entry.custom_values.map(cv => (
+                          <div key={cv.id}
+                            className="bg-gray-50 rounded-lg px-2 py-1 text-xs text-gray-700">
+                            <span className="text-[10px] text-gray-400 mr-1">{cv.field_name}:</span>
+                            {cv.field_type === 'money'
+                              ? `${Number(cv.value).toLocaleString('ru')} ₽`
+                              : cv.value}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {hasDocs && (
+                      <div className="flex flex-wrap gap-1.5 items-start">
+                        {entry.documents.map((doc, i) => (
+                          <button key={doc.id} onClick={() => setLightbox({ docs: entry.documents, index: i })}
+                            className="shrink-0 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                            style={{ width: 64, height: 64 }}>
+                            {doc.mime_type?.startsWith('image/') ? (
+                              <img src={doc.url} alt={doc.original_name}
+                                className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="flex flex-col items-center justify-center w-full h-full">
+                                <FileText size={18} className="text-gray-400" />
+                                <span className="text-[7px] text-gray-400 mt-0.5 truncate max-w-full px-0.5">
+                                  {doc.original_name?.split('.').pop()}
+                                </span>
                               </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Documents */}
-                        {hasDocs ? (
-                          <div>
-                            {entry.documents.length > 1 && (
-                              <button onClick={() => setLightbox({ docs: entry.documents, index: 0 })}
-                                className="mb-2 text-xs text-indigo-600 font-medium hover:text-indigo-700 transition-colors">
-                                Смотреть галерею ({entry.documents.length})
-                              </button>
                             )}
-                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                              {entry.documents.map(doc => (
-                                <div key={doc.id} className="group relative">
-                                  {doc.mime_type?.startsWith('image/') ? (
-                                    <a href={doc.url} target="_blank" rel="noopener noreferrer"
-                                      className="block w-full aspect-square rounded-xl overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity bg-gray-50">
-                                      <img src={doc.url} alt={doc.original_name}
-                                        className="w-full h-full object-cover" />
-                                    </a>
-                                  ) : (
-                                    <a href={doc.url} target="_blank" rel="noopener noreferrer"
-                                      className="flex flex-col items-center justify-center w-full aspect-square rounded-xl bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors">
-                                      <FileText size={24} className="text-gray-400" />
-                                      <span className="text-[9px] text-gray-400 mt-1 truncate max-w-full px-1">
-                                        {doc.original_name?.split('.').pop()}
-                                      </span>
-                                    </a>
-                                  )}
-                                  {/* Hover actions */}
-                                  <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-xl">
-                                    <button onClick={(e) => { e.preventDefault(); window.open(doc.url, '_blank'); }}
-                                      className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-gray-700 transition-colors"
-                                      title="Скачать">
-                                      <Download size={14} />
-                                    </button>
-                                    {isManager && (
-                                      <button onClick={(e) => { e.preventDefault(); handleDeleteDoc(doc.id); }}
-                                        className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-red-500 transition-colors"
-                                        title="Удалить">
-                                        <Trash2 size={14} />
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-xs text-gray-400">Нет прикреплённых файлов</p>
-                        )}
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -282,10 +234,7 @@ export default function ShiftDocumentsList() {
           docs={lightbox.docs}
           initialIndex={lightbox.index}
           onClose={() => setLightbox(null)}
-          onDelete={isManager ? (docId) => {
-            handleDeleteDoc(docId);
-            setLightbox(null);
-          } : undefined}
+          onDelete={isManager ? handleDeleteDoc : undefined}
         />
       )}
     </div>
