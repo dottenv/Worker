@@ -6,6 +6,7 @@ from models import (
     TimeEntry, ShiftDocument, CustomField, CustomFieldValue,
     SwapRequest,
 )
+from sqlalchemy import or_
 from extensions import db
 from socket_events import emit_to_users
 from helpers import get_current_user
@@ -130,7 +131,7 @@ def delete_center(sc_id):
 
     # delete swap requests referencing this center
     SwapRequest.query.filter(
-        db.or_(
+        or_(
             SwapRequest.service_center_id == sc.id,
             SwapRequest.target_center_id == sc.id,
         )

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import {
   Users,
@@ -11,11 +11,13 @@ import {
   Check,
   Clock,
   Pencil,
+  Trash2,
 } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function CenterDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [center, setCenter] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,6 +106,18 @@ export default function CenterDetail() {
     }
   };
 
+  const handleDeleteCenter = async () => {
+    if (!id) return;
+    if (!confirm('Удалить склад навсегда? Все данные (смены, сотрудники, документы) будут безвозвратно удалены.')) return;
+    if (!confirm('Вы уверены? Это действие необратимо.')) return;
+    try {
+      await api.serviceCenters.delete(Number(id));
+      navigate('/centers');
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   if (loading) return <LoadingSpinner />;
   if (!center) return <p className="text-sm text-gray-400">Центр не найден</p>;
 
@@ -117,13 +131,22 @@ export default function CenterDetail() {
           </p>
         </div>
         {center.role === 'owner' && (
-          <button
-            onClick={openEdit}
-            className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
-          >
-            <Pencil size={14} />
-            Редактировать
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={openEdit}
+              className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+            >
+              <Pencil size={14} />
+              Редактировать
+            </button>
+            <button
+              onClick={handleDeleteCenter}
+              className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-600 font-medium ml-2"
+            >
+              <Trash2 size={14} />
+              Удалить
+            </button>
+          </div>
         )}
       </div>
 
