@@ -5,6 +5,7 @@ interface User {
   id: number;
   email: string;
   full_name: string;
+  color?: string;
   phone?: string;
   push_sound?: boolean;
   push_prefs?: Record<string, boolean>;

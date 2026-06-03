@@ -99,7 +99,7 @@ export const api = {
   },
   members: {
     list: (scId: number) => request<any[]>(`/service-centers/${scId}/members`),
-    add: (scId: number, data: { email: string; role?: string; hourly_rate?: number }) =>
+    add: (scId: number, data: { user_id?: number; email?: string; role?: string; hourly_rate?: number }) =>
       request<any>(`/service-centers/${scId}/members`, {
         method: 'POST',
         body: JSON.stringify(data),
