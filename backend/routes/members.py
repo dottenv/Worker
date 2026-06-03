@@ -38,11 +38,18 @@ def add_member(sc_id):
         return jsonify({"error": "Only owner or admin can add members"}), 403
 
     data = request.get_json()
-    email = data.get("email", "").strip().lower()
-    if not email:
-        return jsonify({"error": "Email is required"}), 400
+    target = None
 
-    target = User.query.filter_by(email=email).first()
+    user_id = data.get("user_id", type=int)
+    email = data.get("email", "").strip().lower()
+
+    if user_id:
+        target = User.query.get(user_id)
+    elif email:
+        target = User.query.filter_by(email=email).first()
+    else:
+        return jsonify({"error": "user_id or email is required"}), 400
+
     if not target:
         return jsonify({"error": "User not found"}), 404
 

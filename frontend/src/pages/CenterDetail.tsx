@@ -22,7 +22,8 @@ export default function CenterDetail() {
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
-  const [email, setEmail] = useState('');
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState('');
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState('');
   const [showEdit, setShowEdit] = useState(false);
@@ -50,12 +51,12 @@ export default function CenterDetail() {
   };
 
   const handleInvite = async () => {
-    if (!email.trim() || !id) return;
+    if (!selectedUserId || !id) return;
     setInviting(true);
     setInviteError('');
     try {
-      await api.members.add(Number(id), { email: email.trim() });
-      setEmail('');
+      await api.members.add(Number(id), { user_id: Number(selectedUserId) });
+      setSelectedUserId('');
       setShowInvite(false);
       fetchData();
     } catch (err: any) {
@@ -63,6 +64,17 @@ export default function CenterDetail() {
     } finally {
       setInviting(false);
     }
+  };
+
+  const openInvite = async () => {
+    setSelectedUserId('');
+    setInviteError('');
+    setShowInvite(true);
+    try {
+      const users = await api.auth.users();
+      const memberIds = new Set(members.map(m => m.user_id));
+      setAllUsers(users.filter((u: any) => !memberIds.has(u.id)));
+    } catch { setAllUsers([]); }
   };
 
   useEffect(() => {
@@ -175,7 +187,7 @@ export default function CenterDetail() {
           </div>
           {['owner', 'admin'].includes(center.role) && (
             <button
-              onClick={() => setShowInvite(true)}
+              onClick={openInvite}
               className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700"
             >
               <UserPlus size={13} />
@@ -306,13 +318,22 @@ export default function CenterDetail() {
             <h3 className="text-sm font-semibold text-gray-900 mb-3">
               Пригласить сотрудника
             </h3>
-            <input
-              type="email"
-              placeholder="Email сотрудника"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 mb-3"
-            />
+            {allUsers.length === 0 ? (
+              <p className="text-sm text-gray-400 mb-3">Нет доступных пользователей</p>
+            ) : (
+              <select
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 mb-3 appearance-none cursor-pointer"
+              >
+                <option value="">Выберите пользователя</option>
+                {allUsers.map((u: any) => (
+                  <option key={u.id} value={u.id}>
+                    {u.full_name} ({u.email})
+                  </option>
+                ))}
+              </select>
+            )}
             {inviteError && (
               <p className="text-xs text-red-500 mb-3">{inviteError}</p>
             )}
@@ -325,7 +346,7 @@ export default function CenterDetail() {
               </button>
               <button
                 onClick={handleInvite}
-                disabled={inviting || !email.trim()}
+                disabled={inviting || !selectedUserId}
                 className="flex-1 flex items-center justify-center gap-1.5 bg-indigo-600 text-white py-2 rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
               >
                 <Check size={15} />

@@ -69,7 +69,8 @@ export const api = {
         body: JSON.stringify(data),
       }),
     me: () => request<any>('/auth/me'),
-    role: () => request<{ is_owner: boolean; is_admin: boolean }>('/auth/role'),
+    role: () => request<{ is_owner: boolean; is_admin: boolean; is_superuser: boolean }>('/auth/role'),
+    users: () => request<any[]>('/auth/users'),
     navConfig: {
       get: () => request<{ pinned: string[] }>('/auth/nav-config'),
       update: (pinned: string[]) =>

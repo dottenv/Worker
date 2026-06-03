@@ -24,13 +24,37 @@ def register():
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "Email already registered"}), 409
 
+    is_first = User.query.count() == 0
+
     user = User(email=email, full_name=full_name, phone=data.get("phone", ""), color=pick_user_color())
+    if is_first:
+        user.is_superuser = True
     user.set_password(password)
     db.session.add(user)
+    db.session.flush()
+
+    if is_first:
+        sc = ServiceCenter(
+            name="Основной склад",
+            description="Автоматически создан при регистрации",
+            owner_id=user.id,
+        )
+        db.session.add(sc)
+        db.session.flush()
+        member = ServiceCenterMember(
+            service_center_id=sc.id, user_id=user.id, role="owner",
+        )
+        db.session.add(member)
+
     db.session.commit()
 
     from notification_helper import create_notification
-    create_notification(user.id, "welcome", "Добро пожаловать!", "Вы успешно зарегистрировались. Дождитесь доступа к складу от администратора или создайте свой.", "/settings")
+    if is_first:
+        create_notification(user.id, "welcome", "Добро пожаловать!",
+                            "Вы — первый пользователь. Склад «Основной склад» создан автоматически. Вы можете редактировать его в настройках.", "/centers")
+    else:
+        create_notification(user.id, "welcome", "Добро пожаловать!",
+                            "Вы успешно зарегистрировались. Дождитесь доступа к складу от администратора.", "/settings")
 
     token = create_access_token(identity=str(user.id))
     return jsonify({"token": token, "user": user.to_dict()}), 201
@@ -67,6 +91,7 @@ def me():
 @jwt_required()
 def my_role():
     user_id = int(get_jwt_identity())
+    current_user = User.query.get(user_id)
     owned_count = ServiceCenter.query.filter_by(owner_id=user_id).count()
     admin_count = ServiceCenterMember.query.filter_by(
         user_id=user_id, role="admin", is_active=True
@@ -74,7 +99,33 @@ def my_role():
     return jsonify({
         "is_owner": owned_count > 0,
         "is_admin": admin_count > 0,
+        "is_superuser": current_user.is_superuser if current_user else False,
     }), 200
+
+
+@auth_bp.route("/users", methods=["GET"])
+@jwt_required()
+def list_users():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user or not user.is_superuser:
+        # also allow center owners/managers to see user list
+        managed = ServiceCenterMember.query.filter_by(
+            user_id=user.id, is_active=True
+        ).filter(ServiceCenterMember.role.in_(["owner", "admin"])).count()
+        owned = ServiceCenter.query.filter_by(owner_id=user.id).count()
+        if managed == 0 and owned == 0:
+            return jsonify({"error": "Access denied"}), 403
+
+    users = User.query.order_by(User.full_name).all()
+    return jsonify([{
+        "id": u.id,
+        "email": u.email,
+        "full_name": u.full_name,
+        "phone": u.phone,
+        "color": u.color,
+        "is_superuser": u.is_superuser,
+    } for u in users]), 200
 
 
 @auth_bp.route("/profile", methods=["PUT"])

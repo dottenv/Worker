@@ -9,6 +9,7 @@ interface User {
   push_sound?: boolean;
   push_prefs?: Record<string, boolean>;
   finance_enabled?: boolean;
+  is_superuser?: boolean;
   nav_config?: { pinned?: string[] };
 }
 
@@ -18,6 +19,7 @@ interface AuthContextType {
   loading: boolean;
   isOwner: boolean;
   isAdmin: boolean;
+  isSuperuser: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, full_name: string) => Promise<void>;
   logout: () => void;
@@ -34,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperuser, setIsSuperuser] = useState(false);
 
   useEffect(() => {
     if (token) {
@@ -42,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(u);
           setIsOwner(r.is_owner);
           setIsAdmin(r.is_admin);
+          setIsSuperuser(r.is_superuser);
         })
         .catch(() => {
           localStorage.removeItem('token');
@@ -63,9 +67,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const r = await api.auth.role();
       setIsOwner(r.is_owner);
       setIsAdmin(r.is_admin);
+      setIsSuperuser(r.is_superuser);
     } catch {
       setIsOwner(false);
       setIsAdmin(false);
+      setIsSuperuser(false);
     }
   };
 
@@ -79,9 +85,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const r = await api.auth.role();
       setIsOwner(r.is_owner);
       setIsAdmin(r.is_admin);
+      setIsSuperuser(r.is_superuser);
     } catch {
       setIsOwner(false);
       setIsAdmin(false);
+      setIsSuperuser(false);
     }
   };
 
@@ -99,10 +107,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setIsOwner(false);
     setIsAdmin(false);
+    setIsSuperuser(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, isOwner, isAdmin, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, loading, isOwner, isAdmin, isSuperuser, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

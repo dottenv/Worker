@@ -33,6 +33,7 @@ class User(db.Model):
         db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
     )
 
+    is_superuser = db.Column(db.Boolean, default=False)
     finance_enabled = db.Column(db.Boolean, default=False)
     messenger_enabled = db.Column(db.Boolean, default=False)
     push_sound = db.Column(db.Boolean, default=True)
@@ -71,6 +72,7 @@ class User(db.Model):
             "telegram": self.telegram,
             "max_link": self.max_link,
             "color": self.color,
+            "is_superuser": self.is_superuser,
             "finance_enabled": self.finance_enabled,
             "messenger_enabled": self.messenger_enabled,
             "push_sound": self.push_sound,
