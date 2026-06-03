@@ -346,16 +346,22 @@ export default function Dashboard() {
   };
 
   const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !closeModalEntry) return;
+    const files = e.target.files;
+    if (!files || !files.length || !closeModalEntry) return;
+    const maxFiles = 10;
+    const toUpload = Array.from(files).slice(0, maxFiles);
     setUploadingPhoto(true);
     setUploadError(null);
-    try {
-      const doc = await api.shiftDocuments.upload(closeModalEntry.id, file);
-      setRecentDocs(prev => [doc, ...prev]);
-    } catch (err: any) {
-      setUploadError(err.message || 'Ошибка загрузки');
+    let lastError: string | null = null;
+    for (const file of toUpload) {
+      try {
+        const doc = await api.shiftDocuments.upload(closeModalEntry.id, file);
+        setRecentDocs(prev => [doc, ...prev]);
+      } catch (err: any) {
+        lastError = err.message || 'Ошибка загрузки';
+      }
     }
+    setUploadError(lastError);
     setUploadingPhoto(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -864,11 +870,11 @@ export default function Dashboard() {
             <div>
               <p className="text-xs font-semibold text-gray-700 mb-2">Фотоотчёт</p>
               <input type="file" ref={fileInputRef} onChange={handleUploadPhoto}
-                accept="image/*" className="hidden" />
+                accept="image/*" multiple className="hidden" />
               <button onClick={() => fileInputRef.current?.click()} disabled={uploadingPhoto}
                 className="w-full flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition-colors disabled:opacity-50">
                 {uploadingPhoto ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-                {uploadingPhoto ? 'Загрузка...' : 'Прикрепить фото'}
+                {uploadingPhoto ? 'Загрузка...' : 'Прикрепить фото (до 10)'}
               </button>
               {uploadError && (
                 <p className="text-xs text-red-500 mt-1">{uploadError}</p>
