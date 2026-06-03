@@ -282,8 +282,8 @@ export const api = {
       request<any[]>(`/service-centers/${scId}/custom-fields/values/${entryId}`, {
         method: 'PUT', body: JSON.stringify({ values }),
       }),
-    carryOver: (scId: number) =>
-      request<Record<number, string>>(`/service-centers/${scId}/custom-fields/carry-over`),
+    carryOver: (scId: number, excludeEntryId?: number) =>
+      request<Record<number, string>>(`/service-centers/${scId}/custom-fields/carry-over${excludeEntryId ? `?exclude_entry_id=${excludeEntryId}` : ''}`),
   },
   shiftDocuments: {
     list: (entryId: number) => request<any[]>(`/shift-documents/by-entry/${entryId}`),

@@ -313,7 +313,7 @@ export default function Dashboard() {
         setCustomFields(fields);
         const carryFields = fields.filter((f: any) => f.carry_over);
         if (carryFields.length > 0) {
-          api.customFields.carryOver(scId).then(carry => {
+          api.customFields.carryOver(scId, entry.id).then(carry => {
             const vals: Record<number, string> = {};
             for (const f of carryFields) {
               if (carry[f.id]) vals[f.id] = carry[f.id];
