@@ -20,7 +20,7 @@ const STORAGE_VIEW_KEY = 'scheduleViewMode';
 type ViewMode = 'week' | 'month';
 
 export default function MySchedule() {
-  const { user, isOwner, isAdmin } = useAuth();
+  const { user, isOwner } = useAuth();
   const { centers, activeCenterId, setActiveCenterId } = useCenters();
   const [incomingCount, setIncomingCount] = useState(0);
 
