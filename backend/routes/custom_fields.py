@@ -173,11 +173,16 @@ def get_carry_over(sc_id):
     if not fields:
         return jsonify({}), 200
 
-    last_entry = TimeEntry.query.filter_by(
+    exclude_entry_id = request.args.get("exclude_entry_id", type=int)
+
+    query = TimeEntry.query.filter_by(
         user_id=user.id, service_center_id=sc_id
-    ).filter(TimeEntry.clock_out.isnot(None)).order_by(
-        TimeEntry.clock_out.desc()
-    ).first()
+    ).filter(TimeEntry.clock_out.isnot(None))
+
+    if exclude_entry_id:
+        query = query.filter(TimeEntry.id != exclude_entry_id)
+
+    last_entry = query.order_by(TimeEntry.clock_out.desc()).first()
 
     if not last_entry:
         return jsonify({}), 200

@@ -12,6 +12,7 @@ class Config:
     JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "change-this-to-a-long-secret-key-1234567890")
     JWT_ACCESS_TOKEN_EXPIRES = 60 * 60 * 24 * 7  # 7 days
     UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
+    MAX_CONTENT_LENGTH = 20 * 1024 * 1024  # 20 MB
 
     VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", (
         "-----BEGIN PRIVATE KEY-----\n"
