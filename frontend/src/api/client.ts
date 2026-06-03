@@ -170,11 +170,12 @@ export const api = {
       request<any>(`/schedule?service_center_id=${scId}&week_offset=${weekOffset}`),
     availableDates: (userId: number, from: string, to: string) =>
       request<string[]>(`/schedule/available-dates?user_id=${userId}&from=${from}&to=${to}`),
-    admin: (params?: { from?: string; to?: string; service_center_id?: number }) => {
+    admin: (params?: { from?: string; to?: string; service_center_id?: number; skip_payment?: string }) => {
       const q = new URLSearchParams();
       if (params?.from) q.set('from', params.from);
       if (params?.to) q.set('to', params.to);
       if (params?.service_center_id) q.set('service_center_id', String(params.service_center_id));
+      if (params?.skip_payment) q.set('skip_payment', params.skip_payment);
       const s = q.toString();
       return request<any[]>(`/schedule/admin${s ? '?' + s : ''}`);
     },

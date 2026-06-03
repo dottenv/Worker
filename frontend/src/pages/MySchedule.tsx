@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { api, formatLocal } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { useCenters } from '../contexts/CenterContext';
@@ -17,27 +17,10 @@ import ScheduleDetailModal from '../components/ScheduleDetailModal';
 const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 const STORAGE_VIEW_KEY = 'scheduleViewMode';
 
-const USER_COLORS = [
-  '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e',
-  '#ef4444', '#f97316', '#eab308', '#22c55e',
-  '#10b981', '#06b6d4', '#3b82f6', '#a855f7',
-  '#d946ef', '#14b8a6', '#84cc16', '#e11d48',
-];
-
-function userColor(name: string, fallback: string | null): string {
-  if (fallback) return fallback;
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return USER_COLORS[Math.abs(hash) % USER_COLORS.length];
-}
-
 type ViewMode = 'week' | 'month';
 
 export default function MySchedule() {
   const { user, isOwner, isAdmin } = useAuth();
-  const navigate = useNavigate();
   const { centers, activeCenterId, setActiveCenterId } = useCenters();
   const [incomingCount, setIncomingCount] = useState(0);
 
@@ -54,7 +37,8 @@ export default function MySchedule() {
 
   useEffect(() => { loadIncoming(); }, [loadIncoming]);
   useSocketEvent("swap:updated", loadIncoming);
-  const [grouped, setGrouped] = useState<Record<string, any[]>>({});
+
+  const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>(() =>
     (localStorage.getItem(STORAGE_VIEW_KEY) as ViewMode) || 'week'
@@ -64,50 +48,53 @@ export default function MySchedule() {
   const [detailEntry, setDetailEntry] = useState<any>(null);
   const [onlyMine, setOnlyMine] = useState(false);
 
-  const filteredData: Record<string, any[]> = {};
-  if (onlyMine && user) {
-    for (const day of Object.keys(grouped)) {
-      const mine = grouped[day].filter((e: any) => e.user_id === user.id);
-      if (mine.length) filteredData[day] = mine;
-    }
-  }
-  const displayData = onlyMine && user ? filteredData : grouped;
+  const today = new Date();
+  const todayStr = formatLocal(today);
 
-  useEffect(() => {
-    if (isOwner || isAdmin) {
-      navigate('/schedule/admin', { replace: true });
-    }
-  }, [isOwner, isAdmin]);
+  // ---- date ranges ----
+  const weekMonday = useMemo(() => {
+    const d = new Date(today);
+    d.setDate(today.getDate() - today.getDay() + 1 + weekOffset * 7);
+    return d;
+  }, [weekOffset]);
 
+  const weekDays = useMemo(() =>
+    Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(weekMonday);
+      d.setDate(weekMonday.getDate() + i);
+      return formatLocal(d);
+    }),
+  [weekMonday]);
+
+  const monthDate = useMemo(
+    () => new Date(today.getFullYear(), today.getMonth() + monthOffset, 1),
+    [monthOffset]
+  );
+  const monthLabel = monthDate.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+  const monthDays = useMemo(() => {
+    const daysInMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate();
+    return Array.from({ length: daysInMonth }, (_, i) => {
+      const d = new Date(monthDate.getFullYear(), monthDate.getMonth(), i + 1);
+      return formatLocal(d);
+    });
+  }, [monthDate]);
+
+  // ---- load data ----
   useEffect(() => {
     if (!activeCenterId) {
       setLoading(false);
+      setEmployees([]);
       return;
     }
     setLoading(true);
-    localStorage.setItem('activeCenterId', String(activeCenterId));
 
-    const today = new Date();
+    const from = viewMode === 'week' ? weekDays[0] : monthDays[0];
+    const to = viewMode === 'week' ? weekDays[6] : monthDays[monthDays.length - 1];
 
-    if (viewMode === 'week') {
-      const monday = new Date(today);
-      monday.setDate(today.getDate() - today.getDay() + 1 + weekOffset * 7);
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
-      api.schedule.myGrouped(activeCenterId, {
-        from: formatLocal(monday),
-        to: formatLocal(sunday),
-      }).then(setGrouped).catch(console.error).finally(() => setLoading(false));
-    } else {
-      const y = today.getFullYear();
-      const m = today.getMonth() + monthOffset;
-      const first = new Date(y, m, 1);
-      const last = new Date(y, m + 1, 0);
-      api.schedule.myGrouped(activeCenterId, {
-        from: formatLocal(first),
-        to: formatLocal(last),
-      }).then(setGrouped).catch(console.error).finally(() => setLoading(false));
-    }
+    api.schedule.admin({ from, to, service_center_id: activeCenterId, skip_payment: '1' })
+      .then(setEmployees)
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, [activeCenterId, viewMode, weekOffset, monthOffset]);
 
   const changeView = (mode: ViewMode) => {
@@ -115,28 +102,22 @@ export default function MySchedule() {
     localStorage.setItem(STORAGE_VIEW_KEY, mode);
   };
 
-  const todayStr = formatLocal(new Date());
-  const today = new Date();
+  // ---- helpers ----
+  const days = viewMode === 'week' ? weekDays : monthDays;
 
-  // Week data
-  const weekMonday = new Date(today);
-  weekMonday.setDate(today.getDate() - today.getDay() + 1 + weekOffset * 7);
-  const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(weekMonday);
-    d.setDate(weekMonday.getDate() + i);
-    return formatLocal(d);
-  });
-
-  // Month data
-  const monthDate = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
-  const monthLabel = monthDate.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
-  const daysInMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate();
-  const startWeekday = monthDate.getDay() === 0 ? 6 : monthDate.getDay() - 1; // 0=Mon
-  const monthDays: string[] = [];
-  for (let i = 1; i <= daysInMonth; i++) {
-    const d = new Date(monthDate.getFullYear(), monthDate.getMonth(), i);
-    monthDays.push(formatLocal(d));
+  function getCell(emp: any, day: string) {
+    return emp.entries?.find((e: any) => e.date === day) || null;
   }
+
+  function cellLabel(entry: any) {
+    if (!entry) return '—';
+    if (entry.type === 'full_day') return 'В.день';
+    return `${entry.start_time || ''}–${entry.end_time || ''}`;
+  }
+
+  const filtered = onlyMine && user
+    ? employees.filter((e: any) => e.user_id === user.id)
+    : employees;
 
   if (centers.length === 0) {
     return (
@@ -149,23 +130,19 @@ export default function MySchedule() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">Мой график</h1>
-        <div className="mt-2 relative">
-          <select
-            value={activeCenterId || ''}
-            onChange={(e) => setActiveCenterId(Number(e.target.value))}
-            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 appearance-none cursor-pointer"
-          >
-            {centers.map((c) => (
-              <option key={c.id} value={c.id}>{c.address ? `${c.name} (${c.address})` : c.name}</option>
-            ))}
-          </select>
-          <Building2
-            size={16}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-          />
-        </div>
+      <h1 className="text-xl font-bold text-gray-900">Мой график</h1>
+
+      <div className="mt-2 relative">
+        <select
+          value={activeCenterId || ''}
+          onChange={(e) => setActiveCenterId(Number(e.target.value))}
+          className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 appearance-none cursor-pointer"
+        >
+          {centers.map((c) => (
+            <option key={c.id} value={c.id}>{c.address ? `${c.name} (${c.address})` : c.name}</option>
+          ))}
+        </select>
+        <Building2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
       </div>
 
       <Link
@@ -212,9 +189,7 @@ export default function MySchedule() {
         </button>
         <span className="text-sm font-semibold text-gray-900">
           {viewMode === 'week'
-            ? weekDays[0] && weekDays[6]
-              ? `${new Date(weekDays[0]).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} – ${new Date(weekDays[6]).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`
-              : ''
+            ? `${new Date(weekDays[0]).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} – ${new Date(weekDays[6]).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`
             : monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)}
         </span>
         <button
@@ -242,119 +217,76 @@ export default function MySchedule() {
 
       {loading ? (
         <LoadingSpinner />
-      ) : viewMode === 'week' ? (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="grid grid-cols-7 border-b border-gray-100">
-            {WEEKDAYS.map((d, i) => (
-              <div
-                key={d}
-                className={`py-2 text-center text-xs font-medium ${
-                  weekDays[i] === todayStr ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-400'
-                }`}
-              >
-                {d}
-                <div className="text-lg font-bold">{new Date(weekDays[i]).getDate()}</div>
-              </div>
-            ))}
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-gray-200">
+          <div className="p-3 rounded-xl bg-gray-50 inline-flex mb-3">
+            <Sun size={24} className="text-gray-300" />
           </div>
-          <div className="grid grid-cols-7">
-            {weekDays.map((day) => {
-              const dayEntries = displayData[day] || [];
-              const isToday = day === todayStr;
-              return (
-                <div
-                  key={day}
-                  className={`min-h-[80px] p-1.5 border-r border-gray-50 last:border-r-0 ${
-                    isToday ? 'bg-indigo-50/20' : ''
-                  }`}
-                >
-                  {dayEntries.length > 0 ? (
-                    <div className="space-y-1">
-                      {dayEntries.map((e: any) => (
-                        <div
-                          key={e.id}
-                          onClick={() => setDetailEntry(e)}
-                          className={`text-[10px] p-1.5 rounded-lg leading-tight cursor-pointer ${
-                            e.type === 'full_day'
-                              ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                              : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
-                          }`}
-                        >
-                          <div className="flex items-center gap-1 mb-0.5">
-                            <span
-                              className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: userColor(e.user_name, e.user_color) }}
-                            />
-                            <span className="font-medium truncate">{e.user_name}</span>
-                          </div>
-                          <div className="font-medium">
-                            {e.type === 'full_day' ? 'Весь день' : `${e.start_time || ''}–${e.end_time || ''}`}
-                          </div>
-                          {e.notes && (
-                            <div className="text-[8px] opacity-70 mt-0.5 truncate">{e.notes}</div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="h-full flex items-center justify-center">
-                      <span className="text-[10px] text-gray-200">–</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <p className="text-sm text-gray-400">Нет смен в выбранном периоде</p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="grid grid-cols-7 border-b border-gray-100">
-            {WEEKDAYS.map((d) => (
-              <div key={d} className="py-2 text-center text-xs font-medium text-gray-400">{d}</div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7">
-            {Array.from({ length: startWeekday }).map((_, i) => (
-              <div key={`empty-${i}`} className="min-h-[72px] bg-gray-50/30" />
-            ))}
-            {monthDays.map((day) => {
-              const dayEntries = displayData[day] || [];
-              const isToday = day === todayStr;
-              return (
-                <div
-                  key={day}
-                  className={`min-h-[72px] p-1 border-r border-b border-gray-50 ${
-                    isToday ? 'bg-indigo-50/20' : ''
-                  }`}
-                >
-                  <div className={`text-[10px] font-medium mb-0.5 ${isToday ? 'text-indigo-600' : 'text-gray-400'}`}>
-                    {new Date(day).getDate()}
-                  </div>
-                  {dayEntries.length > 0 && (
-                    <div className="space-y-0.5">
-                      {dayEntries.slice(0, 2).map((e: any) => (
-                        <div
-                          key={e.id}
-                          onClick={() => setDetailEntry(e)}
-                          className={`text-[8px] p-0.5 rounded leading-tight cursor-pointer ${
-                            e.type === 'full_day' ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
-                          }`}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-max border-collapse">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="sticky left-0 z-10 bg-white text-left text-xs font-medium text-gray-400 px-3 py-2.5 min-w-[120px]">
+                    Сотрудник
+                  </th>
+                  {days.map((day, i) => (
+                    <th
+                      key={day}
+                      className={`text-center text-xs font-medium px-2 py-2.5 ${
+                        day === todayStr ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-400'
+                      }`}
+                    >
+                      <div>{WEEKDAYS[i % 7]}</div>
+                      <div className="text-lg font-bold">{new Date(day).getDate()}</div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((emp: any) => (
+                  <tr key={`${emp.user_id}-${emp.service_center_id}`} className="border-b border-gray-50 last:border-b-0">
+                    <td className="sticky left-0 z-10 bg-white px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0"
+                          style={{ backgroundColor: emp.user_color || '#6366f1' }}
+                        />
+                        <span className="text-sm font-medium text-gray-900 truncate">{emp.user_name}</span>
+                      </div>
+                    </td>
+                    {days.map((day) => {
+                      const entry = getCell(emp, day);
+                      const isToday = day === todayStr;
+                      return (
+                        <td
+                          key={day}
+                          onClick={() => entry && setDetailEntry(entry)}
+                          className={`text-center text-xs px-2 py-2.5 cursor-default ${
+                            isToday ? 'bg-indigo-50/20' : ''
+                          } ${entry ? 'hover:bg-gray-50 cursor-pointer' : ''}`}
                         >
-                          <span
-                            className="w-1 h-1 rounded-full inline-block mr-0.5 align-middle"
-                            style={{ backgroundColor: userColor(e.user_name, e.user_color) }}
-                          />
-                          {e.type === 'full_day' ? 'Весь день' : `${e.start_time || ''}`}
-                        </div>
-                      ))}
-                      {dayEntries.length > 2 && (
-                        <div className="text-[8px] text-gray-400 font-medium">+{dayEntries.length - 2}</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                          {entry ? (
+                            <span className={`inline-block px-1.5 py-0.5 rounded-md font-medium ${
+                              entry.type === 'full_day'
+                                ? 'bg-blue-50 text-blue-700'
+                                : 'bg-purple-50 text-purple-700'
+                            }`}>
+                              {cellLabel(entry)}
+                            </span>
+                          ) : (
+                            <span className="text-gray-200">—</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

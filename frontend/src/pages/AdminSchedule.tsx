@@ -58,7 +58,7 @@ export default function AdminSchedule() {
   const navigate = useNavigate();
   const { centers, activeCenterId, setActiveCenterId } = useCenters();
   const [members, setMembers] = useState<any[]>([]);
-  const [byDay, setByDay] = useState<Record<string, any[]>>({});
+  const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -123,12 +123,12 @@ export default function AdminSchedule() {
   const monthDate = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
   const monthLabel = monthDate.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
   const daysInMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate();
-  const startWeekday = monthDate.getDay() === 0 ? 6 : monthDate.getDay() - 1;
   const monthDays: string[] = [];
   for (let i = 1; i <= daysInMonth; i++) {
     const d = new Date(monthDate.getFullYear(), monthDate.getMonth(), i);
     monthDays.push(formatLocal(d));
   }
+  const days = viewMode === 'week' ? weekDays : monthDays;
 
   const loadData = async () => {
     setLoading(true);
@@ -144,15 +144,7 @@ export default function AdminSchedule() {
       }
 
       const raw: any[] = await api.schedule.admin({ from, to, service_center_id: activeCenterId || undefined });
-      const grouped: Record<string, any[]> = {};
-      for (const g of raw) {
-        for (const e of g.entries) {
-          const d = e.date;
-          if (!grouped[d]) grouped[d] = [];
-          grouped[d].push({ ...e, user_name: g.user_name });
-        }
-      }
-      setByDay(grouped);
+      setEmployees(raw);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -674,128 +666,90 @@ export default function AdminSchedule() {
         </div>
       )}
 
-      {Object.keys(byDay).length === 0 ? (
+      {employees.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-gray-200">
           <div className="p-3 rounded-xl bg-gray-50 inline-flex mb-3">
             <Calendar size={24} className="text-gray-300" />
           </div>
           <p className="text-sm text-gray-400">Нет смен в выбранном периоде</p>
         </div>
-      ) : viewMode === 'week' ? (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="grid grid-cols-7 border-b border-gray-100">
-            {WEEKDAYS.map((d, i) => (
-              <div key={d} className={`py-2 text-center text-xs font-medium ${
-                weekDays[i] === todayStr ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-400'
-              }`}>
-                {d}
-                <div className="text-lg font-bold">{new Date(weekDays[i]).getDate()}</div>
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7">
-            {weekDays.map((day) => {
-              const dayEntries = byDay[day] || [];
-              return (
-                <div key={day} className={`min-h-[80px] p-1.5 border-r border-gray-50 last:border-r-0 ${
-                  day === todayStr ? 'bg-indigo-50/20' : ''
-                }`}>
-                    {dayEntries.length > 0 ? (
-                    <div className="space-y-0.5">
-                      {dayEntries.map((e: any) => {
-                        const color = e.user_color || '#6366f1';
-                        const checked = selectedIds.has(e.id);
-                        return (
-                        <div key={e.id}
-                          onClick={() => selectMode ? toggleSelect(e.id) : setDetailEntry(e)}
-                          className={`text-[10px] px-1 py-0.5 rounded leading-tight truncate cursor-pointer hover:opacity-80 ${
-                            selectMode && checked ? 'ring-2 ring-indigo-400' : ''
-                          }`}
-                          style={{ backgroundColor: selectMode && checked ? '#eef2ff' : color + '20', color }}
-                          title={`${e.user_name}${e.notes ? ': ' + e.notes : ''}`}
-                        >
-                          <div className="flex items-center gap-1">
-                            {selectMode && (
-                              <input type="checkbox" checked={checked}
-                                onChange={() => toggleSelect(e.id)}
-                                className="shrink-0 accent-indigo-500 w-2.5 h-2.5" />
-                            )}
-                            <span className="font-medium truncate">{e.user_name}</span>
-                            {!selectMode && (
-                              <button
-                                onClick={(ev) => { ev.stopPropagation(); handleDelete(e.id); }}
-                                className="shrink-0 ml-auto text-gray-400 hover:text-red-500"
-                              >
-                                <X size={7} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="h-full flex items-center justify-center">
-                      <span className="text-[10px] text-gray-200">–</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="grid grid-cols-7 border-b border-gray-100">
-            {WEEKDAYS.map((d) => (
-              <div key={d} className="py-2 text-center text-xs font-medium text-gray-400">{d}</div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7">
-            {Array.from({ length: startWeekday }).map((_, i) => (
-              <div key={`empty-${i}`} className="min-h-[72px] bg-gray-50/30" />
-            ))}
-            {monthDays.map((day) => {
-              const dayEntries = byDay[day] || [];
-              return (
-                <div key={day} className={`min-h-[72px] p-1 border-r border-b border-gray-50 ${
-                  day === todayStr ? 'bg-indigo-50/20' : ''
-                }`}>
-                  <div className={`text-[10px] font-medium mb-0.5 ${day === todayStr ? 'text-indigo-600' : 'text-gray-400'}`}>
-                    {new Date(day).getDate()}
-                  </div>
-                  {dayEntries.length > 0 && (
-                    <div className="space-y-0.5">
-                      {dayEntries.slice(0, 3).map((e: any) => {
-                        const color = e.user_color || '#6366f1';
-                        const checked = selectedIds.has(e.id);
-                        return (
-                        <div key={e.id}
-                          onClick={() => selectMode ? toggleSelect(e.id) : setDetailEntry(e)}
-                          className={`text-[8px] px-0.5 py-0.5 rounded leading-tight truncate cursor-pointer hover:opacity-80 ${
-                            selectMode && checked ? 'ring-1 ring-indigo-400' : ''
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-max border-collapse">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="sticky left-0 z-10 bg-white text-left text-xs font-medium text-gray-400 px-3 py-2.5 min-w-[120px]">
+                    Сотрудник
+                  </th>
+                  {days.map((day, i) => (
+                    <th
+                      key={day}
+                      className={`text-center text-xs font-medium px-2 py-2.5 ${
+                        day === todayStr ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-400'
+                      }`}
+                    >
+                      <div>{WEEKDAYS[i % 7]}</div>
+                      <div className="text-lg font-bold">{new Date(day).getDate()}</div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {employees.map((emp: any) => (
+                  <tr key={`${emp.user_id}-${emp.service_center_id}`} className="border-b border-gray-50 last:border-b-0">
+                    <td className="sticky left-0 z-10 bg-white px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0"
+                          style={{ backgroundColor: emp.user_color || '#6366f1' }}
+                        />
+                        <span className="text-sm font-medium text-gray-900 truncate">{emp.user_name}</span>
+                      </div>
+                    </td>
+                    {days.map((day) => {
+                      const entry = emp.entries?.find((e: any) => e.date === day) || null;
+                      const isToday = day === todayStr;
+                      const checked = entry && selectedIds.has(entry.id);
+                      return (
+                        <td
+                          key={day}
+                          onClick={() => {
+                            if (!entry) return;
+                            if (selectMode) toggleSelect(entry.id);
+                            else setDetailEntry(entry);
+                          }}
+                          className={`text-center text-xs px-2 py-2.5 ${
+                            isToday ? 'bg-indigo-50/20' : ''
+                          } ${entry ? 'hover:bg-gray-50 cursor-pointer' : 'cursor-default'} ${
+                            selectMode && checked ? 'bg-indigo-50' : ''
                           }`}
-                          style={{ backgroundColor: selectMode && checked ? '#eef2ff' : color + '20', color }}
                         >
-                          <div className="flex items-center gap-0.5">
-                            {selectMode && (
-                              <input type="checkbox" checked={checked}
-                                onChange={() => toggleSelect(e.id)}
-                                className="shrink-0 accent-indigo-500 w-2 h-2" />
-                            )}
-                            <span className="truncate">{e.user_name}</span>
-                          </div>
-                        </div>
-                        );
-                      })}
-                      {dayEntries.length > 3 && (
-                        <div className="text-[8px] text-gray-400 font-medium">+{dayEntries.length - 3}</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                          {entry ? (
+                            <div className="flex items-center justify-center gap-1">
+                              {selectMode && (
+                                <input type="checkbox" checked={checked}
+                                  onChange={() => toggleSelect(entry.id)}
+                                  className="shrink-0 accent-indigo-500 w-3 h-3" />
+                              )}
+                              <span className={`inline-block px-1.5 py-0.5 rounded-md font-medium ${
+                                entry.type === 'full_day'
+                                  ? 'bg-blue-50 text-blue-700'
+                                  : 'bg-purple-50 text-purple-700'
+                              }`}>
+                                {entry.type === 'full_day' ? 'В.день' : `${entry.start_time || ''}–${entry.end_time || ''}`}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-200">—</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

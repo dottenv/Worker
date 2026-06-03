@@ -112,8 +112,10 @@ def admin_schedule():
         ScheduleEntry.date.desc(), ScheduleEntry.service_center_id
     ).all()
 
-    for entry in entries:
-        process_schedule_payment(entry)  # FIXME: migrate to background processing, side-effect creates FinanceOperation records
+    skip_payment = request.args.get("skip_payment", "0") == "1"
+    if not skip_payment:
+        for entry in entries:
+            process_schedule_payment(entry)
 
     # group by employee x center
     employees = {}
