@@ -9,20 +9,24 @@ import {
   FileText,
   Image,
   Loader2,
+  Trash2,
+  Download,
 } from 'lucide-react';
-
-interface CenterGroup {
-  service_center_id: number;
-  service_center_name: string;
-  service_center_address: string;
-  entries: TimeEntryWithDocs[];
-}
+import PhotoLightbox from '../components/PhotoLightbox';
 
 interface DocItem {
   id: number;
   original_name: string;
   mime_type: string;
   url: string;
+}
+
+interface CustomValue {
+  id: number;
+  custom_field_id: number;
+  field_name: string;
+  field_type: string;
+  value: string;
 }
 
 interface TimeEntryWithDocs {
@@ -34,6 +38,14 @@ interface TimeEntryWithDocs {
   status: string;
   notes: string;
   documents: DocItem[];
+  custom_values: CustomValue[];
+}
+
+interface CenterGroup {
+  service_center_id: number;
+  service_center_name: string;
+  service_center_address: string;
+  entries: TimeEntryWithDocs[];
 }
 
 export default function ShiftDocumentsList() {
@@ -42,13 +54,31 @@ export default function ShiftDocumentsList() {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [expandedEntries, setExpandedEntries] = useState<Set<number>>(new Set());
+  const [lightbox, setLightbox] = useState<{ docs: DocItem[]; index: number } | null>(null);
+
+  const isManager = isOwner;
 
   useEffect(() => {
-    api.timeEntries.withDocuments().then(data => {
+    let cancelled = false;
+    api.timeEntries.withDocuments().then((data: CenterGroup[]) => {
+      if (cancelled) return;
+      setLoading(false);
       setGroups(data);
-      setExpanded(new Set(data.map((g: CenterGroup) => g.service_center_id)));
-    }).finally(() => setLoading(false));
+      if (data.length > 0) {
+        setExpanded(new Set(data.map(g => g.service_center_id)));
+      }
+    });
+    return () => { cancelled = true; };
   }, []);
+
+  const handleDeleteDoc = async (docId: number) => {
+    if (!confirm('Удалить документ?')) return;
+    try {
+      await api.shiftDocuments.delete(docId);
+      const data = await api.timeEntries.withDocuments();
+      setGroups(data as CenterGroup[]);
+    } catch { /* ignore */ }
+  };
 
   if (loading) {
     return (
@@ -104,7 +134,7 @@ export default function ShiftDocumentsList() {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <span className="text-[10px] text-gray-400">{center.entries.length} смен</span>
               {expanded.has(center.service_center_id)
                 ? <ChevronUp size={14} className="text-gray-400" />
@@ -116,6 +146,7 @@ export default function ShiftDocumentsList() {
             <div className="border-t border-gray-50 divide-y divide-gray-50">
               {center.entries.map(entry => {
                 const hasDocs = entry.documents.length > 0;
+                const hasCustom = entry.custom_values?.length > 0;
                 const isExpanded = expandedEntries.has(entry.id);
                 return (
                   <div key={entry.id}>
@@ -148,31 +179,64 @@ export default function ShiftDocumentsList() {
                     </button>
 
                     {isExpanded && (
-                      <div className="px-4 pb-3 space-y-2">
+                      <div className="px-4 pb-4 space-y-3">
                         {entry.notes && (
                           <p className="text-xs text-gray-500 bg-gray-50 rounded-xl p-2.5">
                             {entry.notes}
                           </p>
                         )}
 
+                        {/* Custom fields */}
+                        {hasCustom && (
+                          <div className="grid grid-cols-2 gap-2">
+                            {entry.custom_values.map(cv => (
+                              <div key={cv.id} className="bg-gray-50 rounded-xl p-2.5">
+                                <p className="text-[10px] text-gray-400 mb-0.5">{cv.field_name}</p>
+                                <p className="text-sm font-medium text-gray-800">
+                                  {cv.field_type === 'money'
+                                    ? `${Number(cv.value).toLocaleString('ru')} ₽`
+                                    : cv.value}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Documents */}
                         {hasDocs ? (
-                          <div className="flex flex-wrap gap-2">
-                            {entry.documents.map(doc => (
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                            {entry.documents.map((doc, i) => (
                               <div key={doc.id} className="group relative">
                                 {doc.mime_type?.startsWith('image/') ? (
-                                  <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                                  <button onClick={() => setLightbox({ docs: entry.documents, index: i })}
+                                    className="w-full aspect-square rounded-xl overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity bg-gray-50">
                                     <img src={doc.url} alt={doc.original_name}
-                                      className="w-20 h-20 rounded-xl object-cover border border-gray-200 hover:opacity-80 transition-opacity" />
-                                  </a>
+                                      className="w-full h-full object-cover" />
+                                  </button>
                                 ) : (
                                   <a href={doc.url} target="_blank" rel="noopener noreferrer"
-                                    className="flex flex-col items-center justify-center w-20 h-20 rounded-xl bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors">
-                                    <FileText size={20} className="text-gray-400" />
-                                    <span className="text-[8px] text-gray-400 mt-1 truncate max-w-full px-1">
+                                    className="flex flex-col items-center justify-center w-full aspect-square rounded-xl bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors">
+                                    <FileText size={24} className="text-gray-400" />
+                                    <span className="text-[9px] text-gray-400 mt-1 truncate max-w-full px-1">
                                       {doc.original_name?.split('.').pop()}
                                     </span>
                                   </a>
                                 )}
+                                {/* Hover actions */}
+                                <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-xl">
+                                  <button onClick={() => window.open(doc.url, '_blank')}
+                                    className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-gray-700 transition-colors"
+                                    title="Скачать">
+                                    <Download size={14} />
+                                  </button>
+                                  {isManager && (
+                                    <button onClick={() => handleDeleteDoc(doc.id)}
+                                      className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-red-500 transition-colors"
+                                      title="Удалить">
+                                      <Trash2 size={14} />
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -188,6 +252,18 @@ export default function ShiftDocumentsList() {
           )}
         </div>
       ))}
+
+      {lightbox && (
+        <PhotoLightbox
+          docs={lightbox.docs}
+          initialIndex={lightbox.index}
+          onClose={() => setLightbox(null)}
+          onDelete={isManager ? (docId) => {
+            handleDeleteDoc(docId);
+            setLightbox(null);
+          } : undefined}
+        />
+      )}
     </div>
   );
 }

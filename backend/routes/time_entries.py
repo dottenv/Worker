@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required
-from models import TimeEntry, ServiceCenter, ServiceCenterMember, ScheduleEntry, Shift, User, ShiftDocument
+from models import TimeEntry, ServiceCenter, ServiceCenterMember, ScheduleEntry, Shift, User, ShiftDocument, CustomFieldValue
 from models.finance_operation import FinanceOperation
 from extensions import db
 from datetime import datetime, date, time, timezone
@@ -137,6 +137,11 @@ def entries_with_documents():
     for d in docs:
         docs_by_entry.setdefault(d.time_entry_id, []).append(d.to_dict())
 
+    custom_vals = CustomFieldValue.query.filter(CustomFieldValue.time_entry_id.in_(entry_ids)).all() if entry_ids else []
+    cv_by_entry = {}
+    for cv in custom_vals:
+        cv_by_entry.setdefault(cv.time_entry_id, []).append(cv.to_dict())
+
     sc_map = {}
     for e in entries:
         sc_id = e.service_center_id
@@ -150,6 +155,7 @@ def entries_with_documents():
             }
         entry_data = e.to_dict()
         entry_data["documents"] = docs_by_entry.get(e.id, [])
+        entry_data["custom_values"] = cv_by_entry.get(e.id, [])
         sc_map[sc_id]["entries"].append(entry_data)
 
     return jsonify(list(sc_map.values())), 200
