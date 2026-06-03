@@ -34,7 +34,7 @@ const PATTERNS = [
   { label: '1/2', work: 1, rest: 2 },
   { label: '3/1', work: 3, rest: 1 },
 ];
-const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+const DAY_NAMES = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 const STORAGE_VIEW_KEY = 'adminScheduleViewMode';
 type ViewMode = 'week' | 'month';
 
@@ -682,14 +682,14 @@ export default function AdminSchedule() {
                   <th className="sticky left-0 z-10 bg-white text-left text-xs font-medium text-gray-400 px-3 py-2.5 min-w-[120px]">
                     Сотрудник
                   </th>
-                  {days.map((day, i) => (
+                  {days.map((day) => (
                     <th
                       key={day}
                       className={`text-center text-xs font-medium px-2 py-2.5 ${
                         day === todayStr ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-400'
                       }`}
                     >
-                      <div>{WEEKDAYS[i % 7]}</div>
+                      <div>{DAY_NAMES[new Date(day).getDay()]}</div>
                       <div className="text-lg font-bold">{new Date(day).getDate()}</div>
                     </th>
                   ))}

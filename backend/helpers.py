@@ -58,30 +58,4 @@ def compute_schedule_amount(entry):
     return 0
 
 
-def process_schedule_payment(entry):
-    if entry.type != "full_day" or not entry.hourly_rate:
-        return
-    if not is_finance_enabled_for_center(entry.service_center_id):
-        return
-    if schedule_payment_exists(entry.id, entry.user_id):
-        return
 
-    try:
-        amount = compute_schedule_amount(entry)
-        if amount <= 0:
-            return
-        op = FinanceOperation(
-            user_id=entry.user_id,
-            service_center_id=entry.service_center_id,
-            type="salary",
-            amount=amount,
-            date=entry.date,
-            description=f"Оплата смены {entry.date.isoformat()}",
-            details=json.dumps({"schedule_entry_id": entry.id}),
-            created_at=datetime.utcnow(),
-        )
-        db.session.add(op)
-        db.session.commit()
-    except Exception as e:
-        current_app.logger.error(f"Failed to process payment for entry {entry.id}: {e}")
-        db.session.rollback()

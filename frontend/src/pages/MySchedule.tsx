@@ -14,7 +14,7 @@ import {
 import LoadingSpinner from '../components/LoadingSpinner';
 import ScheduleDetailModal from '../components/ScheduleDetailModal';
 
-const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+const DAY_NAMES = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 const STORAGE_VIEW_KEY = 'scheduleViewMode';
 
 type ViewMode = 'week' | 'month';
@@ -62,7 +62,9 @@ export default function MySchedule() {
   // ---- date ranges ----
   const weekMonday = useMemo(() => {
     const d = new Date(today);
-    d.setDate(today.getDate() - today.getDay() + 1 + weekOffset * 7);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1) + weekOffset * 7;
+    d.setDate(diff);
     return d;
   }, [weekOffset]);
 
@@ -94,37 +96,88 @@ export default function MySchedule() {
       setEmployees([]);
       return;
     }
+
+    let cancelled = false;
     setLoading(true);
 
     const from = viewMode === 'week' ? weekDays[0] : monthDays[0];
     const to = viewMode === 'week' ? weekDays[6] : monthDays[monthDays.length - 1];
 
-    api.schedule.myGrouped(activeCenterId, { from, to })
-      .then((byDate) => {
-        // Transform { date: [entries] } → [{ user_id, user_name, entries }]
-        const userMap: Record<string, any> = {};
-        for (const day of Object.keys(byDate)) {
-          for (const e of byDate[day]) {
-            const key = `${e.user_id}-${e.service_center_id}`;
-            if (!userMap[key]) {
-              userMap[key] = {
-                user_id: e.user_id,
-                user_name: e.user_name,
-                user_color: e.user_color || '',
-                service_center_id: e.service_center_id,
-                service_center_name: e.service_center_name || '',
-                role: e.role || '',
-                entries: [],
-              };
-            }
-            userMap[key].entries.push(e);
+    (async () => {
+      // 1. Load active members to build table rows
+      let members: any[] = [];
+      try {
+        members = await api.members.list(activeCenterId);
+      } catch {}
+
+      // 2. Load entries grouped by date
+      let byDate: Record<string, any[]> = {};
+      try {
+        byDate = await api.schedule.myGrouped(activeCenterId, { from, to });
+      } catch {}
+
+      if (cancelled) return;
+
+      // 3. Build rows from members, merge entries into them
+      const userMap: Record<string, any> = {};
+      for (const m of members) {
+        const key = `${m.user_id}-${activeCenterId}`;
+        userMap[key] = {
+          user_id: m.user_id,
+          user_name: m.user?.full_name || '',
+          user_color: m.user?.color || '',
+          service_center_id: activeCenterId,
+          service_center_name: '',
+          role: m.role || '',
+          entries: [],
+        };
+      }
+
+      // 4. Merge entries (also handles case where members API failed)
+      for (const day of Object.keys(byDate)) {
+        for (const e of byDate[day]) {
+          const key = `${e.user_id}-${e.service_center_id}`;
+          if (!userMap[key]) {
+            userMap[key] = {
+              user_id: e.user_id,
+              user_name: e.user_name,
+              user_color: e.user_color || '',
+              service_center_id: e.service_center_id,
+              service_center_name: e.service_center_name || '',
+              role: e.role || '',
+              entries: [],
+            };
           }
+          userMap[key].entries.push(e);
         }
-        setEmployees(Object.values(userMap));
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [activeCenterId, viewMode, weekOffset, monthOffset]);
+      }
+
+      // 5. Fallback: if still no rows, try /schedule/my (no membership check)
+      if (Object.keys(userMap).length === 0) {
+        try {
+          const myEntries = await api.schedule.my({ service_center_id: activeCenterId, from, to });
+          if (myEntries.length > 0 && user) {
+            setEmployees([{
+              user_id: user.id,
+              user_name: user.full_name,
+              user_color: user.color || '',
+              service_center_id: activeCenterId,
+              service_center_name: '',
+              role: '',
+              entries: myEntries,
+            }]);
+            return;
+          }
+        } catch {}
+        setEmployees([]);
+        return;
+      }
+
+      setEmployees(Object.values(userMap));
+    })();
+
+    return () => { cancelled = true; };
+  }, [activeCenterId, viewMode, weekOffset, monthOffset, user]);
 
   const changeView = (mode: ViewMode) => {
     setViewMode(mode);
@@ -262,14 +315,14 @@ export default function MySchedule() {
                   <th className="sticky left-0 z-10 bg-white text-left text-xs font-medium text-gray-400 px-3 py-2.5 min-w-[120px]">
                     Сотрудник
                   </th>
-                  {days.map((day, i) => (
+                  {days.map((day) => (
                     <th
                       key={day}
                       className={`text-center text-xs font-medium px-2 py-2.5 ${
                         day === todayStr ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-400'
                       }`}
                     >
-                      <div>{WEEKDAYS[i % 7]}</div>
+                      <div>{DAY_NAMES[new Date(day).getDay()]}</div>
                       <div className="text-lg font-bold">{new Date(day).getDate()}</div>
                     </th>
                   ))}
