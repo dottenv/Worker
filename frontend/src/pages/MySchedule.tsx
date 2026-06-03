@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api, formatLocal } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { useCenters } from '../contexts/CenterContext';
@@ -20,6 +20,7 @@ const STORAGE_VIEW_KEY = 'scheduleViewMode';
 type ViewMode = 'week' | 'month';
 
 export default function MySchedule() {
+  const navigate = useNavigate();
   const { user, isOwner } = useAuth();
   const { centers, activeCenterId, setActiveCenterId } = useCenters();
   const [incomingCount, setIncomingCount] = useState(0);
@@ -37,6 +38,13 @@ export default function MySchedule() {
 
   useEffect(() => { loadIncoming(); }, [loadIncoming]);
   useSocketEvent("swap:updated", loadIncoming);
+
+  // Redirect owners/admins to admin schedule page
+  useEffect(() => {
+    if (isOwner) {
+      navigate('/schedule/admin', { replace: true });
+    }
+  }, [isOwner]);
 
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
