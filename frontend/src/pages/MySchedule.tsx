@@ -91,8 +91,29 @@ export default function MySchedule() {
     const from = viewMode === 'week' ? weekDays[0] : monthDays[0];
     const to = viewMode === 'week' ? weekDays[6] : monthDays[monthDays.length - 1];
 
-    api.schedule.admin({ from, to, service_center_id: activeCenterId, skip_payment: '1' })
-      .then(setEmployees)
+    api.schedule.myGrouped(activeCenterId, { from, to })
+      .then((byDate) => {
+        // Transform { date: [entries] } → [{ user_id, user_name, entries }]
+        const userMap: Record<string, any> = {};
+        for (const day of Object.keys(byDate)) {
+          for (const e of byDate[day]) {
+            const key = `${e.user_id}-${e.service_center_id}`;
+            if (!userMap[key]) {
+              userMap[key] = {
+                user_id: e.user_id,
+                user_name: e.user_name,
+                user_color: e.user_color || '',
+                service_center_id: e.service_center_id,
+                service_center_name: e.service_center_name || '',
+                role: e.role || '',
+                entries: [],
+              };
+            }
+            userMap[key].entries.push(e);
+          }
+        }
+        setEmployees(Object.values(userMap));
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [activeCenterId, viewMode, weekOffset, monthOffset]);
