@@ -401,7 +401,7 @@ export default function Dashboard() {
                 <Building2 size={14} className="text-indigo-500" />
               </div>
               <p className="text-lg font-bold text-gray-900">{centers.length}</p>
-              <p className="text-[10px] text-gray-400">Центров</p>
+              <p className="text-[10px] text-gray-400">Складов</p>
             </div>
             <div className="bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
               <div className="p-1.5 rounded-xl bg-emerald-50 inline-flex mb-1.5">
@@ -430,7 +430,7 @@ export default function Dashboard() {
               <Link to="/centers"
                 className="flex items-center gap-2.5 p-3 rounded-xl bg-emerald-50 text-emerald-700 text-sm font-medium hover:bg-emerald-100 transition-colors">
                 <Building2 size={16} />
-                Центры
+                Склады
               </Link>
               <Link to="/schedule/admin"
                 className="flex items-center gap-2.5 p-3 rounded-xl bg-amber-50 text-amber-700 text-sm font-medium hover:bg-amber-100 transition-colors">

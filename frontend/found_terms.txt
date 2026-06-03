@@ -1,0 +1,16 @@
+C:\Users\щ\Documents\Worker\frontend\src\App.tsx:57: ЦЕНТР:       setBack('/centers', 'Центры');
+C:\Users\щ\Documents\Worker\frontend\src\App.tsx:59: ЦЕНТР:       setBack('/centers', 'Центры');
+C:\Users\щ\Documents\Worker\frontend\src\App.tsx:62: ЦЕНТР:       setBack(`/centers/${scId}`, 'Центры');
+C:\Users\щ\Documents\Worker\frontend\src\App.tsx:65: ЦЕНТР:       setBack(`/centers/${scId}`, 'Центры');
+C:\Users\щ\Documents\Worker\frontend\src\App.tsx:88: ЦЕНТР:       setBack(`/centers/${scId}`, 'Центры');
+C:\Users\щ\Documents\Worker\frontend\src\pages\AdminSchedule.tsx:411: СЕРВИС:               <label className="flex items-center gap-1 text-xs font-medium text-gray-500"><Building2 size={12} /> Сервис</label>
+C:\Users\щ\Documents\Worker\frontend\src\pages\CenterDetail.tsx:122: ЦЕНТР:   if (!center) return <p className="text-sm text-gray-400">Центр не найден</p>;
+C:\Users\щ\Documents\Worker\frontend\src\pages\Dashboard.tsx:404: ЦЕНТР:               <p className="text-[10px] text-gray-400">Центров</p>
+C:\Users\щ\Documents\Worker\frontend\src\pages\Dashboard.tsx:433: ЦЕНТР:                 Центры
+C:\Users\щ\Documents\Worker\frontend\src\pages\Settings.tsx:262: СЕРВИС:           {/* Сервис-центр */}
+C:\Users\щ\Documents\Worker\frontend\src\pages\SwapNew.tsx:240: СЦ:     substitution: 'Подмена с других СЦ',
+C:\Users\щ\Documents\Worker\frontend\src\pages\SwapNew.tsx:240: СЦ:     substitution: 'Подмена с других СЦ',
+C:\Users\щ\Documents\Worker\frontend\src\pages\SwapNew.tsx:301: СЦ:             <span className="text-[10px] opacity-70">Другой СЦ</span>
+C:\Users\щ\Documents\Worker\frontend\src\pages\SwapNew.tsx:301: СЦ:             <span className="text-[10px] opacity-70">Другой СЦ</span>
+C:\Users\щ\Documents\Worker\frontend\src\pages\SwapNew.tsx:709: СЦ:                 ? `Смена ${selectedSource ? formatDate(selectedSource.date) : ''} будет предложена сотруднику ${selectedTargetMember?.user?.full_name 
+C:\Users\щ\Documents\Worker\frontend\src\pages\SwapNew.tsx:709: СЦ:                 ? `Смена ${selectedSource ? formatDate(selectedSource.date) : ''} будет предложена сотруднику ${selectedTargetMember?.user?.full_name 

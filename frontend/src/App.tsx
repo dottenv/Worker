@@ -54,15 +54,15 @@ function HeaderSync() {
 
   useLayoutEffect(() => {
     if (path === '/centers/new') {
-      setBack('/centers', 'Центры');
+      setBack('/centers', 'Склады');
     } else if (/^\/centers\/\d+$/.test(path)) {
-      setBack('/centers', 'Центры');
+      setBack('/centers', 'Склады');
     } else if (/^\/centers\/\d+\/employees\/\d+$/.test(path)) {
       const scId = path.split('/')[2];
-      setBack(`/centers/${scId}`, 'Центры');
+      setBack(`/centers/${scId}`, 'Склады');
     } else if (/^\/centers\/\d+\/shifts$/.test(path)) {
       const scId = path.split('/')[2];
-      setBack(`/centers/${scId}`, 'Центры');
+      setBack(`/centers/${scId}`, 'Склады');
     } else if (path === '/swaps') {
       setBack(null);
     } else if (path === '/swaps/new') {

@@ -1,0 +1,13 @@
+C:\Users\щ\Documents\Worker\frontend\src\pages\AdminSchedule.tsx:222 [центр]: setMessage('Выберите центр, сотрудника и проверьте даты'); setIsSuccess(false); return;
+C:\Users\щ\Documents\Worker\frontend\src\pages\AdminSchedule.tsx:411 [Сервис]: <label className="flex items-center gap-1 text-xs font-medium text-gray-500"><Building2 size={12} /> Сервис</label>
+C:\Users\щ\Documents\Worker\frontend\src\pages\CenterDetail.tsx:122 [Центр]: if (!center) return <p className="text-sm text-gray-400">Центр не найден</p>;
+C:\Users\щ\Documents\Worker\frontend\src\pages\CenterDetail.tsx:252 [центр]: Редактировать центр
+C:\Users\щ\Documents\Worker\frontend\src\pages\Dashboard.tsx:599 [центр]: Или попросите администратора добавить вас в существующий центр
+C:\Users\щ\Documents\Worker\frontend\src\pages\Settings.tsx:262 [Сервис]: {/* Сервис-центр */}
+C:\Users\щ\Documents\Worker\frontend\src\pages\Settings.tsx:262 [центр]: {/* Сервис-центр */}
+C:\Users\щ\Documents\Worker\frontend\src\pages\SwapNew.tsx:240 [СЦ]: substitution: 'Подмена с других СЦ',
+C:\Users\щ\Documents\Worker\frontend\src\pages\SwapNew.tsx:257 [центр]: <option value="">Выберите центр</option>
+C:\Users\щ\Documents\Worker\frontend\src\pages\SwapNew.tsx:301 [СЦ]: <span className="text-[10px] opacity-70">Другой СЦ</span>
+C:\Users\щ\Documents\Worker\frontend\src\pages\SwapNew.tsx:709 [СЦ]: ? `Смена ${selectedSource ? formatDate(selectedSource.date) : ''} будет предложена сотруднику ${selectedTargetMember?.user?.full_name || ''} из другог
+C:\Users\щ\Documents\Worker\frontend\src\pages\TimeTracker.tsx:47 [центр]: setMessage('Выберите центр и укажите время начала');
+C:\Users\щ\Documents\Worker\frontend\src\pages\TimeTracker.tsx:100 [центр]: <option value="">Выберите центр</option>

@@ -259,7 +259,7 @@ export default function Settings() {
         <div className="p-5">
           <h3 className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>Общие</h3>
           
-          {/* Сервис-центр */}
+          {/* Склад */}
           <div className="mb-4">
             <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--text-secondary)' }}>Текущий склад</label>
             <div className="relative">

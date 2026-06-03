@@ -237,7 +237,7 @@ export default function SwapNew() {
   const typeLabels: Record<string, string> = {
     swap: 'Обмен сменами',
     give: 'Передача смены',
-    substitution: 'Подмена с других СЦ',
+    substitution: 'Подмена с других складов',
   };
 
   return (
@@ -298,7 +298,7 @@ export default function SwapNew() {
             }}>
             <Users size={20} />
             <span className="font-semibold">Подмена</span>
-            <span className="text-[10px] opacity-70">Другой СЦ</span>
+            <span className="text-[10px] opacity-70">Другой склад</span>
           </button>
         </div>
       </section>
@@ -706,7 +706,7 @@ export default function SwapNew() {
               {swapType === 'swap'
                 ? `Смена ${selectedSource ? formatDate(selectedSource.date) : ''} будет предложена сотруднику ${selectedTargetMember?.user?.full_name || ''} для обмена.`
                 : swapType === 'substitution'
-                ? `Смена ${selectedSource ? formatDate(selectedSource.date) : ''} будет предложена сотруднику ${selectedTargetMember?.user?.full_name || ''} из другого СЦ для подмены в его выходной день (${targetDate ? formatDate(targetDate) : ''}).`
+                ? `Смена ${selectedSource ? formatDate(selectedSource.date) : ''} будет предложена сотруднику ${selectedTargetMember?.user?.full_name || ''} из другого склада для подмены в его выходной день (${targetDate ? formatDate(targetDate) : ''}).`
                 : `Смена ${selectedSource ? formatDate(selectedSource.date) : ''} будет передана сотруднику ${selectedTargetMember?.user?.full_name || ''}.`}
             </p>
             <div className="flex gap-2">

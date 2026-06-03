@@ -119,7 +119,7 @@ export default function CenterDetail() {
   };
 
   if (loading) return <LoadingSpinner />;
-  if (!center) return <p className="text-sm text-gray-400">Центр не найден</p>;
+  if (!center) return <p className="text-sm text-gray-400">Склад не найден</p>;
 
   return (
     <div className="space-y-5">

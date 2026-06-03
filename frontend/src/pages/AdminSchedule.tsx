@@ -408,7 +408,7 @@ export default function AdminSchedule() {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="flex items-center gap-1 text-xs font-medium text-gray-500"><Building2 size={12} /> Сервис</label>
+               <label className="flex items-center gap-1 text-xs font-medium text-gray-500"><Building2 size={12} /> Склад</label>
               <select value={scId} onChange={(e) => handleScChange(e.target.value)}
                 className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40" required>
                 <option value="">Выберите</option>

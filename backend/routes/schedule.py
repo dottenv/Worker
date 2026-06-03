@@ -79,14 +79,15 @@ def process_schedule_payment(entry: ScheduleEntry):
 def admin_schedule():
     user = get_current_user()
     owned = ServiceCenter.query.filter_by(owner_id=user.id).all()
-    center_ids = [c.id for c in owned]
+    owned_ids = set(c.id for c in owned)
 
-    # if user is not owner, show centers where they are member
-    if not center_ids:
-        memberships = ServiceCenterMember.query.filter_by(
-            user_id=user.id, is_active=True
-        ).all()
-        center_ids = [m.service_center_id for m in memberships]
+    member_of = ServiceCenterMember.query.filter_by(
+        user_id=user.id, is_active=True
+    ).all()
+    member_ids = set(m.service_center_id for m in member_of)
+
+    # union: owned centers + centers where user is an active member
+    center_ids = list(owned_ids | member_ids)
 
     # filter by specific center
     sc_filter = request.args.get("service_center_id", type=int)
@@ -566,12 +567,12 @@ def bulk_delete_entries():
 def admin_history():
     user = get_current_user()
     owned = ServiceCenter.query.filter_by(owner_id=user.id).all()
-    center_ids = [c.id for c in owned]
-    if not center_ids:
-        memberships = ServiceCenterMember.query.filter_by(
-            user_id=user.id, is_active=True
-        ).all()
-        center_ids = [m.service_center_id for m in memberships]
+    owned_ids = set(c.id for c in owned)
+    member_of = ServiceCenterMember.query.filter_by(
+        user_id=user.id, is_active=True
+    ).all()
+    member_ids = set(m.service_center_id for m in member_of)
+    center_ids = list(owned_ids | member_ids)
 
     if not center_ids:
         return jsonify({"swaps": [], "entries": []}), 200
