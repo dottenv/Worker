@@ -37,11 +37,16 @@ def schedule_payment_exists(entry_id, user_id):
     ops = FinanceOperation.query.filter_by(user_id=user_id).all()
     for op in ops:
         try:
-            details = json.loads(op.details) if op.details else {}
+            details = json.loads(op.details) if op.details else []
         except (json.JSONDecodeError, TypeError):
             continue
-        if details.get("schedule_entry_id") == entry_id:
-            return True
+        if isinstance(details, dict):
+            if details.get("schedule_entry_id") == entry_id:
+                return True
+        elif isinstance(details, list):
+            for item in details:
+                if isinstance(item, dict) and item.get("schedule_entry_id") == entry_id:
+                    return True
     return False
 
 
