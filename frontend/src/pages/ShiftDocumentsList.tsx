@@ -80,6 +80,15 @@ export default function ShiftDocumentsList() {
     } catch { /* ignore */ }
   };
 
+  const handleDeleteEntry = async (entryId: number) => {
+    if (!confirm('Удалить всю запись о смене вместе с файлами и данными?')) return;
+    try {
+      await api.timeEntries.delete(entryId);
+      const data = await api.timeEntries.withDocuments();
+      setGroups(data as CenterGroup[]);
+    } catch { /* ignore */ }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -166,6 +175,13 @@ export default function ShiftDocumentsList() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
+                        {isManager && (
+                          <button onClick={(e) => { e.stopPropagation(); handleDeleteEntry(entry.id); }}
+                            className="p-1 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                            title="Удалить смену">
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                         {hasDocs && (
                           <span className="flex items-center gap-1 text-[10px] text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-full">
                             <Image size={10} />
@@ -204,41 +220,49 @@ export default function ShiftDocumentsList() {
 
                         {/* Documents */}
                         {hasDocs ? (
-                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                            {entry.documents.map((doc, i) => (
-                              <div key={doc.id} className="group relative">
-                                {doc.mime_type?.startsWith('image/') ? (
-                                  <button onClick={() => setLightbox({ docs: entry.documents, index: i })}
-                                    className="w-full aspect-square rounded-xl overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity bg-gray-50">
-                                    <img src={doc.url} alt={doc.original_name}
-                                      className="w-full h-full object-cover" />
-                                  </button>
-                                ) : (
-                                  <a href={doc.url} target="_blank" rel="noopener noreferrer"
-                                    className="flex flex-col items-center justify-center w-full aspect-square rounded-xl bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors">
-                                    <FileText size={24} className="text-gray-400" />
-                                    <span className="text-[9px] text-gray-400 mt-1 truncate max-w-full px-1">
-                                      {doc.original_name?.split('.').pop()}
-                                    </span>
-                                  </a>
-                                )}
-                                {/* Hover actions */}
-                                <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-xl">
-                                  <button onClick={() => window.open(doc.url, '_blank')}
-                                    className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-gray-700 transition-colors"
-                                    title="Скачать">
-                                    <Download size={14} />
-                                  </button>
-                                  {isManager && (
-                                    <button onClick={() => handleDeleteDoc(doc.id)}
-                                      className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-red-500 transition-colors"
-                                      title="Удалить">
-                                      <Trash2 size={14} />
-                                    </button>
+                          <div>
+                            {entry.documents.length > 1 && (
+                              <button onClick={() => setLightbox({ docs: entry.documents, index: 0 })}
+                                className="mb-2 text-xs text-indigo-600 font-medium hover:text-indigo-700 transition-colors">
+                                Смотреть галерею ({entry.documents.length})
+                              </button>
+                            )}
+                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                              {entry.documents.map(doc => (
+                                <div key={doc.id} className="group relative">
+                                  {doc.mime_type?.startsWith('image/') ? (
+                                    <a href={doc.url} target="_blank" rel="noopener noreferrer"
+                                      className="block w-full aspect-square rounded-xl overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity bg-gray-50">
+                                      <img src={doc.url} alt={doc.original_name}
+                                        className="w-full h-full object-cover" />
+                                    </a>
+                                  ) : (
+                                    <a href={doc.url} target="_blank" rel="noopener noreferrer"
+                                      className="flex flex-col items-center justify-center w-full aspect-square rounded-xl bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors">
+                                      <FileText size={24} className="text-gray-400" />
+                                      <span className="text-[9px] text-gray-400 mt-1 truncate max-w-full px-1">
+                                        {doc.original_name?.split('.').pop()}
+                                      </span>
+                                    </a>
                                   )}
+                                  {/* Hover actions */}
+                                  <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-xl">
+                                    <button onClick={(e) => { e.preventDefault(); window.open(doc.url, '_blank'); }}
+                                      className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-gray-700 transition-colors"
+                                      title="Скачать">
+                                      <Download size={14} />
+                                    </button>
+                                    {isManager && (
+                                      <button onClick={(e) => { e.preventDefault(); handleDeleteDoc(doc.id); }}
+                                        className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-red-500 transition-colors"
+                                        title="Удалить">
+                                        <Trash2 size={14} />
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
                         ) : (
                           <p className="text-xs text-gray-400">Нет прикреплённых файлов</p>

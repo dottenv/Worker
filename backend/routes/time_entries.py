@@ -1,3 +1,4 @@
+import os
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required
 from models import TimeEntry, ServiceCenter, ServiceCenterMember, ScheduleEntry, Shift, User, ShiftDocument, CustomFieldValue
@@ -611,6 +612,15 @@ def delete_entry(entry_id):
 
     if not is_manager(entry.service_center_id, user.id):
         return jsonify({"error": "Access denied"}), 403
+
+    docs = ShiftDocument.query.filter_by(time_entry_id=entry_id).all()
+    for d in docs:
+        file_path = os.path.join(current_app.config["UPLOAD_FOLDER"], "shift_docs", d.filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        db.session.delete(d)
+
+    CustomFieldValue.query.filter_by(time_entry_id=entry_id).delete()
 
     db.session.delete(entry)
     db.session.commit()
