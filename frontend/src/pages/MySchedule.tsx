@@ -104,76 +104,82 @@ export default function MySchedule() {
     const to = viewMode === 'week' ? weekDays[6] : monthDays[monthDays.length - 1];
 
     (async () => {
-      // 1. Load active members to build table rows
-      let members: any[] = [];
       try {
-        members = await api.members.list(activeCenterId);
-      } catch {}
+        // 1. Load active members to build table rows
+        let members: any[] = [];
+        try {
+          members = await api.members.list(activeCenterId);
+        } catch {}
 
-      // 2. Load entries grouped by date
-      let byDate: Record<string, any[]> = {};
-      try {
-        byDate = await api.schedule.myGrouped(activeCenterId, { from, to });
-      } catch {}
+        // 2. Load entries grouped by date
+        let byDate: Record<string, any[]> = {};
+        try {
+          byDate = await api.schedule.myGrouped(activeCenterId, { from, to });
+        } catch {}
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      // 3. Build rows from members, merge entries into them
-      const userMap: Record<string, any> = {};
-      for (const m of members) {
-        const key = `${m.user_id}-${activeCenterId}`;
-        userMap[key] = {
-          user_id: m.user_id,
-          user_name: m.user?.full_name || '',
-          user_color: m.user?.color || '',
-          service_center_id: activeCenterId,
-          service_center_name: '',
-          role: m.role || '',
-          entries: [],
-        };
-      }
+        // 3. Build rows from members, merge entries into them
+        const userMap: Record<string, any> = {};
+        for (const m of members) {
+          const key = `${m.user_id}-${activeCenterId}`;
+          userMap[key] = {
+            user_id: m.user_id,
+            user_name: m.user?.full_name || '',
+            user_color: m.user?.color || '',
+            service_center_id: activeCenterId,
+            service_center_name: '',
+            role: m.role || '',
+            entries: [],
+          };
+        }
 
-      // 4. Merge entries (also handles case where members API failed)
-      for (const day of Object.keys(byDate)) {
-        for (const e of byDate[day]) {
-          const key = `${e.user_id}-${e.service_center_id}`;
-          if (!userMap[key]) {
-            userMap[key] = {
-              user_id: e.user_id,
-              user_name: e.user_name,
-              user_color: e.user_color || '',
-              service_center_id: e.service_center_id,
-              service_center_name: e.service_center_name || '',
-              role: e.role || '',
-              entries: [],
-            };
+        // 4. Merge entries (also handles case where members API failed)
+        for (const day of Object.keys(byDate)) {
+          for (const e of byDate[day]) {
+            const key = `${e.user_id}-${e.service_center_id}`;
+            if (!userMap[key]) {
+              userMap[key] = {
+                user_id: e.user_id,
+                user_name: e.user_name,
+                user_color: e.user_color || '',
+                service_center_id: e.service_center_id,
+                service_center_name: e.service_center_name || '',
+                role: e.role || '',
+                entries: [],
+              };
+            }
+            userMap[key].entries.push(e);
           }
-          userMap[key].entries.push(e);
+        }
+
+        // 5. Fallback: if still no rows, try /schedule/my (no membership check)
+        if (Object.keys(userMap).length === 0) {
+          try {
+            const myEntries = await api.schedule.my({ service_center_id: activeCenterId, from, to });
+            if (myEntries.length > 0 && user) {
+              setEmployees([{
+                user_id: user.id,
+                user_name: user.full_name,
+                user_color: user.color || '',
+                service_center_id: activeCenterId,
+                service_center_name: '',
+                role: '',
+                entries: myEntries,
+              }]);
+              return;
+            }
+          } catch {}
+          setEmployees([]);
+          return;
+        }
+
+        setEmployees(Object.values(userMap));
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
         }
       }
-
-      // 5. Fallback: if still no rows, try /schedule/my (no membership check)
-      if (Object.keys(userMap).length === 0) {
-        try {
-          const myEntries = await api.schedule.my({ service_center_id: activeCenterId, from, to });
-          if (myEntries.length > 0 && user) {
-            setEmployees([{
-              user_id: user.id,
-              user_name: user.full_name,
-              user_color: user.color || '',
-              service_center_id: activeCenterId,
-              service_center_name: '',
-              role: '',
-              entries: myEntries,
-            }]);
-            return;
-          }
-        } catch {}
-        setEmployees([]);
-        return;
-      }
-
-      setEmployees(Object.values(userMap));
     })();
 
     return () => { cancelled = true; };
