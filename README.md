@@ -1,4 +1,14 @@
 <div align="center">
+  <a href="#en">EN</a>
+  &nbsp;&middot;&nbsp;
+  <a href="#ru">RU</a>
+</div>
+
+---
+
+<div id="en">
+
+<div align="center">
   <h1>Worker</h1>
   <p><strong>Service center management system</strong></p>
   <p>
@@ -10,23 +20,23 @@
 <details>
   <summary>Table of Contents</summary>
 
-  - [About](#about)
-  - [Features](#features)
-  - [Tech Stack](#tech-stack)
-  - [Architecture](#architecture)
-  - [Quick Start](#quick-start)
-  - [Manual Setup](#manual-setup)
-  - [Configuration](#configuration)
-  - [API Overview](#api-overview)
-  - [Project Structure](#project-structure)
-  - [Updating](#updating)
+  - [About](#about-en)
+  - [Features](#features-en)
+  - [Tech Stack](#tech-stack-en)
+  - [Architecture](#architecture-en)
+  - [Quick Start](#quick-start-en)
+  - [Manual Setup](#manual-setup-en)
+  - [Configuration](#configuration-en)
+  - [API Overview](#api-overview-en)
+  - [Project Structure](#project-structure-en)
+  - [Updating](#updating-en)
   - [License](#license)
 
 </details>
 
 ---
 
-## About
+<h2 id="about-en">About</h2>
 
 Worker is a full-stack web application designed for service centers and warehouses that need to coordinate employees across multiple locations. It handles the full lifecycle of shift management — from defining shift templates and building schedules, to clocking in and out, swapping shifts, tracking finances, and generating reports.
 
@@ -34,7 +44,7 @@ The application is built as a Progressive Web App (PWA) with offline support, re
 
 ---
 
-## Features
+<h2 id="features-en">Features</h2>
 
 <h3>Authentication and user management</h3>
 
@@ -138,7 +148,7 @@ The application is built as a Progressive Web App (PWA) with offline support, re
 
 ---
 
-## Tech Stack
+<h2 id="tech-stack-en">Tech Stack</h2>
 
 <table>
   <thead>
@@ -197,9 +207,9 @@ The application is built as a Progressive Web App (PWA) with offline support, re
 
 ---
 
-## Architecture
+<h2 id="architecture-en">Architecture</h2>
 
-```
+<pre>
                          CloudPub tunnel
                               |
                          (public HTTPS)
@@ -215,7 +225,7 @@ The application is built as a Progressive Web App (PWA) with offline support, re
                               |
                          SQLite database
                          (/data/app.db)
-```
+</pre>
 
 Three Docker containers on a shared bridge network:
 
@@ -254,7 +264,7 @@ In production, Nginx handles:
 
 ---
 
-## Quick Start
+<h2 id="quick-start-en">Quick Start</h2>
 
 One-line setup on a fresh VPS with Docker installed:
 
@@ -282,7 +292,7 @@ The first user to register at that URL will automatically become a superuser and
 
 ---
 
-## Manual Setup
+<h2 id="manual-setup-en">Manual Setup</h2>
 
 <h3>Prerequisites</h3>
 
@@ -322,7 +332,7 @@ Look for a line like <code>published: http://frontend:80 -> https://xxx.cloudpub
 ```bash
 cd backend
 python -m venv .venv
-source .venv/bin/activate   # or .venv\Scripts\activate on Windows
+source .venv/bin/activate
 pip install -r requirements.txt
 python app.py
 ```
@@ -339,7 +349,7 @@ The Vite dev server runs on port 5173 and proxies API requests to the backend on
 
 ---
 
-## Configuration
+<h2 id="configuration-en">Configuration</h2>
 
 All configuration is done through environment variables in the <code>.env</code> file.
 
@@ -396,20 +406,19 @@ JWT_ACCESS_TOKEN_EXPIRES = 60 * 60 * 24 * 7
 <h3>File upload limits</h3>
 
 <p>Max file size: 20 MB. Configured in <code>backend/config.py</code> and <code>frontend/nginx.conf</code>.</p>
-
 <p>Allowed file types: png, jpg, jpeg, gif, webp, bmp, pdf, doc, docx, xls, xlsx, txt, csv.</p>
 
 <h3>Nginx client max body size</h3>
 
 <p>Set to 20 MB in <code>frontend/nginx.conf</code>:</p>
 
-```
+<pre>
 client_max_body_size 20M;
-```
+</pre>
 
 ---
 
-## API Overview
+<h2 id="api-overview-en">API Overview</h2>
 
 The API is organized into the following groups:
 
@@ -490,9 +499,9 @@ The API is organized into the following groups:
 
 ---
 
-## Project Structure
+<h2 id="project-structure-en">Project Structure</h2>
 
-```
+<pre>
 Worker/
 ├── backend/                    # Python Flask application
 │   ├── app.py                  # Flask factory and blueprint registration
@@ -553,11 +562,11 @@ Worker/
 ├── update.sh                   # Update script
 ├── clean.sh                    # Full cleanup without data loss
 └── .env.example                # Environment variable template
-```
+</pre>
 
 ---
 
-## Updating
+<h2 id="updating-en">Updating</h2>
 
 To update an existing installation:
 
@@ -570,6 +579,585 @@ This will stash any local changes, pull the latest code from GitHub, and rebuild
 
 ---
 
-## License
+</div>
 
-MIT
+<div id="ru">
+
+<div align="center">
+  <h1>Worker</h1>
+  <p><strong>Система управления сервисными центрами и складами</strong></p>
+  <p>
+    Составление графиков сотрудников, обмен сменами, учёт рабочего времени
+    и управление финансами для организаций с несколькими точками.
+  </p>
+</div>
+
+<details>
+  <summary>Содержание</summary>
+
+  - [О приложении](#about-ru)
+  - [Возможности](#features-ru)
+  - [Технологии](#tech-stack-ru)
+  - [Архитектура](#architecture-ru)
+  - [Быстрый старт](#quick-start-ru)
+  - [Ручная установка](#manual-setup-ru)
+  - [Конфигурация](#configuration-ru)
+  - [Обзор API](#api-overview-ru)
+  - [Структура проекта](#project-structure-ru)
+  - [Обновление](#updating-ru)
+  - [Лицензия](#license-ru)
+
+</details>
+
+---
+
+<h2 id="about-ru">О приложении</h2>
+
+Worker — это полнофункциональное веб-приложение для управления сервисными центрами и складами, которым необходимо координировать работу сотрудников на нескольких точках. Оно покрывает полный цикл управления сменами: от создания шаблонов смен и построения графиков до отметок начала и окончания работы, обмена сменами, учёта финансов и формирования отчётов.
+
+Приложение реализовано как Progressive Web App (PWA) с офлайн-поддержкой, обновлениями в реальном времени через WebSocket и push-уведомлениями. Полностью контейнеризировано с помощью Docker и готово к продакшн-развёртыванию за HTTPS-туннелем CloudPub.
+
+---
+
+<h2 id="features-ru">Возможности</h2>
+
+<h3>Аутентификация и управление пользователями</h3>
+
+<ul>
+  <li>Регистрация и вход на основе JWT</li>
+  <li>Ролевая модель: владелец, администратор, сотрудник</li>
+  <li>Первый зарегистрировавшийся пользователь автоматически становится суперадминистратором и получает склад по умолчанию</li>
+  <li>Редактирование профиля, назначение цвета пользователю, настройка уведомлений по типам</li>
+  <li>Определение онлайн-статуса через WebSocket</li>
+</ul>
+
+<h3>Сервис-центры (склады)</h3>
+
+<ul>
+  <li>Создание и управление несколькими сервис-центрами</li>
+  <li>Добавление сотрудников по email или выбором из списка пользователей</li>
+  <li>Назначение ролей (владелец, администратор, сотрудник), почасовой ставки и режима учёта времени</li>
+  <li>Межскладское управление для владельцев</li>
+  <li>Каскадное удаление с очисткой всех связанных данных</li>
+</ul>
+
+<h3>Шаблоны смен</h3>
+
+<ul>
+  <li>Создание шаблонов с названием, временем начала и конца, цветом</li>
+  <li>Пометка смен как оплачиваемых или неоплачиваемых</li>
+  <li>Шаблоны привязаны к конкретному сервис-центру</li>
+</ul>
+
+<h3>Управление графиком</h3>
+
+<ul>
+  <li>Администратор создаёт записи в графике для каждого сотрудника</li>
+  <li>Типы: полный день или по часам</li>
+  <li>Копирование графика с недели на неделю</li>
+  <li>Массовое удаление и быстрое заполнение</li>
+  <li>Сотрудник видит свой график в виде календарной таблицы</li>
+  <li>Автоматическое начисление оплаты за прошедшие смены</li>
+</ul>
+
+<h3>Обмен сменами</h3>
+
+<ul>
+  <li><strong>Обмен</strong> — обменяться сменами с другим сотрудником</li>
+  <li><strong>Отдать</strong> — передать смену другому сотруднику</li>
+  <li><strong>Подмена</strong> — попросить кого-то выйти вместо себя</li>
+  <li><strong>Принудительно</strong> — переназначение смены администратором</li>
+  <li>Принятие, отклонение и отмена обмена с уведомлениями в реальном времени</li>
+  <li>Обмен между складами, если они принадлежат одному владельцу</li>
+</ul>
+
+<h3>Учёт рабочего времени</h3>
+
+<ul>
+  <li>Отметка начала и окончания работы с авто-подтверждением для запланированных смен</li>
+  <li>Ожидание подтверждения для внеплановых отметок</li>
+  <li>Учёт перерывов и примечаний</li>
+  <li>Индикатор активной смены на панели управления</li>
+  <li>Пользовательские поля для смены (текст, число, деньги) с переносом значений</li>
+  <li>Загрузка фото и документов (до 10 файлов на смену)</li>
+</ul>
+
+<h3>Финансы и бухгалтерия</h3>
+
+<ul>
+  <li>Включение и отключение финансового модуля для каждого владельца</li>
+  <li>Типы операций: зарплата, аванс, выплата, удержание, корректировка</li>
+  <li>Автоматическое начисление зарплаты из отработанных часов или записей графика</li>
+  <li>Расчёт баланса и финансовый прогноз</li>
+  <li>CRUD для всех финансовых операций сотрудников</li>
+</ul>
+
+<h3>Уведомления и обновления в реальном времени</h3>
+
+<ul>
+  <li>Внутренний центр уведомлений с иконкой колокольчика</li>
+  <li>Доставка в реальном времени через Socket.IO</li>
+  <li>Push-уведомления через Web Push (VAPID)</li>
+  <li>Настройка подписки на каждый тип уведомлений</li>
+  <li>Звуковое сопровождение уведомлений</li>
+</ul>
+
+<h3>Progressive Web App</h3>
+
+<ul>
+  <li>Установка на домашний экран устройства</li>
+  <li>Сервис-воркер с предварительным кэшированием</li>
+  <li>Поддержка push-уведомлений в сервис-воркере</li>
+  <li>Полноэкранный режим standalone</li>
+</ul>
+
+<h3>Дополнительно</h3>
+
+<ul>
+  <li>Светлая, тёмная и системная темы оформления</li>
+  <li>Mobile-first адаптивный дизайн</li>
+  <li>Настраиваемая нижняя навигация</li>
+  <li>Лайтбокс для фото с навигацией свайпом</li>
+  <li>Тактильная обратная связь на поддерживаемых устройствах</li>
+</ul>
+
+---
+
+<h2 id="tech-stack-ru">Технологии</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Компонент</th>
+      <th>Технология</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Бэкенд</td>
+      <td>Python 3.12, Flask 3.1, Flask-SQLAlchemy 3.1</td>
+    </tr>
+    <tr>
+      <td>База данных</td>
+      <td>SQLite (в продакшне: <code>/data/app.db</code>)</td>
+    </tr>
+    <tr>
+      <td>Аутентификация</td>
+      <td>JWT (Flask-JWT-Extended)</td>
+    </tr>
+    <tr>
+      <td>Real-time</td>
+      <td>Flask-SocketIO 5.5, gevent</td>
+    </tr>
+    <tr>
+      <td>Push-уведомления</td>
+      <td>Web Push API (VAPID), pywebpush</td>
+    </tr>
+    <tr>
+      <td>Фронтенд</td>
+      <td>React 19, TypeScript 6, Vite 8</td>
+    </tr>
+    <tr>
+      <td>Стили</td>
+      <td>Tailwind CSS 3.4 с тёмной темой</td>
+    </tr>
+    <tr>
+      <td>PWA</td>
+      <td>Vite PWA plugin, Workbox</td>
+    </tr>
+    <tr>
+      <td>Обратный прокси</td>
+      <td>Nginx</td>
+    </tr>
+    <tr>
+      <td>Контейнеризация</td>
+      <td>Docker, Docker Compose</td>
+    </tr>
+    <tr>
+      <td>Туннелирование</td>
+      <td>CloudPub (cloudpub.ru)</td>
+    </tr>
+  </tbody>
+</table>
+
+---
+
+<h2 id="architecture-ru">Архитектура</h2>
+
+<pre>
+                         CloudPub tunnel
+                              |
+                         (public HTTPS)
+                              |
+                         [frontend:80]
+                         Nginx reverse proxy
+                        /                  \
+                   /api/*              /socket.io/*
+                  (HTTP)               (WebSocket)
+                        \                  /
+                         [backend:5000]
+                         Gunicorn + gevent
+                              |
+                         SQLite database
+                         (/data/app.db)
+</pre>
+
+Три Docker-контейнера в общей bridge-сети:
+
+<table>
+  <thead>
+    <tr>
+      <th>Сервис</th>
+      <th>Образ</th>
+      <th>Роль</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>cloudpub</code></td>
+      <td><code>cloudpub/cloudpub:latest</code></td>
+      <td>Создаёт публичный HTTPS-адрес, туннелирующий трафик к фронтенду</td>
+    </tr>
+    <tr>
+      <td><code>frontend</code></td>
+      <td>Собирается из <code>frontend/Dockerfile</code></td>
+      <td>Nginx раздаёт статику SPA и проксирует API и WebSocket на бэкенд</td>
+    </tr>
+    <tr>
+      <td><code>backend</code></td>
+      <td>Собирается из <code>backend/Dockerfile</code></td>
+      <td>Flask-приложение под Gunicorn + GeventWebSocketWorker</td>
+    </tr>
+  </tbody>
+</table>
+
+В продакшне Nginx отвечает за:
+- Раздачу статических файлов фронтенда с долгосрочным кэшированием
+- Проксирование запросов <code>/api/</code> на бэкенд
+- Проксирование WebSocket-соединений <code>/socket.io/</code> на бэкенд
+- SPA fallback-маршрутизацию
+
+---
+
+<h2 id="quick-start-ru">Быстрый старт</h2>
+
+Установка одной командой на свежий VPS с Docker:
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/dottenv/Worker/main/setup.sh)
+```
+
+Скрипт выполнит:
+<ol>
+  <li>Клонирование репозитория</li>
+  <li>Проверку наличия Docker и OpenSSL</li>
+  <li>Генерацию секретных ключей</li>
+  <li>Запрос CloudPub-токена (зарегистрироваться на <a href="https://cloudpub.ru/dashboard">cloudpub.ru</a>)</li>
+  <li>Запись файла <code>.env</code> с конфигурацией</li>
+  <li>Сборку и запуск всех контейнеров</li>
+</ol>
+
+После запуска получить публичный URL:
+
+```bash
+docker compose logs cloudpub
+```
+
+Первый зарегистрировавшийся пользователь по этому адресу автоматически станет суперадминистратором и получит склад по умолчанию.
+
+---
+
+<h2 id="manual-setup-ru">Ручная установка</h2>
+
+<h3>Требования</h3>
+
+<ul>
+  <li>Docker и Docker Compose</li>
+  <li>OpenSSL</li>
+  <li>CloudPub-токен (<a href="https://cloudpub.ru/dashboard">зарегистрироваться</a>)</li>
+</ul>
+
+<h3>Установка</h3>
+
+```bash
+git clone https://github.com/dottenv/Worker.git
+cd Worker
+chmod +x setup.sh
+./setup.sh
+```
+
+<h3>Запуск приложения</h3>
+
+```bash
+docker compose --env-file .env up --build -d
+```
+
+<h3>Проверка публичного URL</h3>
+
+```bash
+docker compose logs cloudpub
+```
+
+Ищите строку вида <code>published: http://frontend:80 -> https://xxx.cloudpub.ru</code>
+
+<h3>Разработка (без Docker)</h3>
+
+<p><strong>Бэкенд:</strong></p>
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python app.py
+```
+
+<p><strong>Фронтенд:</strong></p>
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Vite-сервер разработки работает на порту 5173 и проксирует API-запросы на бэкенд на порту 5000.
+
+---
+
+<h2 id="configuration-ru">Конфигурация</h2>
+
+Все настройки задаются через переменные окружения в файле <code>.env</code>.
+
+<table>
+  <thead>
+    <tr>
+      <th>Переменная</th>
+      <th>Обязательно</th>
+      <th>Описание</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>SECRET_KEY</code></td>
+      <td>Да</td>
+      <td>Секретный ключ Flask для подписи сессий</td>
+    </tr>
+    <tr>
+      <td><code>JWT_SECRET_KEY</code></td>
+      <td>Да</td>
+      <td>Ключ для подписи JWT-токенов</td>
+    </tr>
+    <tr>
+      <td><code>DATABASE_URL</code></td>
+      <td>Да</td>
+      <td>Строка подключения к БД (по умолчанию: <code>sqlite:////data/app.db</code>)</td>
+    </tr>
+    <tr>
+      <td><code>CLOUDPUB_TOKEN</code></td>
+      <td>Да</td>
+      <td>Токен туннельного сервиса CloudPub</td>
+    </tr>
+    <tr>
+      <td><code>VAPID_PRIVATE_KEY</code></td>
+      <td>Нет</td>
+      <td>Приватный ключ Web Push</td>
+    </tr>
+    <tr>
+      <td><code>VAPID_PUBLIC_KEY</code></td>
+      <td>Нет</td>
+      <td>Публичный ключ Web Push</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Срок действия JWT</h3>
+
+<p>По умолчанию: 7 дней. Изменить в <code>backend/config.py</code>:</p>
+
+```python
+JWT_ACCESS_TOKEN_EXPIRES = 60 * 60 * 24 * 7
+```
+
+<h3>Лимиты загрузки файлов</h3>
+
+<p>Максимальный размер файла: 20 МБ. Настраивается в <code>backend/config.py</code> и <code>frontend/nginx.conf</code>.</p>
+<p>Разрешённые типы: png, jpg, jpeg, gif, webp, bmp, pdf, doc, docx, xls, xlsx, txt, csv.</p>
+
+<h3>Nginx client max body size</h3>
+
+<p>Установлен 20 МБ в <code>frontend/nginx.conf</code>:</p>
+
+<pre>
+client_max_body_size 20M;
+</pre>
+
+---
+
+<h2 id="api-overview-ru">Обзор API</h2>
+
+API организовано в следующие группы:
+
+<table>
+  <thead>
+    <tr>
+      <th>Префикс</th>
+      <th>Модуль</th>
+      <th>Описание</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>/api/auth</code></td>
+      <td>Аутентификация</td>
+      <td>Регистрация, вход, профиль, список пользователей, настройка навигации</td>
+    </tr>
+    <tr>
+      <td><code>/api/service-centers</code></td>
+      <td>Сервис-центры</td>
+      <td>CRUD центров, управление участниками, пользовательские поля</td>
+    </tr>
+    <tr>
+      <td><code>/api/schedule</code></td>
+      <td>График</td>
+      <td>Управление графиком для админа, личный просмотр, копирование, история</td>
+    </tr>
+    <tr>
+      <td><code>/api/shifts</code></td>
+      <td>Шаблоны смен</td>
+      <td>CRUD шаблонов смен для каждого центра</td>
+    </tr>
+    <tr>
+      <td><code>/api/swaps</code></td>
+      <td>Обмен сменами</td>
+      <td>Создание, принятие, отклонение, отмена запросов обмена</td>
+    </tr>
+    <tr>
+      <td><code>/api/time-entries</code></td>
+      <td>Учёт времени</td>
+      <td>Начало/окончание работы, ожидающие подтверждения, утверждение</td>
+    </tr>
+    <tr>
+      <td><code>/api/finance</code></td>
+      <td>Финансы</td>
+      <td>Операции, баланс, прогноз</td>
+    </tr>
+    <tr>
+      <td><code>/api/notifications</code></td>
+      <td>Уведомления</td>
+      <td>Список, отметка прочитанным, удаление</td>
+    </tr>
+    <tr>
+      <td><code>/api/push</code></td>
+      <td>Push-уведомления</td>
+      <td>Подписка, отписка, настройки</td>
+    </tr>
+    <tr>
+      <td><code>/api/vapid</code></td>
+      <td>VAPID</td>
+      <td>Получение публичного ключа</td>
+    </tr>
+    <tr>
+      <td><code>/api/shift-documents</code></td>
+      <td>Документы</td>
+      <td>Загрузка, скачивание, удаление документов смены</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Процесс аутентификации</h3>
+
+<ol>
+  <li><code>POST /api/auth/register</code> — создать аккаунт (первый пользователь становится суперадмином)</li>
+  <li><code>POST /api/auth/login</code> — получить JWT-токен</li>
+  <li>Передавать <code>Authorization: Bearer &lt;token&gt;</code> во всех последующих запросах</li>
+</ol>
+
+---
+
+<h2 id="project-structure-ru">Структура проекта</h2>
+
+<pre>
+Worker/
+├── backend/                    # Python Flask-приложение
+│   ├── app.py                  # Фабрика Flask и регистрация blueprint'ов
+│   ├── config.py               # Конфигурация и секреты
+│   ├── extensions.py           # Экземпляры SQLAlchemy, JWT, SocketIO
+│   ├── helpers.py              # Общие утилиты
+│   ├── notification_helper.py  # Доставка уведомлений с дедупликацией
+│   ├── push_helper.py          # Отправка Web Push
+│   ├── socket_events.py        # Обработчики Socket.IO
+│   ├── requirements.txt        # Python-зависимости
+│   ├── Dockerfile              # Образ для продакшна
+│   ├── models/                 # SQLAlchemy-модели
+│   │   ├── user.py
+│   │   ├── service_center.py
+│   │   ├── service_center_member.py
+│   │   ├── shift.py
+│   │   ├── schedule_entry.py
+│   │   ├── swap_request.py
+│   │   ├── time_entry.py
+│   │   ├── finance_operation.py
+│   │   ├── notification.py
+│   │   ├── push_subscription.py
+│   │   ├── custom_field.py
+│   │   ├── custom_field_value.py
+│   │   └── shift_document.py
+│   └── routes/                 # Flask blueprint'ы
+│       ├── auth.py
+│       ├── service_centers.py
+│       ├── members.py
+│       ├── shifts.py
+│       ├── schedule.py
+│       ├── swaps.py
+│       ├── time_entries.py
+│       ├── finance.py
+│       ├── notifications.py
+│       ├── push.py
+│       ├── custom_fields.py
+│       ├── shift_documents.py
+│       └── vapid.py
+├── frontend/                   # React TypeScript-приложение
+│   ├── src/
+│   │   ├── App.tsx             # Роутер и провайдеры
+│   │   ├── main.tsx            # Точка входа
+│   │   ├── api/                # API-клиент и кэш
+│   │   ├── contexts/           # React-контексты (auth, theme, socket, push и др.)
+│   │   ├── components/         # Общие компоненты (layout, lightbox и др.)
+│   │   ├── pages/              # Компоненты страниц (24 страницы)
+│   │   ├── config/             # Конфигурация навигации
+│   │   └── utils/              # Утилиты (haptic, sound)
+│   ├── public/                 # Статические файлы, service worker, manifest
+│   ├── package.json
+│   ├── vite.config.ts
+│   ├── tailwind.config.js
+│   ├── nginx.conf              # Nginx-конфигурация для продакшна
+│   └── Dockerfile              # Многоступенчатая сборка
+├── docker-compose.yml          # Оркестрация сервисов
+├── setup.sh                    # Скрипт автоматической установки
+├── update.sh                   # Скрипт обновления
+├── clean.sh                    # Полная очистка без потери данных
+└── .env.example                # Шаблон переменных окружения
+</pre>
+
+---
+
+<h2 id="updating-ru">Обновление</h2>
+
+Для обновления существующей установки:
+
+```bash
+cd Worker
+./update.sh
+```
+
+Скрипт сохранит локальные изменения, подтянет последний код из GitHub и пересоберёт контейнеры фронтенда и бэкенда.
+
+---
+
+</div>
+
+---
+
+<h2 id="license">License</h2>
+
+<p align="center">MIT</p>
