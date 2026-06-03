@@ -1,4 +1,5 @@
 .env
 data/
+.refact/
 __pycache__/
 *.pyc
