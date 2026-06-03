@@ -267,6 +267,8 @@ export const api = {
     update: (entryId: number, data: any) =>
       request<any>(`/time-entries/${entryId}`, { method: 'PUT', body: JSON.stringify(data) }),
     withDocuments: () => request<any[]>(`/time-entries/with-documents`),
+    delete: (entryId: number) =>
+      request<any>(`/time-entries/${entryId}`, { method: 'DELETE' }),
   },
   customFields: {
     list: (scId: number) => request<any[]>(`/service-centers/${scId}/custom-fields`),

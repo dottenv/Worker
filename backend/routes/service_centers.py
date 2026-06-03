@@ -1,6 +1,11 @@
+import os
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required
-from models import ServiceCenter, ServiceCenterMember
+from models import (
+    ServiceCenter, ServiceCenterMember, Shift, ScheduleEntry,
+    TimeEntry, ShiftDocument, CustomField, CustomFieldValue,
+    SwapRequest,
+)
 from extensions import db
 from socket_events import emit_to_users
 from helpers import get_current_user
@@ -122,7 +127,44 @@ def delete_center(sc_id):
         return jsonify({"error": "Only owner can delete"}), 403
 
     member_ids = [m.user_id for m in ServiceCenterMember.query.filter_by(service_center_id=sc.id).all()]
+
+    # delete swap requests referencing this center
+    SwapRequest.query.filter(
+        db.or_(
+            SwapRequest.service_center_id == sc.id,
+            SwapRequest.target_center_id == sc.id,
+        )
+    ).delete()
+
+    # delete custom fields + their values
+    fields = CustomField.query.filter_by(service_center_id=sc.id).all()
+    field_ids = [f.id for f in fields]
+    if field_ids:
+        CustomFieldValue.query.filter(CustomFieldValue.custom_field_id.in_(field_ids)).delete()
+    CustomField.query.filter_by(service_center_id=sc.id).delete()
+
+    # delete time entries + associated documents (files) + custom values
+    entries = TimeEntry.query.filter_by(service_center_id=sc.id).all()
+    for entry in entries:
+        docs = ShiftDocument.query.filter_by(time_entry_id=entry.id).all()
+        for d in docs:
+            file_path = os.path.join(current_app.config["UPLOAD_FOLDER"], "shift_docs", d.filename)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            db.session.delete(d)
+        CustomFieldValue.query.filter_by(time_entry_id=entry.id).delete()
+        db.session.delete(entry)
+
+    # delete schedule entries
+    ScheduleEntry.query.filter_by(service_center_id=sc.id).delete()
+
+    # delete shifts
+    Shift.query.filter_by(service_center_id=sc.id).delete()
+
+    # delete members
     ServiceCenterMember.query.filter_by(service_center_id=sc.id).delete()
+
+    # delete the center itself
     db.session.delete(sc)
     db.session.commit()
 
