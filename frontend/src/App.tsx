@@ -30,6 +30,7 @@ import FinanceAdmin from './pages/FinanceAdmin';
 import TimeRequests from './pages/TimeRequests';
 import ShiftManager from './pages/ShiftManager';
 import ShiftDocuments from './pages/ShiftDocuments';
+import ShiftDocumentsList from './pages/ShiftDocumentsList';
 import CustomFieldManager from './pages/CustomFieldManager';
 import LoadingSpinner from './components/LoadingSpinner';
 
@@ -78,8 +79,10 @@ function HeaderSync() {
       setBack('/');
     } else if (/^\/profile\/\d+$/.test(path)) {
       setBack('/');
+    } else if (path === '/shift-documents') {
+      setBack(null);
     } else if (/^\/shift-documents\/\d+$/.test(path)) {
-      setBack('/');
+      setBack('/shift-documents', 'Документы смен');
     } else if (/^\/centers\/\d+\/custom-fields$/.test(path)) {
       const scId = path.split('/')[2];
       setBack(`/centers/${scId}`, 'Центры');
@@ -161,6 +164,7 @@ function AppRoutes() {
         <Route path="finance" element={<Finance />} />
         <Route path="finance/admin" element={<FinanceAdmin />} />
         <Route path="time-requests" element={<TimeRequests />} />
+        <Route path="shift-documents" element={<ShiftDocumentsList />} />
         <Route path="shift-documents/:entryId" element={<ShiftDocuments />} />
         <Route path="centers/:scId/custom-fields" element={<CustomFieldManager />} />
         <Route path="settings" element={<Settings />} />

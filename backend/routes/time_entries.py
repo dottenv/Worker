@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required
-from models import TimeEntry, ServiceCenter, ServiceCenterMember, ScheduleEntry, Shift, User
+from models import TimeEntry, ServiceCenter, ServiceCenterMember, ScheduleEntry, Shift, User, ShiftDocument
 from models.finance_operation import FinanceOperation
 from extensions import db
 from datetime import datetime, date, time, timezone
@@ -108,6 +108,51 @@ def process_time_entry_payment(entry: TimeEntry):
         emit_finance_event(entry.user_id, "finance:updated", {})
     except Exception as e:
         current_app.logger.error("Failed to emit finance:updated for time entry %s: %s", entry.id, e)
+
+
+@time_entries_bp.route("/with-documents", methods=["GET"])
+@jwt_required()
+def entries_with_documents():
+    user = get_current_user()
+
+    owned_ids = [c.id for c in ServiceCenter.query.filter_by(owner_id=user.id).all()]
+    member = ServiceCenterMember.query.filter_by(
+        user_id=user.id, is_active=True
+    ).filter(ServiceCenterMember.role.in_(["owner", "admin"])).all()
+    managed_ids = set(owned_ids + [m.service_center_id for m in member])
+
+    if managed_ids:
+        entries = TimeEntry.query.filter(
+            TimeEntry.service_center_id.in_(managed_ids),
+            TimeEntry.clock_out.isnot(None),
+        ).order_by(TimeEntry.date.desc(), TimeEntry.clock_out.desc()).limit(200).all()
+    else:
+        entries = TimeEntry.query.filter_by(user_id=user.id).filter(
+            TimeEntry.clock_out.isnot(None),
+        ).order_by(TimeEntry.date.desc(), TimeEntry.clock_out.desc()).limit(200).all()
+
+    entry_ids = [e.id for e in entries]
+    docs = ShiftDocument.query.filter(ShiftDocument.time_entry_id.in_(entry_ids)).all() if entry_ids else []
+    docs_by_entry = {}
+    for d in docs:
+        docs_by_entry.setdefault(d.time_entry_id, []).append(d.to_dict())
+
+    sc_map = {}
+    for e in entries:
+        sc_id = e.service_center_id
+        if sc_id not in sc_map:
+            sc = ServiceCenter.query.get(sc_id)
+            sc_map[sc_id] = {
+                "service_center_id": sc_id,
+                "service_center_name": sc.name if sc else "Unknown",
+                "service_center_address": sc.address if sc else "",
+                "entries": [],
+            }
+        entry_data = e.to_dict()
+        entry_data["documents"] = docs_by_entry.get(e.id, [])
+        sc_map[sc_id]["entries"].append(entry_data)
+
+    return jsonify(list(sc_map.values())), 200
 
 
 # ---------- Employee: clock in ----------

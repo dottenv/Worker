@@ -8,6 +8,7 @@ import {
   Wallet,
   Bell,
   Settings,
+  FileText,
 } from 'lucide-react';
 
 export interface NavItemDef {
@@ -30,6 +31,7 @@ export const ALL_NAV_ITEMS: NavItemDef[] = [
   { id: 'time_requests', label: 'Запросы', icon: Clock, path: '/time-requests', requiresOwner: true },
   { id: 'finance', label: 'Финансы', icon: Wallet, path: '/finance', requiresFinance: true, hideForOwner: true },
   { id: 'finance_admin', label: 'Финансы (админ)', icon: Wallet, path: '/finance/admin', requiresAdmin: true, requiresFinance: true },
+  { id: 'shift_documents', label: 'Документы смен', icon: FileText, path: '/shift-documents' },
   { id: 'notifications', label: 'Уведомления', icon: Bell, path: '/notifications' },
   { id: 'settings', label: 'Настройки', icon: Settings, path: '/settings' },
 ];

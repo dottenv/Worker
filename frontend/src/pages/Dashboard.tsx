@@ -56,6 +56,7 @@ export default function Dashboard() {
   const [customFields, setCustomFields] = useState<any[]>([]);
   const [customValues, setCustomValues] = useState<Record<number, string>>({});
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [recentDocs, setRecentDocs] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -305,6 +306,7 @@ export default function Dashboard() {
       setCloseModalEntry(entry);
       setCustomValues({});
       setRecentDocs([]);
+      setUploadError(null);
       // load custom fields
       const scId = entry.service_center_id;
       api.customFields.list(scId).then(fields => {
@@ -347,10 +349,13 @@ export default function Dashboard() {
     const file = e.target.files?.[0];
     if (!file || !closeModalEntry) return;
     setUploadingPhoto(true);
+    setUploadError(null);
     try {
       const doc = await api.shiftDocuments.upload(closeModalEntry.id, file);
       setRecentDocs(prev => [doc, ...prev]);
-    } catch {}
+    } catch (err: any) {
+      setUploadError(err.message || 'Ошибка загрузки');
+    }
     setUploadingPhoto(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -639,25 +644,13 @@ export default function Dashboard() {
                   {clockLoading ? <Loader2 size={16} className="animate-spin" /> : <Square size={16} />}
                   Завершить смену
                 </button>
-                  <Link to={`/shift-documents/${activeEntry.id}`}
-                    className="mt-2 block w-full text-center py-2 rounded-xl text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors">
-                    <FileText size={14} className="inline mr-1" />
-                    Документы смены
-                  </Link>
                 </>
               )}
               {activeEntry.status === 'pending' && (
-                <>
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 text-amber-700 text-sm">
                   <Clock size={16} />
                   Ожидает подтверждения администратора
                 </div>
-                  <Link to={`/shift-documents/${activeEntry.id}`}
-                    className="mt-2 block w-full text-center py-2 rounded-xl text-sm font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors">
-                    <FileText size={14} className="inline mr-1" />
-                    Документы смены
-                  </Link>
-                </>
               )}
             </div>
           )}
@@ -877,6 +870,9 @@ export default function Dashboard() {
                 {uploadingPhoto ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
                 {uploadingPhoto ? 'Загрузка...' : 'Прикрепить фото'}
               </button>
+              {uploadError && (
+                <p className="text-xs text-red-500 mt-1">{uploadError}</p>
+              )}
               {recentDocs.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {recentDocs.slice(0, 6).map(doc => (
