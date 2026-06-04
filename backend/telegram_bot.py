@@ -71,7 +71,7 @@ def _settings_keyboard():
 
 def _build_handlers(dp_instance: Dispatcher):
     @dp_instance.message(Command("start"))
-    async def cmd_start(message: types.Message, command: Command):
+    async def cmd_start(message: types.Message):
         ctx = _get_ctx()
         if ctx is None:
             await message.answer("Ошибка конфигурации сервера.")
@@ -79,7 +79,7 @@ def _build_handlers(dp_instance: Dispatcher):
         with ctx.app_context():
             from models import Setting
             base_url = Setting.get("base_url", "")
-            if base_url:
+            if base_url and (base_url.startswith("http://") or base_url.startswith("https://")):
                 web_app_url = f"{base_url}/telegram/connect"
                 keyboard = InlineKeyboardMarkup(
                     inline_keyboard=[
