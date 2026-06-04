@@ -219,24 +219,24 @@ export default function Settings() {
            </div>
          </div>
          
-         <div className="p-5 space-y-4">
-           {/* Статус аккаунта */}
-           <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-             <div className="flex items-center gap-2">
-               <Mail size={16} style={{ color: 'var(--accent)' }} />
-               <div>
-                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Email подтверждён</p>
-                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{user.email_verified ? 'Да' : 'Нет'}</p>
-               </div>
-             </div>
-             <button onClick={() => {}}
-               className="text-xs font-medium text-accent hover:text-accent/80">
-               Подтвердить email
-             </button>
-           </div>
-           
-           {/* Изменение пароля */}
-           <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+          <div className="p-5 space-y-4">
+            {/* Статус аккаунта */}
+            <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+              <div className="flex items-center gap-2">
+                <Mail size={16} style={{ color: 'var(--accent)' }} />
+                <div>
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Email подтверждён</p>
+                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{user.email_verified ? 'Да' : 'Нет'}</p>
+                </div>
+              </div>
+              <button onClick={() => {}}
+                className="text-xs font-medium text-accent hover:text-accent/80">
+                Подтвердить email
+              </button>
+            </div>
+            
+            {/* Изменение пароля */}
+            <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
               <div className="flex items-center gap-2">
                 <Lock size={16} style={{ color: 'var(--accent)' }} />
                 <div className="flex-1">
@@ -244,36 +244,36 @@ export default function Settings() {
                   <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Обновить для повышения безопасности</p>
                 </div>
               </div>
-             <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
-           </div>
-           
-           {/* Уведомления по email */}
-           <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-             <div className="flex items-center gap-2">
-               <Bell size={16} style={{ color: 'var(--accent)' }} />
-               <div className="flex-1">
-                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Email-уведомления</p>
-                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}">Получать обновления на почту</p>
-               </div>
-             </div>
-             <button onClick={() => {}}
-               className={`relative w-10 h-6 rounded-full transition-colors shrink-0`}
-               style={{ backgroundColor: user.email_notifications ? 'var(--accent)' : 'var(--bg-secondary)' }}>
-               <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${user.email_notifications ? 'translate-x-4' : ''}`} />
-             </button>
-           </div>
-           
-           {/* Активные сессии */}
-           <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-             <div className="flex items-center gap-2">
-               <Monitor size={16} style={{ color: 'var(--accent)' }} />
-               <div className="flex-1">
-                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Активные сессии</p>
-                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}">2 устройства онлайн</p>
-               </div>
-             </div>
-             <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
-           </div>
+              <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
+            </div>
+            
+            {/* Уведомления по email */}
+            <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+              <div className="flex items-center gap-2">
+                <Bell size={16} style={{ color: 'var(--accent)' }} />
+                <div className="flex-1">
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Email-уведомления</p>
+                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}">Получать обновления на почту</p>
+                </div>
+              </div>
+              <button onClick={() => {}}
+                className={`relative w-10 h-6 rounded-full transition-colors shrink-0`}
+                style={{ backgroundColor: user.email_notifications ? 'var(--accent)' : 'var(--bg-secondary)' }}>
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${user.email_notifications ? 'translate-x-4' : ''}`} />
+              </button>
+            </div>
+            
+            {/* Активные сессии */}
+            <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+              <div className="flex items-center gap-2">
+                <Monitor size={16} style={{ color: 'var(--accent)' }} />
+                <div className="flex-1">
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Активные сессии</p>
+                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}">2 устройства онлайн</p>
+                </div>
+              </div>
+              <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
+            </div>
          </div>
        </div>
 
