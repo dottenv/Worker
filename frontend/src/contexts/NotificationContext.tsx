@@ -106,12 +106,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setUnreadCount(0);
   }, []);
 
-  const deleteRead = useCallback(async () => {
-    await api.del('/notifications');
-    const readCount = notifications.filter(n => n.read).length;
-    setNotifications(prev => prev.filter(n => !n.read));
-    setUnreadCount(prev => Math.max(0, prev - readCount));
-  }, [notifications]);
+   const deleteRead = useCallback(async () => {
+     await api.del('/notifications/read');
+     setNotifications(prev => prev.filter(n => !n.read));
+     setUnreadCount(0);
+   }, []);
 
   return (
     <NotificationContext value={{ notifications, unreadCount, loading, toasts, dismissToast, markRead, markAllRead, deleteRead, refresh: fetch }}>
