@@ -117,32 +117,31 @@ def verify_chat():
     except ValueError:
         return jsonify({"error": "Invalid chat_id"}), 400
 
-    import asyncio
-    from aiogram import Bot
+    import json as _json
+    from urllib.request import urlopen
+    from urllib.error import URLError
 
-    async def _check():
-        tmp_bot = Bot(token=token)
-        try:
-            chat = await tmp_bot.get_chat(chat_id)
-            result = {
-                "id": chat.id,
-                "title": chat.title or chat.first_name or "",
-                "type": chat.type.value if hasattr(chat.type, "value") else str(chat.type),
-                "is_forum": getattr(chat, "is_forum", False),
-                "username": getattr(chat, "username", None),
-                "invite_link": getattr(chat, "invite_link", None),
-            }
-            return result
-        finally:
-            await tmp_bot.session.close()
-
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
     try:
-        result = loop.run_until_complete(_check())
-    finally:
-        loop.close()
-    return jsonify(result)
+        resp = urlopen(
+            f"https://api.telegram.org/bot{token}/getChat?chat_id={chat_id}",
+            timeout=10,
+        )
+        data = _json.loads(resp.read().decode())
+    except URLError as e:
+        return jsonify({"error": f"Telegram API error: {e.reason}"}), 502
+
+    if not data.get("ok"):
+        return jsonify({"error": data.get("description", "Unknown error")}), 400
+
+    chat = data["result"]
+    return jsonify({
+        "id": chat.get("id"),
+        "title": chat.get("title") or chat.get("first_name") or "",
+        "type": chat.get("type", ""),
+        "is_forum": chat.get("is_forum", False),
+        "username": chat.get("username"),
+        "invite_link": chat.get("invite_link"),
+    })
 
 
 @settings_bp.route("/topics", methods=["GET"])
