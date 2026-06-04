@@ -16,34 +16,47 @@ _stop_event = threading.Event()
 _stop_event.set()
 
 _base_url: str = ""
+_flask_app = None
 
 
 def _build_handlers(dp_instance: Dispatcher):
     @dp_instance.message(Command("start"))
     async def cmd_start(message: types.Message):
-        from models import Setting
-        base_url = Setting.get("base_url", "")
-        if not base_url:
+        from flask import current_app
+        try:
+            ctx = current_app._get_current_object()
+        except RuntimeError:
+            ctx = _flask_app
+        if ctx is None:
             await message.answer(
                 "Добро пожаловать в Worker!\n\n"
-                "Администратор ещё не настроил URL для MiniApp. "
-                "Пожалуйста, настройте Base URL в панели управления."
+                "Ошибка конфигурации сервера."
             )
             return
-        web_app_url = f"{base_url}/telegram/connect"
-        keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(
-                    text="Открыть MiniApp",
-                    web_app=WebAppInfo(url=web_app_url)
-                )]
-            ]
-        )
-        await message.answer(
-            "Добро пожаловать в Worker!\n\n"
-            "Нажмите кнопку ниже, чтобы открыть MiniApp и привязать аккаунт.",
-            reply_markup=keyboard
-        )
+        with ctx.app_context():
+            from models import Setting
+            base_url = Setting.get("base_url", "")
+            if not base_url:
+                await message.answer(
+                    "Добро пожаловать в Worker!\n\n"
+                    "Администратор ещё не настроил URL для MiniApp. "
+                    "Пожалуйста, настройте Base URL в панели управления."
+                )
+                return
+            web_app_url = f"{base_url}/telegram/connect"
+            keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(
+                        text="Открыть MiniApp",
+                        web_app=WebAppInfo(url=web_app_url)
+                    )]
+                ]
+            )
+            await message.answer(
+                "Добро пожаловать в Worker!\n\n"
+                "Нажмите кнопку ниже, чтобы открыть MiniApp и привязать аккаунт.",
+                reply_markup=keyboard
+            )
 
     @dp_instance.message(Command("help"))
     async def cmd_help(message: types.Message):
@@ -57,29 +70,37 @@ def _build_handlers(dp_instance: Dispatcher):
     async def capture_forum_topic(message: types.Message):
         if not message.message_thread_id or not message.chat:
             return
-        from models import Setting
-        storage_chat = Setting.get("telegram_storage_chat_id", "")
-        if not storage_chat:
-            return
+        from flask import current_app
         try:
-            storage_chat_id = int(storage_chat)
-        except ValueError:
+            ctx = current_app._get_current_object()
+        except RuntimeError:
+            ctx = _flask_app
+        if ctx is None:
             return
-        if message.chat.id != storage_chat_id:
-            return
-        topic_name = message.chat.forum_topic_name if hasattr(message.chat, 'forum_topic_name') else None
-        if not topic_name and message.is_topic_message:
-            topic_name = message.forum_topic_created.name if message.forum_topic_created else None
-        if not topic_name:
-            topic_name = f"Topic {message.message_thread_id}"
-        import json as _json
-        known = Setting.get("telegram_known_topics", "{}")
-        try:
-            topics = _json.loads(known)
-        except _json.JSONDecodeError:
-            topics = {}
-        topics[str(message.message_thread_id)] = topic_name
-        Setting.set("telegram_known_topics", _json.dumps(topics))
+        with ctx.app_context():
+            from models import Setting
+            storage_chat = Setting.get("telegram_storage_chat_id", "")
+            if not storage_chat:
+                return
+            try:
+                storage_chat_id = int(storage_chat)
+            except ValueError:
+                return
+            if message.chat.id != storage_chat_id:
+                return
+            topic_name = message.chat.forum_topic_name if hasattr(message.chat, 'forum_topic_name') else None
+            if not topic_name and message.is_topic_message:
+                topic_name = message.forum_topic_created.name if message.forum_topic_created else None
+            if not topic_name:
+                topic_name = f"Topic {message.message_thread_id}"
+            import json as _json
+            known = Setting.get("telegram_known_topics", "{}")
+            try:
+                topics = _json.loads(known)
+            except _json.JSONDecodeError:
+                topics = {}
+            topics[str(message.message_thread_id)] = topic_name
+            Setting.set("telegram_known_topics", _json.dumps(topics))
 
 
 
@@ -100,8 +121,8 @@ def _run_polling(b: Bot, d: Dispatcher):
     loop.close()
 
 
-def ensure_bot(token: str, base_url: str):
-    global bot, dp, _poll_thread, _base_url
+def ensure_bot(token: str, base_url: str, app=None):
+    global bot, dp, _poll_thread, _base_url, _flask_app
 
     # Stop existing bot if running
     if bot is not None:
@@ -111,6 +132,7 @@ def ensure_bot(token: str, base_url: str):
         return
 
     _base_url = base_url
+    _flask_app = app
     bot = Bot(token=token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
     _build_handlers(dp)

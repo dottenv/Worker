@@ -84,16 +84,18 @@ def sync_bot():
 
 
 def _sync_telegram_bot():
+    from flask import current_app as _current_app
     from telegram_bot import ensure_bot
+    app = _current_app._get_current_object()
 
     token = Setting.get("telegram_bot_token", "")
     base_url = Setting.get("base_url", "")
     enabled = Setting.get("telegram_bot_enabled", "false") == "true"
 
     if enabled and token:
-        ensure_bot(token, base_url)
+        ensure_bot(token, base_url, app=app)
     else:
-        ensure_bot("", "")
+        ensure_bot("", "", app=app)
 
 
 @settings_bp.route("/verify-chat", methods=["GET"])
@@ -134,12 +136,12 @@ def verify_chat():
         finally:
             await tmp_bot.session.close()
 
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    result = loop.run_until_complete(_check())
+        result = loop.run_until_complete(_check())
+    finally:
+        loop.close()
     return jsonify(result)
 
 

@@ -198,7 +198,7 @@ with app.app_context():
     base_url = Setting.get("base_url", app.config.get("BASE_URL", "http://localhost:5173"))
     enabled = Setting.get("telegram_bot_enabled", "true" if token else "false") == "true"
     if enabled and token:
-        ensure_bot(token, base_url)
+        ensure_bot(token, base_url, app=app)
         app.logger.info("Telegram bot started from settings")
     else:
         app.logger.info("Telegram bot not configured (set TELEGRAM_BOT_TOKEN in .env or settings)")
