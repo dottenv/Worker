@@ -117,7 +117,7 @@ def verify_chat():
     except ValueError:
         return jsonify({"error": "Invalid chat_id"}), 400
 
-    import json as _json
+    import json
     from urllib.request import urlopen
     from urllib.error import URLError
 
@@ -126,7 +126,7 @@ def verify_chat():
             f"https://api.telegram.org/bot{token}/getChat?chat_id={chat_id}",
             timeout=10,
         )
-        data = _json.loads(resp.read().decode())
+        data = json.loads(resp.read().decode())
     except URLError as e:
         return jsonify({"error": f"Telegram API error: {e.reason}"}), 502
 
