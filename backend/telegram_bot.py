@@ -18,9 +18,18 @@ _stop_event.set()
 _base_url: str = ""
 
 
-def _build_handlers(dp_instance: Dispatcher, base_url: str):
+def _build_handlers(dp_instance: Dispatcher):
     @dp_instance.message(Command("start"))
     async def cmd_start(message: types.Message):
+        from models import Setting
+        base_url = Setting.get("base_url", "")
+        if not base_url:
+            await message.answer(
+                "Добро пожаловать в Worker!\n\n"
+                "Администратор ещё не настроил URL для MiniApp. "
+                "Пожалуйста, настройте Base URL в панели управления."
+            )
+            return
         web_app_url = f"{base_url}/telegram/connect"
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
@@ -104,7 +113,7 @@ def ensure_bot(token: str, base_url: str):
     _base_url = base_url
     bot = Bot(token=token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
-    _build_handlers(dp, base_url)
+    _build_handlers(dp)
 
     _poll_thread = threading.Thread(
         target=_run_polling, args=(bot, dp), daemon=True, name="tg-bot-polling"
