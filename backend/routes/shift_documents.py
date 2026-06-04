@@ -1,5 +1,6 @@
 import os
 import uuid
+import logging
 from flask import Blueprint, request, jsonify, send_from_directory, current_app
 from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
@@ -7,6 +8,8 @@ from models import ShiftDocument, TimeEntry, ServiceCenterMember
 from extensions import db
 from helpers import get_current_user, is_manager
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 shift_documents_bp = Blueprint(
     "shift_documents", __name__, url_prefix="/api/shift-documents"
@@ -63,6 +66,33 @@ def upload_document():
     )
     db.session.add(doc)
     db.session.commit()
+
+    try:
+        from telegram_bot import send_telegram_document_sync
+        from models import User
+        owner = User.query.get(entry.user_id)
+        chat_id = owner.telegram_chat_id if owner else None
+        if not chat_id:
+            sc = entry.service_center
+            if sc and sc.owner_id:
+                owner2 = User.query.get(sc.owner_id)
+                if owner2 and owner2.telegram_chat_id:
+                    chat_id = owner2.telegram_chat_id
+        if chat_id:
+            tg_file_id = send_telegram_document_sync(chat_id, file_path, original_name)
+            if tg_file_id:
+                doc.telegram_file_id = tg_file_id
+                db.session.commit()
+    except Exception as e:
+        logger.warning(f"Telegram file_id storage failed (non-fatal): {e}")
+
+    try:
+        from models import Setting
+        if Setting.get("telegram_storage_chat_id", ""):
+            from telegram_storage import send_shift_to_telegram
+            send_shift_to_telegram(time_entry_id)
+    except Exception as e:
+        logger.warning(f"Telegram shift report failed (non-fatal): {e}")
 
     return jsonify(doc.to_dict()), 201
 

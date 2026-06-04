@@ -15,7 +15,8 @@ import random
 from routes import (auth_bp, service_centers_bp, members_bp, shifts_bp,
                     schedule_bp, swaps_bp, push_bp, notifications_bp,
                     finance_bp, time_entries_bp,
-                    custom_fields_bp, shift_documents_bp, vapid_bp)
+                    custom_fields_bp, shift_documents_bp, vapid_bp,
+                    telegram_bp, settings_bp)
 from socket_events import register_socket_handlers
 
 
@@ -41,6 +42,8 @@ def create_app():
     app.register_blueprint(custom_fields_bp)
     app.register_blueprint(shift_documents_bp)
     app.register_blueprint(vapid_bp)
+    app.register_blueprint(telegram_bp)
+    app.register_blueprint(settings_bp)
 
     with app.app_context():
         db.create_all()
@@ -54,6 +57,8 @@ def create_app():
             ("push_sound", "BOOLEAN DEFAULT 1"),
             ("push_prefs", "TEXT DEFAULT ''"),
             ("nav_config", "TEXT DEFAULT ''"),
+            ("telegram_chat_id", "BIGINT"),
+            ("telegram_username", "VARCHAR(120) DEFAULT ''"),
         ]:
             try:
                 db.session.execute(db.text(f'ALTER TABLE users ADD COLUMN {col} {spec}'))
@@ -110,6 +115,16 @@ def create_app():
             db.session.commit()
         except Exception:
             db.session.rollback()
+        try:
+            db.session.execute(db.text(
+                'CREATE TABLE IF NOT EXISTS settings ('
+                'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+                'key VARCHAR(100) NOT NULL UNIQUE, '
+                'value TEXT DEFAULT "")'
+            ))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
         for table_ddl in [
             (
                 "custom_fields",
@@ -146,6 +161,14 @@ def create_app():
                 db.session.commit()
             except Exception:
                 db.session.rollback()
+        for col, spec in [
+            ("telegram_file_id", "VARCHAR(300)"),
+        ]:
+            try:
+                db.session.execute(db.text(f'ALTER TABLE shift_documents ADD COLUMN {col} {spec}'))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
         for idx_ddl in [
             "CREATE INDEX IF NOT EXISTS ix_custom_fields_sc ON custom_fields(service_center_id)",
             "CREATE INDEX IF NOT EXISTS ix_custom_field_values_te ON custom_field_values(time_entry_id)",
@@ -166,6 +189,19 @@ def create_app():
 
 
 app = create_app()
+
+# Sync Telegram bot from DB settings
+with app.app_context():
+    from telegram_bot import ensure_bot
+    from models import Setting
+    token = Setting.get("telegram_bot_token", app.config.get("TELEGRAM_BOT_TOKEN", ""))
+    base_url = Setting.get("base_url", app.config.get("BASE_URL", "http://localhost:5173"))
+    enabled = Setting.get("telegram_bot_enabled", "true" if token else "false") == "true"
+    if enabled and token:
+        ensure_bot(token, base_url)
+        app.logger.info("Telegram bot started from settings")
+    else:
+        app.logger.info("Telegram bot not configured (set TELEGRAM_BOT_TOKEN in .env or settings)")
 
 if __name__ == "__main__":
     socketio.run(app, debug=True, host="0.0.0.0", port=5000)

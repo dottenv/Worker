@@ -34,6 +34,7 @@ export const ALL_NAV_ITEMS: NavItemDef[] = [
   { id: 'shift_documents', label: 'Документы смен', icon: FileText, path: '/shift-documents' },
   { id: 'notifications', label: 'Уведомления', icon: Bell, path: '/notifications' },
   { id: 'settings', label: 'Настройки', icon: Settings, path: '/settings' },
+  { id: 'modules', label: 'Дополнительно', icon: Settings, path: '/settings', requiresOwner: true },
 ];
 
 export const DEFAULT_PINNED = ['dashboard', 'schedule', 'settings'];

@@ -16,7 +16,6 @@ import Dashboard from './pages/Dashboard';
 import CentersList from './pages/CentersList';
 import CenterDetail from './pages/CenterDetail';
 import Settings from './pages/Settings';
-import Modules from './pages/Modules';
 import EmployeeCard from './pages/EmployeeCard';
 import MySchedule from './pages/MySchedule';
 import AdminSchedule from './pages/AdminSchedule';
@@ -32,6 +31,8 @@ import ShiftManager from './pages/ShiftManager';
 import ShiftDocuments from './pages/ShiftDocuments';
 import ShiftDocumentsList from './pages/ShiftDocumentsList';
 import CustomFieldManager from './pages/CustomFieldManager';
+import TelegramConnect from './pages/TelegramConnect';
+import { TelegramProvider } from './contexts/TelegramContext';
 import LoadingSpinner from './components/LoadingSpinner';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -71,8 +72,6 @@ function HeaderSync() {
       setBack('/swaps', 'Обмен');
     } else if (path === '/schedule/admin') {
       setBack('/schedule', 'График');
-    } else if (path === '/modules') {
-      setBack('/settings', 'Настройки');
     } else if (path === '/settings') {
       setBack(null);
     } else if (path === '/time-requests') {
@@ -129,6 +128,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/telegram/connect"
+        element={
+          <TelegramProvider>
+            <TelegramConnect />
+          </TelegramProvider>
+        }
+      />
+      <Route
         path="/"
         element={
           <ProtectedRoute>
@@ -169,7 +176,7 @@ function AppRoutes() {
         <Route path="centers/:scId/custom-fields" element={<CustomFieldManager />} />
         <Route path="settings" element={<Settings />} />
         <Route path="profile/:userId" element={<UserProfile />} />
-        <Route path="modules" element={<Modules />} />
+  
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

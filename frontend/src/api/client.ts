@@ -289,6 +289,26 @@ export const api = {
     carryOver: (scId: number, excludeEntryId?: number) =>
       request<Record<number, string>>(`/service-centers/${scId}/custom-fields/carry-over${excludeEntryId ? `?exclude_entry_id=${excludeEntryId}` : ''}`),
   },
+  settings: {
+    list: () => request<Record<string, string>>('/settings'),
+    update: (data: Record<string, string>) =>
+      request<{ status: string }>('/settings', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    syncBot: () =>
+      request<{ status: string }>('/settings/sync-bot', { method: 'POST' }),
+  },
+  telegram: {
+    status: () => request<{ connected: boolean; telegram_id: number | null; telegram_username: string }>('/telegram/status'),
+    connect: (data: { init_data?: string; telegram_id?: number; telegram_username?: string }) =>
+      request<{ status: string; telegram_id: number; username: string }>('/telegram/connect', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    disconnect: () =>
+      request<{ status: string }>('/telegram/disconnect', { method: 'POST' }),
+  },
   shiftDocuments: {
     list: (entryId: number) => request<any[]>(`/shift-documents/by-entry/${entryId}`),
     upload: (entryId: number, file: File) => {

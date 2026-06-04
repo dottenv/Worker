@@ -11,10 +11,12 @@ from .time_entry import TimeEntry
 from .custom_field import CustomField
 from .custom_field_value import CustomFieldValue
 from .shift_document import ShiftDocument
+from .setting import Setting
 
 __all__ = [
     "User", "ServiceCenter", "ServiceCenterMember", "Shift",
     "ScheduleEntry", "SwapRequest", "PushSubscription",
     "Notification", "FinanceOperation", "TimeEntry",
     "CustomField", "CustomFieldValue", "ShiftDocument",
+    "Setting",
 ]

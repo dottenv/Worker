@@ -28,6 +28,8 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
       - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - BASE_URL=${BASE_URL:-}
     networks:
       - app_network
     logging:

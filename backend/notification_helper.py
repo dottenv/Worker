@@ -3,6 +3,7 @@ from models.notification import Notification
 from extensions import db, socketio
 from flask import current_app
 from push_helper import send_push
+from telegram_notifier import send_tg_notification
 
 _debounce = {}
 _debounce_lock = threading.Lock()
@@ -24,6 +25,7 @@ def _flush_debounce(user_id, type, body, _first_body, title, link, count, _app):
             db.session.commit()
             socketio.emit("notification:new", n.to_dict(), to=f"user_{user_id}")
             send_push(user_id, title, body, link, notification_type=type)
+            send_tg_notification(user_id, title, body, type)
         except Exception as e:
             current_app.logger.error(f"Failed to create debounced notification: {e}")
             db.session.rollback()

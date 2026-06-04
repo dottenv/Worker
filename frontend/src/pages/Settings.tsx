@@ -8,8 +8,8 @@ import {
   User, Building2, LogOut, Save, ChevronRight,
   CheckCircle2, AlertCircle, Sun, Moon, Monitor,
   Bell, BellOff, Volume2, VolumeX, ArrowRightLeft,
-  CalendarSync, Building2 as BuildingIcon, Zap, XCircle, Puzzle, Eye, EyeOff,
-  ChevronUp, ChevronDown, Copy, Check,
+  CalendarSync, Building2 as BuildingIcon, Zap, XCircle, Eye, EyeOff,
+  ChevronUp, ChevronDown, Copy, Check, Wallet, Bot,
 } from 'lucide-react';
 import { api } from '../api/client';
 import { getAvailableItems } from '../config/navItems';
@@ -70,8 +70,33 @@ export default function Settings() {
   const [navSaving, setNavSaving] = useState(false);
   const [navMessage, setNavMessage] = useState('');
 
+  const [tgBotToken, setTgBotToken] = useState('');
+  const [tgBotEnabled, setTgBotEnabled] = useState(false);
+  const [tgStorageChatId, setTgStorageChatId] = useState('');
+  const [tgStorageTopicId, setTgStorageTopicId] = useState('');
+  const [baseUrl, setBaseUrl] = useState('');
+  const [tgSaving, setTgSaving] = useState(false);
+  const [tgMessage, setTgMessage] = useState('');
+  const [tgIsSuccess, setTgIsSuccess] = useState(false);
+
+  const [localFinance, setLocalFinance] = useState(false);
+  const [financeSaving, setFinanceSaving] = useState(false);
+
   useEffect(() => {
-    api.get('/finance/status').then(res => setFinanceAvailable(res.available)).catch(() => {});
+    api.get('/finance/status').then(res => {
+      setFinanceAvailable(res.available);
+      setLocalFinance(res.finance_enabled);
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    api.settings.list().then(res => {
+      if (res.telegram_bot_token !== undefined) setTgBotToken(res.telegram_bot_token);
+      if (res.telegram_bot_enabled !== undefined) setTgBotEnabled(res.telegram_bot_enabled === 'true');
+      if (res.telegram_storage_chat_id !== undefined) setTgStorageChatId(res.telegram_storage_chat_id);
+      if (res.telegram_storage_topic_id !== undefined) setTgStorageTopicId(res.telegram_storage_topic_id);
+      if (res.base_url !== undefined) setBaseUrl(res.base_url);
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -474,22 +499,132 @@ export default function Settings() {
       )}
 
 
+      {/* ДОПОЛНИТЕЛЬНО */}
+      {isOwner && (
+        <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+          <div className="p-5">
+            <h3 className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>Дополнительно</h3>
+
+            {/* Финансы */}
+            <div className="flex items-center justify-between p-3 rounded-lg mb-3" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+              <div className="flex items-center gap-2">
+                <Wallet size={16} style={{ color: 'var(--accent)' }} />
+                <div>
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Финансы</p>
+                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Баланс и операции</p>
+                </div>
+              </div>
+              <button
+                onClick={async () => {
+                  setFinanceSaving(true);
+                  try {
+                    const res = await api.finance.toggle(!localFinance);
+                    setLocalFinance(res.finance_enabled);
+                  } catch {}
+                  setFinanceSaving(false);
+                }}
+                disabled={financeSaving}
+                className={`relative w-10 h-6 rounded-full transition-colors shrink-0 disabled:opacity-50`}
+                style={{ backgroundColor: localFinance ? 'var(--accent)' : 'var(--bg-secondary)' }}>
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${localFinance ? 'translate-x-4' : ''}`} />
+              </button>
+            </div>
+
+            {/* Telegram Bot */}
+            <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Bot size={16} style={{ color: tgBotEnabled ? 'var(--accent)' : 'var(--text-disabled)' }} />
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Telegram Bot</p>
+                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{tgBotEnabled ? 'Включён' : 'Выключен'}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={async () => {
+                    const next = !tgBotEnabled;
+                    setTgBotEnabled(next);
+                    try {
+                      await api.settings.update({ telegram_bot_enabled: String(next), telegram_bot_token: tgBotToken, base_url: baseUrl });
+                      await api.settings.syncBot();
+                    } catch { setTgBotEnabled(!next); }
+                  }}
+                  className={`relative w-10 h-6 rounded-full transition-colors shrink-0`}
+                  style={{ backgroundColor: tgBotEnabled ? 'var(--accent)' : 'var(--bg-secondary)' }}>
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${tgBotEnabled ? 'translate-x-4' : ''}`} />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Токен бота</label>
+                  <input type="password" value={tgBotToken} onChange={e => setTgBotToken(e.target.value)}
+                    className="w-full px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2"
+                    style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
+                </div>
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Chat ID для документов</label>
+                  <input type="text" value={tgStorageChatId} onChange={e => setTgStorageChatId(e.target.value)}
+                    placeholder="-100123456789"
+                    className="w-full px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2"
+                    style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
+                </div>
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Topic ID (если есть темы)</label>
+                  <input type="text" value={tgStorageTopicId} onChange={e => setTgStorageTopicId(e.target.value)}
+                    placeholder="42"
+                    className="w-full px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2"
+                    style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
+                </div>
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Base URL</label>
+                  <input type="text" value={baseUrl} onChange={e => setBaseUrl(e.target.value)}
+                    placeholder="https://xxx.cloudpub.ru"
+                    className="w-full px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2"
+                    style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
+                </div>
+              </div>
+
+              <button
+                onClick={async () => {
+                  setTgSaving(true);
+                  setTgMessage('');
+                  try {
+                    await api.settings.update({
+                      telegram_bot_token: tgBotToken,
+                      telegram_storage_chat_id: tgStorageChatId,
+                      telegram_storage_topic_id: tgStorageTopicId,
+                      base_url: baseUrl,
+                    });
+                    await api.settings.syncBot();
+                    setTgIsSuccess(true);
+                    setTgMessage('Сохранено');
+                  } catch (err: unknown) {
+                    setTgIsSuccess(false);
+                    setTgMessage(err instanceof Error ? err.message : 'Ошибка');
+                  }
+                  setTgSaving(false);
+                  setTimeout(() => setTgMessage(''), 3000);
+                }}
+                disabled={tgSaving}
+                className="w-full mt-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+                style={{ backgroundColor: 'var(--accent)', color: 'white' }}>
+                <Save size={12} />
+                {tgSaving ? 'Сохранение...' : 'Сохранить Telegram настройки'}
+              </button>
+              {tgMessage && (
+                <div className={`flex items-center gap-1.5 mt-1.5 text-xs ${tgIsSuccess ? 'text-emerald-600' : 'text-red-500'}`}>
+                  {tgIsSuccess ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                  {tgMessage}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
         <div className="p-5">
-          <h3 className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>Приложение</h3>
-          
-          {isOwner && (
-            <button onClick={() => navigate('/modules')}
-              className="flex items-center justify-between w-full p-3 rounded-lg mb-2 hover:opacity-80 transition-opacity"
-              style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-              <div className="flex items-center gap-2">
-                <Puzzle size={16} style={{ color: 'var(--accent)' }} />
-                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Модули</span>
-              </div>
-              <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
-            </button>
-          )}
-
           <button onClick={logout}
             className="flex items-center gap-2 w-full p-3 rounded-lg transition-colors"
             style={{ color: 'var(--error)', backgroundColor: 'var(--bg-tertiary)' }}>

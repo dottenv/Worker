@@ -27,3 +27,6 @@ class Config:
         "J+htfIjaoxnQ1Wo3/KQ/FilR5Gy8H0Ho3i1NhsLlmiBJGxo3dIJLQqzQFA==\n"
         "-----END PUBLIC KEY-----"
     ))
+
+    TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    BASE_URL = os.environ.get("BASE_URL", "http://localhost:5173")
