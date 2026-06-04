@@ -9,7 +9,7 @@ import {
   Bell, BellOff, Volume2, VolumeX, ArrowRightLeft,
   CalendarSync, Building2 as BuildingIcon, Zap, XCircle, Eye, EyeOff,
   ChevronUp, ChevronDown, Copy, Check, Wallet, Bot, Mail,
-  Phone, Settings as SettingsIcon, Lock, ChevronRight,
+  Phone, Settings as SettingsIcon, Lock, ChevronRight, FileText, Globe
 } from 'lucide-react';
 import { api } from '../api/client';
 import { getAvailableItems } from '../config/navItems';
@@ -486,184 +486,80 @@ export default function Settings() {
        )}
 
 
-      {/* TELEGRAM БОТ */}
-      {isOwner && (
-        <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-          <div className="p-5">
-            <h3 className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>Telegram Бот</h3>
-
-            <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Bot size={16} style={{ color: tgBotEnabled ? 'var(--accent)' : 'var(--text-disabled)' }} />
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Telegram Bot</p>
-                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{tgBotEnabled ? 'Включён' : 'Выключен'}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={async () => {
-                    const next = !tgBotEnabled;
-                    setTgBotEnabled(next);
-                    try {
-                      await api.settings.update({ telegram_bot_enabled: String(next), telegram_bot_token: tgBotToken, base_url: baseUrl });
-                      await api.settings.syncBot();
-                    } catch { setTgBotEnabled(!next); }
-                  }}
-                  className={`relative w-10 h-6 rounded-full transition-colors shrink-0`}
-                  style={{ backgroundColor: tgBotEnabled ? 'var(--accent)' : 'var(--bg-secondary)' }}>
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${tgBotEnabled ? 'translate-x-4' : ''}`} />
-                </button>
-              </div>
-
-              <div className="space-y-2">
-                <div>
-                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Токен бота</label>
-                  <input type="password" value={tgBotToken} onChange={e => setTgBotToken(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2"
-                    style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
-                </div>
-
-                <div>
-                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Chat ID для документов</label>
-                  <div className="flex gap-1.5">
-                    <input type="text" value={tgStorageChatId} onChange={e => { setTgStorageChatId(e.target.value); setTgChatInfo(null); }}
-                      placeholder="-100123456789"
-                      className="flex-1 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2"
-                      style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
-                    <button onClick={async () => {
-                      setTgVerifying(true);
-                      try {
-                        const info = await api.settings.verifyChat(tgStorageChatId);
-                        setTgChatInfo(info);
-                        if (info.is_forum) {
-                          try {
-                            const ft = await api.settings.forumTopics(tgStorageChatId);
-                            if (ft.topics) setTgKnownTopics(ft.topics);
-                          } catch {}
-                        }
-                        const topics = await api.settings.getTopics();
-                        if (topics.topics) setTgKnownTopics(prev => ({...prev, ...topics.topics}));
-                      } catch { setTgChatInfo(null); }
-                      setTgVerifying(false);
-                    }}
-                      disabled={tgVerifying || !tgStorageChatId}
-                      className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 transition-colors"
-                      style={{ backgroundColor: 'var(--accent)', color: 'white' }}>
-                      {tgVerifying ? '...' : 'Проверить'}
-                    </button>
-                  </div>
-                  {tgChatInfo && (
-                    <div className="flex items-center gap-1.5 mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
-                      <CheckCircle2 size={11} />
-                      {tgChatInfo.title}
-                      <span className="opacity-50">({tgChatInfo.is_forum ? 'форум' : tgChatInfo.type})</span>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Тема</label>
-                  {Object.keys(tgKnownTopics).length > 0 ? (
-                    <div className="flex gap-1.5">
-                      <select value={tgStorageTopicId} onChange={e => setTgStorageTopicId(e.target.value)}
-                        className="flex-1 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2"
-                        style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}>
-                        <option value="">Без темы (общий чат)</option>
-                        {Object.entries(tgKnownTopics).map(([id, name]) => (
-                          <option key={id} value={id}>{name}</option>
-                        ))}
-                      </select>
-                      <button onClick={async () => {
-                        try {
-                          const ft = await api.settings.forumTopics(tgStorageChatId);
-                          if (ft.topics) setTgKnownTopics(ft.topics);
-                        } catch {}
-                        const topics = await api.settings.getTopics();
-                        if (topics.topics) setTgKnownTopics(prev => ({...prev, ...topics.topics}));
-                      }}
-                        className="shrink-0 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                        style={{ backgroundColor: 'var(--accent)', color: 'white' }}>
-                        ↻
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-1.5">
-                      <input type="text" value={tgStorageTopicId} onChange={e => setTgStorageTopicId(e.target.value)}
-                        placeholder="ID темы"
-                        className="flex-1 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2"
-                        style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
-                      <button onClick={async () => {
-                        const name = prompt('Название темы:');
-                        if (!name) return;
-                        const id = prompt('ID темы (message_thread_id):');
-                        if (!id) return;
-                        try {
-                          const res = await api.settings.addTopic(id, name);
-                          setTgKnownTopics(res.topics);
-                          setTgStorageTopicId(id);
-                        } catch {}
-                      }}
-                        className="shrink-0 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                        style={{ backgroundColor: 'var(--accent)', color: 'white' }}>
-                        +
-                      </button>
-                    </div>
-                  )}
-                  {tgChatInfo?.is_forum && Object.keys(tgKnownTopics).length === 0 && (
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-disabled)' }}>
-                      Бот не администратор группы? Добавьте тему вручную через кнопку +.
-                      Либо отправьте любое сообщение в нужную тему — ID определится автоматически.
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Base URL</label>
-                  <input type="text" value={baseUrl} onChange={e => setBaseUrl(e.target.value)}
-                    placeholder="https://xxx.cloudpub.ru"
-                    className="w-full px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2"
-                    style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
-                </div>
-              </div>
-
-              <button
-                onClick={async () => {
-                  setTgSaving(true);
-                  setTgMessage('');
-                  try {
-                    await api.settings.update({
-                      telegram_bot_token: tgBotToken,
-                      telegram_storage_chat_id: tgStorageChatId,
-                      telegram_storage_topic_id: tgStorageTopicId,
-                      base_url: baseUrl,
-                    });
-                    await api.settings.syncBot();
-                    setTgIsSuccess(true);
-                    setTgMessage('Сохранено');
-                  } catch (err: unknown) {
-                    setTgIsSuccess(false);
-                    setTgMessage(err instanceof Error ? err.message : 'Ошибка');
-                  }
-                  setTgSaving(false);
-                  setTimeout(() => setTgMessage(''), 3000);
-                }}
-                disabled={tgSaving}
-                className="w-full mt-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
-                style={{ backgroundColor: 'var(--accent)', color: 'white' }}>
-                <Save size={12} />
-                {tgSaving ? 'Сохранение...' : 'Сохранить Telegram настройки'}
-              </button>
-              {tgMessage && (
-                <div className={`flex items-center gap-1.5 mt-1.5 text-xs ${tgIsSuccess ? 'text-emerald-600' : 'text-red-500'}`}>
-                  {tgIsSuccess ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-                  {tgMessage}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+       {/* TELEGRAM БОТ */}
+       {isOwner && (
+         <div className="space-y-1">
+           {/* Статус бота */}
+           <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
+             <div className="flex items-center gap-3">
+               <Bot size={18} style={{ color: tgBotEnabled ? 'var(--accent)' : 'var(--text-disabled)' }} />
+               <div className="flex-1">
+                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Telegram Бот</p>
+                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{tgBotEnabled ? 'Включено' : 'Выключено'}</p>
+               </div>
+             </div>
+             <button onClick={async () => {
+               const next = !tgBotEnabled;
+               setTgBotEnabled(next);
+               try {
+                 await api.settings.update({ telegram_bot_enabled: String(next), telegram_bot_token: tgBotToken, base_url: baseUrl });
+                 await api.settings.syncBot();
+               } catch { setTgBotEnabled(!next); }
+             }}
+             className={`relative w-10 h-6 rounded-full transition-colors shrink-0`}
+             style={{ backgroundColor: tgBotEnabled ? 'var(--accent)' : 'var(--bg-secondary)' }}>
+             <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${tgBotEnabled ? 'translate-x-4' : ''}`} />
+           </button>
+           </div>
+           
+           {/* Токен бота */}
+           <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
+             <div className="flex items-center gap-3">
+               <MessageCircle size={18} style={{ color: 'var(--accent)' }} />
+               <div className="flex-1">
+                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Токен бота</p>
+                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}">{tgBotToken.length > 0 ? 'Задан' : 'Не задан'}</p>
+               </div>
+             </div>
+             <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
+           </div>
+           
+           {/* Chat ID для документов */}
+           <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
+             <div className="flex items-center gap-3">
+               <FileText size={18} style={{ color: 'var(--accent)' }} />
+               <div className="flex-1">
+                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Chat ID для документов</p>
+                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}">{tgStorageChatId || 'Не задан'}</p>
+               </div>
+             </div>
+             <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
+           </div>
+           
+           {/* Тема бота */}
+           <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
+             <div className="flex items-center gap-3">
+               <MessageCircle size={18} style={{ color: 'var(--accent)' }} />
+               <div className="flex-1">
+                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Тема</p>
+                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}">{tgStorageTopicId || 'Общий чат'}</p>
+               </div>
+             </div>
+             <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
+           </div>
+           
+           {/* Base URL */}
+           <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)' }}>
+             <div className="flex items-center gap-3">
+               <Globe size={18} style={{ color: 'var(--accent)' }} />
+               <div className="flex-1">
+                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Base URL</p>
+                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}">{baseUrl || 'Не задан'}</p>
+               </div>
+             </div>
+           </div>
+         </div>
+       )}
 
       <div className="flex items-center justify-center gap-1.5 pb-2">
         <span className="text-xs" style={{ color: 'var(--text-disabled)' }}>Сборка {buildHash}</span>
