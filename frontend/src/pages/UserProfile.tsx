@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
-import { Phone, Building2, Calendar, MessageCircle, Globe, Save, X, LogOut } from 'lucide-react';
+import { Phone, Building2, Calendar, MessageCircle, Globe, Save, X, LogOut, User as UserIcon, Mail } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function UserProfile() {
@@ -12,9 +12,14 @@ export default function UserProfile() {
   const [centers, setCenters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [profileEditing, setProfileEditing] = useState(false);
   const [editTelegram, setEditTelegram] = useState('');
   const [editMax, setEditMax] = useState('');
   const [saving, setSaving] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
 
   const isOwn = String(currentUser?.id) === userId;
 
@@ -22,7 +27,14 @@ export default function UserProfile() {
     if (!userId) return;
     setLoading(true);
     api.get(`/auth/profile/${userId}`)
-      .then(setProfile)
+      .then(profileData => {
+        setProfile(profileData);
+        if (isOwn) {
+          setFullName(profileData.full_name || '');
+          setEmail(profileData.email || '');
+          setPhone(profileData.phone || '');
+        }
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
 
@@ -49,21 +61,76 @@ export default function UserProfile() {
     setSaving(false);
   };
 
+  const saveProfile = async () => {
+    // Валидация
+    if (!fullName.trim()) {
+      alert('Введите ФИО');
+      return;
+    }
+    if (!email.trim()) {
+      alert('Введите email');
+      return;
+    }
+
+    setProfileSaving(true);
+    try {
+      const updated = await api.put('/auth/profile', { 
+        full_name: fullName, 
+        email: email, 
+        phone: phone || null 
+      });
+      setProfile((prev: any) => ({ 
+        ...prev, 
+        full_name: updated.full_name, 
+        email: updated.email, 
+        phone: updated.phone 
+      }));
+      setProfileEditing(false);
+    } catch (err: any) {
+      alert(err.response?.data?.error || err.message || 'Ошибка сохранения');
+    }
+    setProfileSaving(false);
+  };
+
   if (loading) return <LoadingSpinner />;
   if (!profile) return <p className="text-sm text-gray-400 text-center py-8">Пользователь не найден</p>;
 
   return (
     <div className="space-y-5">
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
-        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3"
-          style={{ backgroundColor: profile.color || '#e0e7ff' }}>
-          <span className="text-2xl font-bold text-white">
-            {profile.full_name?.slice(0, 1) || '?'}
-          </span>
-        </div>
-        <h1 className="text-lg font-bold text-gray-900">{profile.full_name}</h1>
-        <p className="text-xs text-gray-400 mt-0.5">{profile.email}</p>
+       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
+         <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3"
+           style={{ backgroundColor: profile.color || '#e0e7ff' }}>
+           <span className="text-2xl font-bold text-white">
+             {profile.full_name?.slice(0, 1) || '?'}
+           </span>
+         </div>
+         <h1 className="text-lg font-bold text-gray-900">{profile.full_name}</h1>
+         <p className="text-xs text-gray-400 mt-0.5">{profile.email}</p>
+         {isOwn && (
+           <div className="flex items-center justify-center mt-4">
+             {profileEditing ? (
+               <button onClick={saveProfile} disabled={profileSaving}
+                 className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-medium hover:bg-indigo-700 transition-colors">
+                 <Save size={13} />
+                 {profileSaving ? 'Сохранение...' : 'Сохранить'}
+               </button>
+             ) : (
+               <button onClick={() => setProfileEditing(true)}
+                 className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800 transition-colors">
+                 <UserIcon size={14} />
+                 Редактировать профиль
+               </button>
+             )}
+           </div>
+         )}
+         {!isOwn && (
+           <div className="mt-2">
+             {profile.color && (
+               <div className="w-4 h-4 rounded-full" style={{ backgroundColor: profile.color }} />
+             )}
+           </div>
+         )}
 
         {profile.phone && (
           <div className="flex items-center justify-center gap-1.5 mt-2 text-sm text-gray-500">
@@ -72,60 +139,58 @@ export default function UserProfile() {
           </div>
         )}
 
-        {(profile.telegram || profile.max_link || isOwn) && (
-          <div className="flex items-center justify-center gap-3 mt-3">
-            {editing ? (
-              <div className="flex flex-col gap-2 w-full">
-                <div className="flex items-center gap-2">
-                  <MessageCircle size={14} className="text-sky-500 shrink-0" />
-                  <input type="text" value={editTelegram} onChange={e => setEditTelegram(e.target.value)}
-                    placeholder="@username"
-                    className="flex-1 px-3 py-1.5 bg-gray-50 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40" />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Globe size={14} className="text-gray-400 shrink-0" />
-                  <input type="text" value={editMax} onChange={e => setEditMax(e.target.value)}
-                    placeholder="https://"
-                    className="flex-1 px-3 py-1.5 bg-gray-50 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40" />
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={saveSocial} disabled={saving}
-                    className="flex-1 flex items-center justify-center gap-1 bg-indigo-600 text-white py-1.5 rounded-xl text-xs font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors">
-                    <Save size={13} /> {saving ? '...' : 'Сохранить'}
-                  </button>
-                  <button onClick={() => setEditing(false)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors">
-                    <X size={13} />
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                {profile.telegram && (
-                  <a href={`https://t.me/${profile.telegram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-xs text-sky-600 bg-sky-50 px-3 py-1.5 rounded-xl hover:bg-sky-100 transition-colors">
-                    <MessageCircle size={13} />
-                    {profile.telegram}
-                  </a>
-                )}
-                {profile.max_link && (
-                  <a href={profile.max_link.startsWith('http') ? profile.max_link : `https://${profile.max_link}`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-3 py-1.5 rounded-xl hover:bg-gray-100 transition-colors">
-                    <Globe size={13} />
-                    Max
-                  </a>
-                )}
-                {isOwn && !profile.telegram && !profile.max_link && (
-                  <button onClick={startEditing}
-                    className="text-xs text-indigo-600 hover:text-indigo-800 transition-colors">
-                    + Добавить соцсети
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        )}
+         {(isOwn && profileEditing) || (!isOwn && (profile.telegram || profile.max_link)) && (
+           <div className="flex flex-col gap-4 w-full mt-4">
+             {isOwn && profileEditing ? (
+               <>
+                 <div className="space-y-3">
+                   <label className="text-xs font-medium mb-1 block text-gray-500">Имя и фамилия</label>
+                   <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
+                     className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2"
+                     style={{ backgroundColor: 'gray-50', color: 'gray-900', border: '1px solid gray-200' }} />
+                 </div>
+                 
+                 <div className="space-y-3">
+                   <label className="text-xs font-medium mb-1 block text-gray-500">Email</label>
+                   <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                     className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2"
+                     style={{ backgroundColor: 'gray-50', color: 'gray-900', border: '1px solid gray-200' }} />
+                 </div>
+                 
+                 <div className="space-y-3">
+                   <label className="text-xs font-medium mb-1 block text-gray-500">Телефон</label>
+                   <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+7 (999) 123-45-67"
+                     className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2"
+                     style={{ backgroundColor: 'gray-50', color: 'gray-900', border: '1px solid gray-200' }} />
+                 </div>
+               </>
+             ) : (
+               <div className="flex items-center justify-center gap-3 mt-3">
+                 {profile.telegram && (
+                   <a href={`https://t.me/${profile.telegram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
+                     className="flex items-center gap-1.5 text-xs text-sky-600 bg-sky-50 px-3 py-1.5 rounded-xl hover:bg-sky-100 transition-colors">
+                     <MessageCircle size={13} />
+                     {profile.telegram}
+                   </a>
+                 )}
+                 {profile.max_link && (
+                   <a href={profile.max_link.startsWith('http') ? profile.max_link : `https://${profile.max_link}`}
+                     target="_blank" rel="noopener noreferrer"
+                     className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-3 py-1.5 rounded-xl hover:bg-gray-100 transition-colors">
+                     <Globe size={13} />
+                     Max
+                   </a>
+                 )}
+                 {isOwn && !profile.telegram && !profile.max_link && (
+                   <button onClick={() => setProfileEditing(true)}
+                     className="text-xs text-indigo-600 hover:text-indigo-800 transition-colors">
+                     + Добавить соцсети
+                   </button>
+                 )}
+               </div>
+             )}
+           </div>
+         )}
 
         {isOwn && !editing && (profile.telegram || profile.max_link) && (
           <button onClick={startEditing}

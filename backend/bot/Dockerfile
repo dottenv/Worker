@@ -11,4 +11,4 @@ RUN pip install --no-cache-dir --no-compile -r requirements.txt
 
 COPY . .
 
-CMD ["python", "main.py"]
+CMD ["python", "-m", "bot.main"]

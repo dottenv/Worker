@@ -8,7 +8,8 @@ import {
   CheckCircle2, AlertCircle, Sun, Moon, Monitor,
   Bell, BellOff, Volume2, VolumeX, ArrowRightLeft,
   CalendarSync, Building2 as BuildingIcon, Zap, XCircle, Eye, EyeOff,
-  ChevronUp, ChevronDown, Copy, Check, Wallet, Bot,
+  ChevronUp, ChevronDown, Copy, Check, Wallet, Bot, Mail,
+  Phone, Settings as SettingsIcon, Lock, ChevronRight,
 } from 'lucide-react';
 import { api } from '../api/client';
 import { getAvailableItems } from '../config/navItems';
@@ -197,167 +198,126 @@ export default function Settings() {
 
   if (!user) return <LoadingSpinner />;
 
-  return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Настройки</h1>
-      </div>
+   return (
+     <div className="space-y-4">
+       <div>
+         <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Настройки</h1>
+       </div>
+       
+       {/* АККАУНТ */}
+       <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+         <div className="p-5 border-b" style={{ borderColor: 'var(--border)' }}>
+           <h3 className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>Аккаунт</h3>
+           <div className="flex items-center gap-4 mb-4">
+             <div className="w-14 h-14 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-bg)' }}>
+               <User size={24} style={{ color: 'var(--accent)' }} />
+             </div>
+             <div className="flex-1 space-y-1">
+               <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{user.full_name}</p>
+               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{user.email}</p>
+             </div>
+           </div>
+         </div>
+         
+         <div className="p-5 space-y-4">
+           {/* Статус аккаунта */}
+           <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+             <div className="flex items-center gap-2">
+               <Mail size={16} style={{ color: 'var(--accent)' }} />
+               <div>
+                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Email подтверждён</p>
+                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{user.email_verified ? 'Да' : 'Нет'}</p>
+               </div>
+             </div>
+             <button onClick={() => {}}
+               className="text-xs font-medium text-accent hover:text-accent/80">
+               Подтвердить email
+             </button>
+           </div>
+           
+           {/* Изменение пароля */}
+           <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+             <div className="flex items-center gap-2">
+               <Lock size={16} style={{ color: 'var(--accent)' }} />
+               <div className="flex-1">
+                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Пароль</p>
+                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}">Обновить для повышения безопасности</p>
+               </div>
+             </div>
+             <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
+           </div>
+           
+           {/* Уведомления по email */}
+           <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+             <div className="flex items-center gap-2">
+               <Bell size={16} style={{ color: 'var(--accent)' }} />
+               <div className="flex-1">
+                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Email-уведомления</p>
+                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}">Получать обновления на почту</p>
+               </div>
+             </div>
+             <button onClick={() => {}}
+               className={`relative w-10 h-6 rounded-full transition-colors shrink-0`}
+               style={{ backgroundColor: user.email_notifications ? 'var(--accent)' : 'var(--bg-secondary)' }}>
+               <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${user.email_notifications ? 'translate-x-4' : ''}`} />
+             </button>
+           </div>
+           
+           {/* Активные сессии */}
+           <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+             <div className="flex items-center gap-2">
+               <Monitor size={16} style={{ color: 'var(--accent)' }} />
+               <div className="flex-1">
+                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Активные сессии</p>
+                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}">2 устройства онлайн</p>
+               </div>
+             </div>
+             <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
+           </div>
+         </div>
+       </div>
 
-      {/* ПРОФИЛЬ */}
-      <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-        <div className="p-5 border-b" style={{ borderColor: 'var(--border)' }}>
-          <h3 className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>Профиль</h3>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-bg)' }}>
-              <User size={20} style={{ color: 'var(--accent)' }} />
-            </div>
-            <div>
-              <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{user.full_name}</p>
-              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{user.email}</p>
-            </div>
-          </div>
-        </div>
 
-        <form onSubmit={handleSave} className="p-5 space-y-3">
-          <div>
-            <label className="text-xs font-medium mb-1.5 block" style={{ color: 'var(--text-secondary)' }}>Имя и фамилия</label>
-            <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
-              style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
-          </div>
 
-          <div>
-            <label className="text-xs font-medium mb-1.5 block" style={{ color: 'var(--text-secondary)' }}>Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
-              style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
-          </div>
-
-          <div>
-            <label className="text-xs font-medium mb-1.5 block" style={{ color: 'var(--text-secondary)' }}>Телефон</label>
-            <input type="tel" value={phone} onChange={handlePhoneChange} placeholder="+7 (999) 123-45-67"
-              className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
-              style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
-          </div>
-
-          <div className="pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
-            <p className="text-xs font-medium mb-3" style={{ color: 'var(--text-secondary)' }}>Изменить пароль (опционально)</p>
-            
-            <div className="mb-3 relative">
-              <label className="text-xs font-medium mb-1.5 block" style={{ color: 'var(--text-secondary)' }}>Новый пароль</label>
-              <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 pr-9 rounded-lg text-sm focus:outline-none focus:ring-2"
-                style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
-              <button type="button" onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-[30px]"
-                style={{ color: 'var(--text-secondary)' }}>
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-
-            <div className="relative">
-              <label className="text-xs font-medium mb-1.5 block" style={{ color: 'var(--text-secondary)' }}>Подтверждение пароля</label>
-              <input type={showPasswordConfirm ? "text" : "password"} value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)}
-                className="w-full px-3 py-2 pr-9 rounded-lg text-sm focus:outline-none focus:ring-2"
-                style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
-              <button type="button" onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
-                className="absolute right-3 top-[30px]"
-                style={{ color: 'var(--text-secondary)' }}>
-                {showPasswordConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-
-          <button type="submit" disabled={saving}
-            className="w-full py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-            style={{ backgroundColor: 'var(--accent)', color: 'white' }}>
-            <Save size={14} />
-            {saving ? 'Сохранение...' : 'Сохранить'}
-          </button>
-          {message && (
-            <div className={`flex items-center gap-2 text-xs p-2.5 rounded-lg ${isSuccess ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-              {isSuccess ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
-              {message}
-            </div>
-          )}
-        </form>
-      </div>
-
-      {/* ОБЩИЕ НАСТРОЙКИ */}
-      <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-        <div className="p-5">
-          <h3 className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>Общие</h3>
-          
-          {/* Склад */}
-          <div className="mb-4">
-            <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--text-secondary)' }}>Текущий склад</label>
-            <div className="relative">
-              <select value={activeCenterId || ''}
-                onChange={(e) => setActiveCenterId(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2"
-                style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}>
-                {centers.map((c) => (
-                  <option key={c.id} value={c.id}>{c.address ? `${c.name} (${c.address})` : c.name} {c.role === 'owner' ? '(владелец)' : ''}</option>
-                ))}
-              </select>
-              <Building2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-disabled)' }} />
-            </div>
-          </div>
-
-          {/* Тема */}
-          <div>
-            <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--text-secondary)' }}>Тема оформления</label>
-            <div className="flex gap-2">
-              {[
-                { value: 'light' as const, label: 'Светлая', icon: Sun },
-                { value: 'dark' as const, label: 'Тёмная', icon: Moon },
-                { value: 'auto' as const, label: 'Авто', icon: Monitor },
-              ].map((opt) => {
-                const Icon = opt.icon;
-                const active = mode === opt.value;
-                return (
-                  <button key={opt.value} onClick={() => setMode(opt.value)}
-                    className={`flex-1 flex flex-col items-center gap-1 p-2.5 rounded-lg text-xs font-medium transition-all`}
-                    style={{
-                      color: active ? 'var(--accent)' : 'var(--text-secondary)',
-                      backgroundColor: active ? 'var(--accent-bg)' : 'var(--bg-tertiary)',
-                      border: active ? '1px solid var(--accent)' : '1px solid var(--border)',
-                    }}>
-                    <Icon size={16} />
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {isOwner && (
-            <div className="flex items-center justify-between p-3 rounded-lg mt-3" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-              <div className="flex items-center gap-2">
-                <Wallet size={16} style={{ color: 'var(--accent)' }} />
-                <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Финансы</p>
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Баланс и операции</p>
-                </div>
-              </div>
-              <button
-                onClick={async () => {
-                  setFinanceSaving(true);
-                  try {
-                    const res = await api.finance.toggle(!localFinance);
-                    setLocalFinance(res.finance_enabled);
-                  } catch {}
-                  setFinanceSaving(false);
-                }}
-                disabled={financeSaving}
-                className={`relative w-10 h-6 rounded-full transition-colors shrink-0 disabled:opacity-50`}
-                style={{ backgroundColor: localFinance ? 'var(--accent)' : 'var(--bg-secondary)' }}>
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${localFinance ? 'translate-x-4' : ''}`} />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+       {/* ОБЩИЕ */}
+       <div className="space-y-1">
+         {/* Склад */}
+         <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
+           <div className="flex items-center gap-3">
+             <Building2 size={18} style={{ color: 'var(--accent)' }} />
+             <div className="flex-1">
+               <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Склад</p>
+               <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{centers.find(c => c.id === activeCenterId)?.name || 'Не выбран'}</p>
+             </div>
+           </div>
+           <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
+         </div>
+         
+         {/* Тема */}
+         <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
+           <div className="flex items-center gap-3">
+             <Monitor size={18} style={{ color: 'var(--accent)' }} />
+             <div className="flex-1">
+               <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Тема оформления</p>
+               <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{mode === 'light' ? 'Светлая' : mode === 'dark' ? 'Тёмная' : 'Авто'}</p>
+             </div>
+           </div>
+           <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
+         </div>
+         
+         {isOwner && (
+           <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
+             <div className="flex items-center gap-3">
+               <Wallet size={18} style={{ color: 'var(--accent)' }} />
+               <div className="flex-1">
+                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Финансы</p>
+                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{localFinance ? 'Включено' : 'Выключено'}</p>
+               </div>
+             </div>
+             <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
+           </div>
+         )}
+       </div>
 
       {/* НАВИГАЦИЯ */}
       <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
