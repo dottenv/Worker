@@ -416,79 +416,74 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* УВЕДОМЛЕНИЯ */}
-      {supported && prefsLoaded && (
-        <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-          <div className="p-5">
-            <h3 className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>Уведомления</h3>
-
-            {/* Главный выключатель */}
-            <div className="flex items-center justify-between mb-4 p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-              <div className="flex items-center gap-2">
-                {subscribed ? <Bell size={16} style={{ color: 'var(--accent)' }} /> : <BellOff size={16} style={{ color: 'var(--text-disabled)' }} />}
-                <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{subscribed ? 'Включены' : 'Выключены'}</p>
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Push-уведомления</p>
-                </div>
-              </div>
-              <button onClick={subscribed ? unsubscribe : subscribe}
-                disabled={permission === "denied"}
-                className={`relative w-10 h-6 rounded-full transition-colors shrink-0 disabled:opacity-50`}
-                style={{ backgroundColor: subscribed ? 'var(--accent)' : 'var(--bg-secondary)' }}>
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${subscribed ? 'translate-x-4' : ''}`} />
-              </button>
-            </div>
-
-            {pushError && (
-              <p className="text-xs p-2 mb-3 rounded-lg" style={{ backgroundColor: 'var(--error-bg, #fee2e2)', color: 'var(--error)' }}>
-                {pushError}
-              </p>
-            )}
-
-            {/* Звук */}
-            <div className="flex items-center justify-between mb-4 p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-              <div className="flex items-center gap-2">
-                {pushSound ? <Volume2 size={16} style={{ color: 'var(--accent)' }} /> : <VolumeX size={16} style={{ color: 'var(--text-disabled)' }} />}
-                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Звук</p>
-              </div>
-              <button onClick={toggleSound}
-                className={`relative w-10 h-6 rounded-full transition-colors shrink-0`}
-                style={{ backgroundColor: pushSound ? 'var(--accent)' : 'var(--bg-secondary)' }}>
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${pushSound ? 'translate-x-4' : ''}`} />
-              </button>
-            </div>
-
-            {/* Типы компактно в 2 колонки */}
-            <div>
-              <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Типы</p>
-              <div className="grid grid-cols-2 gap-2">
-                {Object.entries(NOTIF_TYPES).map(([key, { label, icon: Icon }]) => {
-                  const enabled = pushPrefs[key] !== false;
-                  return (
-                    <button key={key}
-                      onClick={() => updatePref(key, !enabled)}
-                      className="flex items-center gap-2 p-2.5 rounded-lg text-xs transition-colors"
-                      style={{
-                        backgroundColor: enabled ? 'var(--accent-bg)' : 'var(--bg-tertiary)',
-                        color: enabled ? 'var(--accent)' : 'var(--text-secondary)',
-                        border: enabled ? '1px solid var(--accent)' : '1px solid var(--border)',
-                      }}>
-                      <Icon size={13} className="shrink-0" />
-                      <span className="truncate">{label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {permission === "denied" && (
-              <p className="text-xs p-2 rounded-lg mt-3" style={{ backgroundColor: 'var(--error-bg, #fee2e2)', color: 'var(--error)' }}>
-                Заблокированы в браузере. Разрешите в настройках сайта.
-              </p>
-            )}
-          </div>
-        </div>
-      )}
+       {/* УВЕДОМЛЕНИЯ */}
+       {supported && prefsLoaded && (
+         <div className="space-y-1">
+           {/* Push-уведомления */}
+           <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
+             <div className="flex items-center gap-3">
+               <Bell size={18} style={{ color: 'var(--accent)' }} />
+               <div className="flex-1">
+                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Push-уведомления</p>
+                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{subscribed ? 'Включено' : 'Выключено'}</p>
+               </div>
+             </div>
+             <button onClick={subscribed ? unsubscribe : subscribe}
+               disabled={permission === "denied"}
+               className={`relative w-10 h-6 rounded-full transition-colors shrink-0 disabled:opacity-50`}
+               style={{ backgroundColor: subscribed ? 'var(--accent)' : 'var(--bg-secondary)' }}>
+               <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${subscribed ? 'translate-x-4' : ''}`} />
+             </button>
+           </div>
+           
+           {pushError && (
+             <div className="p-4" style={{ backgroundColor: 'var(--error-bg, #fee2e2)', color: 'var(--error)' }}>
+               {pushError}
+             </div>
+           )}
+           
+           {/* Звук уведомлений */}
+           <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
+             <div className="flex items-center gap-3">
+               <Volume2 size={18} style={{ color: 'var(--accent)' }} />
+               <div className="flex-1">
+                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Звук</p>
+                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{pushSound ? 'Включено' : 'Выключено'}</p>
+               </div>
+             </div>
+             <button onClick={toggleSound}
+               className={`relative w-10 h-6 rounded-full transition-colors shrink-0`}
+               style={{ backgroundColor: pushSound ? 'var(--accent)' : 'var(--bg-secondary)' }}>
+               <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${pushSound ? 'translate-x-4' : ''}`} />
+             </button>
+           </div>
+           
+           {/* Типы уведомлений */}
+           <div className="p-4" style={{ backgroundColor: 'var(--bg-card)' }}>
+             <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Типы уведомлений</p>
+             <div className="space-y-2">
+               {Object.entries(NOTIF_TYPES).map(([key, { label, icon: Icon }]) => {
+                 const enabled = pushPrefs[key] !== false;
+                 return (
+                   <div key={key}
+                     className="flex items-center justify-between p-3 rounded-lg"
+                     style={{ backgroundColor: enabled ? 'var(--accent-bg)' : 'var(--bg-tertiary)' }}>
+                     <div className="flex items-center gap-3">
+                       <Icon size={16} style={{ color: enabled ? 'var(--accent)' : 'var(--text-secondary)' }} />
+                       <span className="flex-1 text-sm">{label}</span>
+                     </div>
+                     <button onClick={() => updatePref(key, !enabled)}
+                       className={`relative w-10 h-6 rounded-full transition-colors shrink-0`}
+                       style={{ backgroundColor: enabled ? 'var(--accent)' : 'var(--bg-secondary)' }}>
+                       <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${enabled ? 'translate-x-4' : ''}`} />
+                     </button>
+                   </div>
+                 );
+               })}
+             </div>
+           </div>
+         </div>
+       )}
 
 
       {/* TELEGRAM БОТ */}
