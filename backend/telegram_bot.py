@@ -5,6 +5,8 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
 logger = logging.getLogger(__name__)
@@ -19,43 +21,83 @@ _base_url: str = ""
 _flask_app = None
 
 
+class SettingsStates(StatesGroup):
+    waiting_base_url = State()
+    waiting_token = State()
+
+
+def _get_ctx():
+    from flask import current_app
+    try:
+        return current_app._get_current_object()
+    except RuntimeError:
+        return _flask_app
+
+
+def _with_ctx(coro):
+    ctx = _get_ctx()
+    if ctx is None:
+        return None
+    return ctx.app_context()
+
+
+def _settings_keyboard():
+    from models import Setting
+    base_url = Setting.get("base_url", "")
+    storage_chat = Setting.get("telegram_storage_chat_id", "")
+    storage_topic = Setting.get("telegram_storage_topic_id", "")
+    finance = Setting.get("finance_enabled", "false")
+    token = Setting.get("telegram_bot_token", "")
+
+    lines = []
+    url_status = "✅" if base_url else "❌"
+    lines.append([InlineKeyboardButton(
+        text=f"{url_status} URL: {base_url or 'не задан'}",
+        callback_data="set_base_url"
+    )])
+    chat_status = "✅" if storage_chat else "❌"
+    lines.append([InlineKeyboardButton(
+        text=f"{chat_status} Чат: {storage_chat or 'не задан'}",
+        callback_data="set_storage_chat"
+    )])
+    lines.append([InlineKeyboardButton(
+        text=f"{'✅' if finance == 'true' else '❌'} Финансы: {'вкл' if finance == 'true' else 'выкл'}",
+        callback_data="toggle_finance"
+    )])
+    lines.append([InlineKeyboardButton(text="📊 Статус", callback_data="show_status")])
+    lines.append([InlineKeyboardButton(text="❌ Закрыть", callback_data="close_settings")])
+    return InlineKeyboardMarkup(inline_keyboard=lines)
+
+
 def _build_handlers(dp_instance: Dispatcher):
     @dp_instance.message(Command("start"))
-    async def cmd_start(message: types.Message):
-        from flask import current_app
-        try:
-            ctx = current_app._get_current_object()
-        except RuntimeError:
-            ctx = _flask_app
+    async def cmd_start(message: types.Message, command: Command):
+        ctx = _get_ctx()
         if ctx is None:
-            await message.answer(
-                "Добро пожаловать в Worker!\n\n"
-                "Ошибка конфигурации сервера."
-            )
+            await message.answer("Ошибка конфигурации сервера.")
             return
         with ctx.app_context():
             from models import Setting
             base_url = Setting.get("base_url", "")
-            if not base_url:
+            if base_url:
+                web_app_url = f"{base_url}/telegram/connect"
+                keyboard = InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [InlineKeyboardButton(
+                            text="Открыть MiniApp",
+                            web_app=WebAppInfo(url=web_app_url)
+                        )]
+                    ]
+                )
                 await message.answer(
                     "Добро пожаловать в Worker!\n\n"
-                    "Администратор ещё не настроил URL для MiniApp. "
-                    "Пожалуйста, настройте Base URL в панели управления."
+                    "Нажмите кнопку ниже, чтобы открыть MiniApp и привязать аккаунт.",
+                    reply_markup=keyboard
                 )
                 return
-            web_app_url = f"{base_url}/telegram/connect"
-            keyboard = InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [InlineKeyboardButton(
-                        text="Открыть MiniApp",
-                        web_app=WebAppInfo(url=web_app_url)
-                    )]
-                ]
-            )
             await message.answer(
                 "Добро пожаловать в Worker!\n\n"
-                "Нажмите кнопку ниже, чтобы открыть MiniApp и привязать аккаунт.",
-                reply_markup=keyboard
+                "Администратор ещё не настроил бота. Используйте /settings чтобы настроить."
             )
 
     @dp_instance.message(Command("help"))
@@ -63,18 +105,130 @@ def _build_handlers(dp_instance: Dispatcher):
         await message.answer(
             "Команды:\n"
             "/start - Открыть MiniApp\n"
+            "/settings - Настройки бота\n"
             "/help - Помощь"
         )
+
+    @dp_instance.message(Command("settings"))
+    async def cmd_settings(message: types.Message, state: FSMContext):
+        await state.clear()
+        ctx = _get_ctx()
+        if ctx is None:
+            await message.answer("Ошибка конфигурации сервера.")
+            return
+        with ctx.app_context():
+            kb = _settings_keyboard()
+            await message.answer("⚙️ Настройки бота:", reply_markup=kb)
+
+    @dp_instance.callback_query(lambda c: c.data == "settings_main")
+    async def settings_main(call: types.CallbackQuery, state: FSMContext):
+        await state.clear()
+        await call.answer()
+        ctx = _get_ctx()
+        if ctx is None:
+            await call.message.edit_text("Ошибка конфигурации.")
+            return
+        with ctx.app_context():
+            kb = _settings_keyboard()
+            await call.message.edit_text("⚙️ Настройки бота:", reply_markup=kb)
+
+    @dp_instance.callback_query(lambda c: c.data == "set_storage_chat")
+    async def set_storage_chat(call: types.CallbackQuery):
+        await call.answer()
+        if not call.message:
+            return
+        ctx = _get_ctx()
+        if ctx is None:
+            return
+        with ctx.app_context():
+            from models import Setting
+            Setting.set("telegram_storage_chat_id", str(call.message.chat.id))
+            Setting.set("telegram_storage_topic_id", "")
+            await call.message.edit_text(
+                f"✅ Чат <code>{call.message.chat.id}</code> сохранён как хранилище.",
+                parse_mode=ParseMode.HTML,
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="⬅ Назад", callback_data="settings_main")]
+                ])
+            )
+
+    @dp_instance.callback_query(lambda c: c.data == "set_base_url")
+    async def set_base_url_prompt(call: types.CallbackQuery, state: FSMContext):
+        await call.answer()
+        if not call.message:
+            return
+        await state.set_state(SettingsStates.waiting_base_url)
+        await call.message.edit_text(
+            "🔗 Отправьте Base URL (например https://example.com):\n\n"
+            "Или нажмите кнопку ниже чтобы отменить.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="❌ Отмена", callback_data="settings_main")]
+            ])
+        )
+
+    @dp_instance.message(SettingsStates.waiting_base_url)
+    async def capture_base_url(message: types.Message, state: FSMContext):
+        url = message.text.strip()
+        ctx = _get_ctx()
+        if ctx is None:
+            return
+        with ctx.app_context():
+            from models import Setting
+            Setting.set("base_url", url)
+            await state.clear()
+            kb = _settings_keyboard()
+            await message.answer(f"✅ Base URL сохранён: {url}", reply_markup=kb)
+
+    @dp_instance.callback_query(lambda c: c.data == "toggle_finance")
+    async def toggle_finance(call: types.CallbackQuery):
+        await call.answer()
+        ctx = _get_ctx()
+        if ctx is None:
+            return
+        with ctx.app_context():
+            from models import Setting
+            cur = Setting.get("finance_enabled", "false")
+            Setting.set("finance_enabled", "false" if cur == "true" else "true")
+        if not call.message:
+            return
+        with ctx.app_context():
+            kb = _settings_keyboard()
+            await call.message.edit_text("⚙️ Настройки бота:", reply_markup=kb)
+
+    @dp_instance.callback_query(lambda c: c.data == "show_status")
+    async def show_status(call: types.CallbackQuery):
+        await call.answer()
+        ctx = _get_ctx()
+        if ctx is None:
+            return
+        with ctx.app_context():
+            from models import Setting
+            lines = [
+                "📊 <b>Статус бота</b>",
+                "",
+                f"URL: {Setting.get('base_url', '—') or '—'}",
+                f"Чат: {Setting.get('telegram_storage_chat_id', '—') or '—'}",
+                f"Тема: {Setting.get('telegram_storage_topic_id', '—') or '—'}",
+                f"Финансы: {Setting.get('finance_enabled', 'false')}",
+            ]
+            await call.message.edit_text(
+                "\n".join(lines),
+                parse_mode=ParseMode.HTML,
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="⬅ Назад", callback_data="settings_main")]
+                ])
+            )
+
+    @dp_instance.callback_query(lambda c: c.data == "close_settings")
+    async def close_settings(call: types.CallbackQuery):
+        await call.answer()
+        await call.message.delete()
 
     @dp_instance.message()
     async def capture_forum_topic(message: types.Message):
         if not message.message_thread_id or not message.chat:
             return
-        from flask import current_app
-        try:
-            ctx = current_app._get_current_object()
-        except RuntimeError:
-            ctx = _flask_app
+        ctx = _get_ctx()
         if ctx is None:
             return
         with ctx.app_context():
