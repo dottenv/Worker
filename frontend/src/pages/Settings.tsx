@@ -240,7 +240,7 @@ export default function Settings() {
              <div className="flex items-center gap-2">
                <Lock size={16} style={{ color: 'var(--accent)' }} />
                <div className="flex-1">
-                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Пароль</p>
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Пароль</p>
                   <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Обновить для повышения безопасности</p>
                </div>
              </div>
