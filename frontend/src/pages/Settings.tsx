@@ -3,7 +3,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePush } from '../contexts/PushContext';
 import { useCenters } from '../contexts/CenterContext';
-import { useNavigate } from 'react-router-dom';
 import {
   User, Building2, LogOut, Save, ChevronRight,
   CheckCircle2, AlertCircle, Sun, Moon, Monitor,
@@ -29,9 +28,8 @@ const NOTIF_TYPES: Record<string, { label: string; icon: any }> = {
 export default function Settings() {
   const { user, logout, isOwner, refreshUser } = useAuth();
   const { mode, setMode } = useTheme();
-  const { subscribed, supported, permission, subscribe, unsubscribe } = usePush();
+  const { subscribed, supported, permission, subscribe, unsubscribe, error: pushError } = usePush();
   const { centers, activeCenterId, setActiveCenterId } = useCenters();
-  const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const buildHash = import.meta.env.VITE_GIT_HASH || 'unknown';
 
@@ -449,48 +447,50 @@ export default function Settings() {
               </button>
             </div>
 
-            {subscribed && (
-              <>
-                {/* Звук */}
-                <div className="flex items-center justify-between mb-4 p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                  <div className="flex items-center gap-2">
-                    {pushSound ? <Volume2 size={16} style={{ color: 'var(--accent)' }} /> : <VolumeX size={16} style={{ color: 'var(--text-disabled)' }} />}
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Звук</p>
-                  </div>
-                  <button onClick={toggleSound}
-                    className={`relative w-10 h-6 rounded-full transition-colors shrink-0`}
-                    style={{ backgroundColor: pushSound ? 'var(--accent)' : 'var(--bg-secondary)' }}>
-                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${pushSound ? 'translate-x-4' : ''}`} />
-                  </button>
-                </div>
-
-                {/* Типы компактно в 2 колонки */}
-                <div>
-                  <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Типы</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(NOTIF_TYPES).map(([key, { label, icon: Icon }]) => {
-                      const enabled = pushPrefs[key] !== false;
-                      return (
-                        <button key={key}
-                          onClick={() => updatePref(key, !enabled)}
-                          className="flex items-center gap-2 p-2.5 rounded-lg text-xs transition-colors"
-                          style={{
-                            backgroundColor: enabled ? 'var(--accent-bg)' : 'var(--bg-tertiary)',
-                            color: enabled ? 'var(--accent)' : 'var(--text-secondary)',
-                            border: enabled ? '1px solid var(--accent)' : '1px solid var(--border)',
-                          }}>
-                          <Icon size={13} className="shrink-0" />
-                          <span className="truncate">{label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </>
+            {pushError && (
+              <p className="text-xs p-2 mb-3 rounded-lg" style={{ backgroundColor: 'var(--error-bg, #fee2e2)', color: 'var(--error)' }}>
+                {pushError}
+              </p>
             )}
 
+            {/* Звук */}
+            <div className="flex items-center justify-between mb-4 p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+              <div className="flex items-center gap-2">
+                {pushSound ? <Volume2 size={16} style={{ color: 'var(--accent)' }} /> : <VolumeX size={16} style={{ color: 'var(--text-disabled)' }} />}
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Звук</p>
+              </div>
+              <button onClick={toggleSound}
+                className={`relative w-10 h-6 rounded-full transition-colors shrink-0`}
+                style={{ backgroundColor: pushSound ? 'var(--accent)' : 'var(--bg-secondary)' }}>
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${pushSound ? 'translate-x-4' : ''}`} />
+              </button>
+            </div>
+
+            {/* Типы компактно в 2 колонки */}
+            <div>
+              <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Типы</p>
+              <div className="grid grid-cols-2 gap-2">
+                {Object.entries(NOTIF_TYPES).map(([key, { label, icon: Icon }]) => {
+                  const enabled = pushPrefs[key] !== false;
+                  return (
+                    <button key={key}
+                      onClick={() => updatePref(key, !enabled)}
+                      className="flex items-center gap-2 p-2.5 rounded-lg text-xs transition-colors"
+                      style={{
+                        backgroundColor: enabled ? 'var(--accent-bg)' : 'var(--bg-tertiary)',
+                        color: enabled ? 'var(--accent)' : 'var(--text-secondary)',
+                        border: enabled ? '1px solid var(--accent)' : '1px solid var(--border)',
+                      }}>
+                      <Icon size={13} className="shrink-0" />
+                      <span className="truncate">{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {permission === "denied" && (
-              <p className="text-xs p-2 rounded-lg" style={{ backgroundColor: 'var(--error-bg, #fee2e2)', color: 'var(--error)' }}>
+              <p className="text-xs p-2 rounded-lg mt-3" style={{ backgroundColor: 'var(--error-bg, #fee2e2)', color: 'var(--error)' }}>
                 Заблокированы в браузере. Разрешите в настройках сайта.
               </p>
             )}

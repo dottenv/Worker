@@ -7,6 +7,7 @@ interface PushContextType {
   permission: NotificationPermission | "unsupported";
   subscribe: () => Promise<void>;
   unsubscribe: () => Promise<void>;
+  error: string;
 }
 
 const PushContext = createContext<PushContextType>({
@@ -15,7 +16,24 @@ const PushContext = createContext<PushContextType>({
   permission: "unsupported",
   subscribe: async () => {},
   unsubscribe: async () => {},
+  error: "",
 });
+
+async function getSwRegistration(): Promise<ServiceWorkerRegistration | null> {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    return reg;
+  } catch {
+    // ready() failed — try manual registration
+  }
+  try {
+    const reg = await navigator.serviceWorker.register("/sw.js");
+    await navigator.serviceWorker.ready;
+    return reg;
+  } catch {
+    return null;
+  }
+}
 
 export function PushProvider({ children }: { children: ReactNode }) {
   const [subscribed, setSubscribed] = useState(false);
@@ -23,6 +41,7 @@ export function PushProvider({ children }: { children: ReactNode }) {
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("unsupported");
   const [swReg, setSwReg] = useState<ServiceWorkerRegistration | null>(null);
   const [vapidKey, setVapidKey] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
@@ -32,17 +51,17 @@ export function PushProvider({ children }: { children: ReactNode }) {
     setSupported(true);
     setPermission(Notification.permission);
 
-    // fetch VAPID public key from server
     api.get("/vapid/public-key").then((data) => {
       if (data.publicKey) setVapidKey(data.publicKey);
     }).catch(() => {});
 
-    navigator.serviceWorker.ready.then((reg) => {
+    getSwRegistration().then((reg) => {
+      if (!reg) return;
       setSwReg(reg);
       reg.pushManager.getSubscription().then((sub) => {
         setSubscribed(!!sub);
       });
-    }).catch(() => {});
+    });
   }, []);
 
   const subscribeWithReg = useCallback(async (reg: ServiceWorkerRegistration, key: string) => {
@@ -63,17 +82,34 @@ export function PushProvider({ children }: { children: ReactNode }) {
       },
     });
     setSubscribed(true);
+    setError("");
   }, []);
 
+  const ensureReg = useCallback(async (): Promise<ServiceWorkerRegistration | null> => {
+    if (swReg) return swReg;
+    const reg = await getSwRegistration();
+    if (reg) setSwReg(reg);
+    return reg;
+  }, [swReg]);
+
   const subscribe = useCallback(async () => {
-    if (!swReg) return;
-    if (!vapidKey) {
+    setError("");
+
+    const reg = await ensureReg();
+    if (!reg) {
+      setError("Service Worker не зарегистрирован");
+      return;
+    }
+
+    let key = vapidKey;
+    if (!key) {
       try {
         const data = await api.get("/vapid/public-key");
         if (!data.publicKey) throw new Error("No VAPID key");
-        setVapidKey(data.publicKey);
+        key = data.publicKey;
+        setVapidKey(key);
       } catch {
-        console.warn("Failed to fetch VAPID key");
+        setError("Не удалось получить VAPID ключ");
         return;
       }
     }
@@ -81,30 +117,41 @@ export function PushProvider({ children }: { children: ReactNode }) {
     try {
       const perm = await Notification.requestPermission();
       setPermission(perm);
-      if (perm !== "granted") return;
-
-      await subscribeWithReg(swReg, vapidKey!);
+      if (perm !== "granted") {
+        setError("Разрешение на уведомления не получено");
+        return;
+      }
+      await subscribeWithReg(reg, key!);
     } catch (e) {
-      console.warn("Push subscribe failed:", e);
+      const msg = e instanceof Error ? e.message : "Ошибка подписки";
+      setError(msg);
     }
-  }, [swReg, vapidKey, subscribeWithReg]);
+  }, [ensureReg, vapidKey, subscribeWithReg]);
 
   const unsubscribe = useCallback(async () => {
-    if (!swReg) return;
+    setError("");
+
+    const reg = await ensureReg();
+    if (!reg) {
+      setSubscribed(false);
+      return;
+    }
+
     try {
-      const sub = await swReg.pushManager.getSubscription();
+      const sub = await reg.pushManager.getSubscription();
       if (sub) {
         await api.push.unsubscribe(sub.endpoint);
         await sub.unsubscribe();
       }
       setSubscribed(false);
     } catch (e) {
-      console.warn("Push unsubscribe failed:", e);
+      const msg = e instanceof Error ? e.message : "Ошибка отписки";
+      setError(msg);
     }
-  }, [swReg]);
+  }, [ensureReg]);
 
   return (
-    <PushContext.Provider value={{ subscribed, supported, permission, subscribe, unsubscribe }}>
+    <PushContext.Provider value={{ subscribed, supported, permission, subscribe, unsubscribe, error }}>
       {children}
     </PushContext.Provider>
   );
