@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import threading
 from aiogram import Bot, Dispatcher, types
@@ -322,8 +323,118 @@ def is_bot_running() -> bool:
     return bot is not None and not _stop_event.is_set()
 
 
+def _bot_token():
+    from models import Setting
+    return Setting.get("telegram_bot_token", "")
+
+
+def send_telegram_message_sync(chat_id: int, text: str,
+                                message_thread_id: int | None = None):
+    import requests as _requests
+    token = _bot_token()
+    if not token:
+        logger.warning("Telegram bot token not configured")
+        return
+    payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
+    if message_thread_id:
+        payload["message_thread_id"] = message_thread_id
+    try:
+        resp = _requests.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json=payload, timeout=10,
+        )
+        resp.raise_for_status()
+    except Exception as e:
+        logger.error(f"Failed to send Telegram message to {chat_id}: {e}")
+
+
+def send_telegram_photo_sync(chat_id: int, file_path: str, caption: str | None = None,
+                              message_thread_id: int | None = None):
+    import requests as _requests
+    token = _bot_token()
+    if not token:
+        logger.warning("Telegram bot token not configured")
+        return None
+    try:
+        with open(file_path, "rb") as f:
+            files = {"photo": f}
+            data = {"chat_id": chat_id, "parse_mode": "HTML"}
+            if caption:
+                data["caption"] = caption
+            if message_thread_id:
+                data["message_thread_id"] = message_thread_id
+            resp = _requests.post(
+                f"https://api.telegram.org/bot{token}/sendPhoto",
+                data=data, files=files, timeout=30,
+            )
+            resp.raise_for_status()
+            result = resp.json()
+            if result.get("ok") and result.get("result", {}).get("photo"):
+                return result["result"]["photo"][-1]["file_id"]
+    except Exception as e:
+        logger.error(f"Failed to send photo to {chat_id}: {e}")
+    return None
+
+
+def send_telegram_document_sync(chat_id: int, file_path: str, filename: str | None = None,
+                                 caption: str | None = None,
+                                 message_thread_id: int | None = None):
+    import requests as _requests
+    token = _bot_token()
+    if not token:
+        logger.warning("Telegram bot token not configured")
+        return None
+    try:
+        with open(file_path, "rb") as f:
+            files = {"document": (filename or file_path.split("/")[-1], f)}
+            data = {"chat_id": chat_id, "parse_mode": "HTML"}
+            if caption:
+                data["caption"] = caption
+            if message_thread_id:
+                data["message_thread_id"] = message_thread_id
+            resp = _requests.post(
+                f"https://api.telegram.org/bot{token}/sendDocument",
+                data=data, files=files, timeout=30,
+            )
+            resp.raise_for_status()
+            result = resp.json()
+            if result.get("ok"):
+                msg = result["result"]
+                if msg.get("document"):
+                    return msg["document"]["file_id"]
+                if msg.get("photo"):
+                    return msg["photo"][-1]["file_id"]
+    except Exception as e:
+        logger.error(f"Failed to send document to {chat_id}: {e}")
+    return None
+
+
+def send_telegram_media_group_sync(chat_id: int, media: list,
+                                    message_thread_id: int | None = None):
+    import requests as _requests
+    token = _bot_token()
+    if not token:
+        logger.warning("Telegram bot token not configured")
+        return
+    try:
+        payload = {
+            "chat_id": chat_id,
+            "media": json.dumps(media),
+        }
+        if message_thread_id:
+            payload["message_thread_id"] = message_thread_id
+        resp = _requests.post(
+            f"https://api.telegram.org/bot{token}/sendMediaGroup",
+            json=payload, timeout=10,
+        )
+        resp.raise_for_status()
+    except Exception as e:
+        logger.error(f"Failed to send media group to {chat_id}: {e}")
+
+
 async def send_telegram_message(chat_id: int, text: str, parse_mode: str = "HTML",
                                  message_thread_id: int | None = None):
+    # async version for bot handlers - uses aiogram
     if not bot:
         logger.warning("Telegram bot not initialized")
         return
@@ -391,36 +502,3 @@ async def send_telegram_photo(chat_id: int, file_path: str, caption: str | None 
     except Exception as e:
         logger.error(f"Failed to send photo to Telegram: {e}")
     return None
-
-
-def _run_async(coro):
-    try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        result = loop.run_until_complete(coro)
-        loop.close()
-        return result
-    except Exception as e:
-        logger.error(f"sync tg error: {e}")
-    return None
-
-
-def send_telegram_message_sync(chat_id: int, text: str,
-                                message_thread_id: int | None = None):
-    return _run_async(send_telegram_message(chat_id, text, message_thread_id=message_thread_id))
-
-
-def send_telegram_document_sync(chat_id: int, file_path: str, filename: str | None = None,
-                                 caption: str | None = None,
-                                 message_thread_id: int | None = None):
-    return _run_async(send_telegram_document(chat_id, file_path, filename, caption, message_thread_id))
-
-
-def send_telegram_photo_sync(chat_id: int, file_path: str, caption: str | None = None,
-                              message_thread_id: int | None = None):
-    return _run_async(send_telegram_photo(chat_id, file_path, caption, message_thread_id))
-
-
-def send_telegram_media_group_sync(chat_id: int, media: list,
-                                    message_thread_id: int | None = None):
-    return _run_async(send_telegram_media_group(chat_id, media, message_thread_id))
