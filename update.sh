@@ -13,7 +13,7 @@ git stash pop || true
 GIT_HASH=$(git rev-parse --short HEAD)
 export GIT_HASH
 
-echo "=== Rebuilding frontend & backend (build ${GIT_HASH}) ==="
-docker compose up -d --build frontend backend
+echo "=== Rebuilding frontend, backend & bot (build ${GIT_HASH}) ==="
+docker compose up -d --build frontend backend bot
 
 echo "=== Done ==="
