@@ -57,8 +57,8 @@ services:
 
   bot:
     build:
-      context: ./backend/bot
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: bot/Dockerfile
     container_name: sc-bot
     restart: unless-stopped
     volumes:
