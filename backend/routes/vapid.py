@@ -23,8 +23,8 @@ def _extract_public_key_bytes(pem_str: str) -> bytes | None:
                 format=serialization.PublicFormat.UncompressedPoint,
             )
             return raw_bytes
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Could not load PEM as private key: %s", e)
 
     try:
         pem_data = pem_str.encode("utf-8")
@@ -35,15 +35,15 @@ def _extract_public_key_bytes(pem_str: str) -> bytes | None:
                 format=serialization.PublicFormat.UncompressedPoint,
             )
             return raw_bytes
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Could not load PEM as public key: %s", e)
 
     return None
 
 
 @vapid_bp.route("/public-key", methods=["GET"])
 def get_public_key():
-    pem = current_app.config.get("VAPID_PUBLIC_KEY", "") or current_app.config.get("VAPID_PRIVATE_KEY", "")
+    pem = current_app.config.get("VAPID_PUBLIC_KEY") or current_app.config.get("VAPID_PRIVATE_KEY") or ""
     if not pem:
         return jsonify({"error": "VAPID not configured"}), 500
 

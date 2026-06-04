@@ -14,19 +14,21 @@ class Config:
     UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
     MAX_CONTENT_LENGTH = 20 * 1024 * 1024  # 20 MB
 
-    VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", (
-        "-----BEGIN PRIVATE KEY-----\n"
-        "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg9fV9VhTNpuPFlYXp\n"
-        "n5wJaCT7r6jaVjW3gLBoIzgqM/ihRANCAASWtJcxRxeqa5Ts2gIYUo4ouohjErIn\n"
-        "6G18iNqjGdDVajf8pD8WKVHkbLwfQejeLU2GwuWaIEkbGjd0gktCrNAU\n"
-        "-----END PRIVATE KEY-----"
-    ))
-    VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", (
-        "-----BEGIN PUBLIC KEY-----\n"
-        "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAElrSXMUcXqmuU7NoCGFKOKLqIYxKy\n"
-        "J+htfIjaoxnQ1Wo3/KQ/FilR5Gy8H0Ho3i1NhsLlmiBJGxo3dIJLQqzQFA==\n"
-        "-----END PUBLIC KEY-----"
-    ))
+    VAPID_PRIVATE_KEY = (
+        os.environ.get("VAPID_PRIVATE_KEY")
+        or "-----BEGIN PRIVATE KEY-----\n"
+           "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg9fV9VhTNpuPFlYXp\n"
+           "n5wJaCT7r6jaVjW3gLBoIzgqM/ihRANCAASWtJcxRxeqa5Ts2gIYUo4ouohjErIn\n"
+           "6G18iNqjGdDVajf8pD8WKVHkbLwfQejeLU2GwuWaIEkbGjd0gktCrNAU\n"
+           "-----END PRIVATE KEY-----"
+    )
+    VAPID_PUBLIC_KEY = (
+        os.environ.get("VAPID_PUBLIC_KEY")
+        or "-----BEGIN PUBLIC KEY-----\n"
+           "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAElrSXMUcXqmuU7NoCGFKOKLqIYxKy\n"
+           "J+htfIjaoxnQ1Wo3/KQ/FilR5Gy8H0Ho3i1NhsLlmiBJGxo3dIJLQqzQFA==\n"
+           "-----END PUBLIC KEY-----"
+    )
 
     TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     BASE_URL = os.environ.get("BASE_URL", "http://localhost:5173")
