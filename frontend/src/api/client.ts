@@ -298,6 +298,10 @@ export const api = {
       }),
     syncBot: () =>
       request<{ status: string }>('/settings/sync-bot', { method: 'POST' }),
+    verifyChat: (chatId: string) =>
+      request<{ id: number; title: string; type: string; is_forum: boolean }>(`/settings/verify-chat?chat_id=${encodeURIComponent(chatId)}`),
+    getTopics: () =>
+      request<{ topics: Record<string, string> }>('/settings/topics'),
   },
   telegram: {
     status: () => request<{ connected: boolean; telegram_id: number | null; telegram_username: string }>('/telegram/status'),

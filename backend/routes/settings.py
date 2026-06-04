@@ -94,3 +94,65 @@ def _sync_telegram_bot():
         ensure_bot(token, base_url)
     else:
         ensure_bot("", "")
+
+
+@settings_bp.route("/verify-chat", methods=["GET"])
+@jwt_required()
+def verify_chat():
+    if not is_owner():
+        return jsonify({"error": "Access denied"}), 403
+
+    chat_id_str = request.args.get("chat_id", "")
+    if not chat_id_str:
+        return jsonify({"error": "chat_id required"}), 400
+
+    token = Setting.get("telegram_bot_token", "")
+    if not token:
+        return jsonify({"error": "Bot token not configured"}), 400
+
+    try:
+        chat_id = int(chat_id_str)
+    except ValueError:
+        return jsonify({"error": "Invalid chat_id"}), 400
+
+    import asyncio
+    from aiogram import Bot
+
+    async def _check():
+        tmp_bot = Bot(token=token)
+        try:
+            chat = await tmp_bot.get_chat(chat_id)
+            result = {
+                "id": chat.id,
+                "title": chat.title or chat.first_name or "",
+                "type": chat.type.value if hasattr(chat.type, "value") else str(chat.type),
+                "is_forum": getattr(chat, "is_forum", False),
+                "username": getattr(chat, "username", None),
+                "invite_link": getattr(chat, "invite_link", None),
+            }
+            return result
+        finally:
+            await tmp_bot.session.close()
+
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    result = loop.run_until_complete(_check())
+    return jsonify(result)
+
+
+@settings_bp.route("/topics", methods=["GET"])
+@jwt_required()
+def get_known_topics():
+    if not is_owner():
+        return jsonify({"error": "Access denied"}), 403
+
+    import json as _json
+    raw = Setting.get("telegram_known_topics", "{}")
+    try:
+        topics = _json.loads(raw)
+    except _json.JSONDecodeError:
+        topics = {}
+    return jsonify({"topics": topics})

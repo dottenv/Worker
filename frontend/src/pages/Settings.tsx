@@ -4,7 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { usePush } from '../contexts/PushContext';
 import { useCenters } from '../contexts/CenterContext';
 import {
-  User, Building2, LogOut, Save, ChevronRight,
+  User, Building2, Save,
   CheckCircle2, AlertCircle, Sun, Moon, Monitor,
   Bell, BellOff, Volume2, VolumeX, ArrowRightLeft,
   CalendarSync, Building2 as BuildingIcon, Zap, XCircle, Eye, EyeOff,
@@ -26,7 +26,7 @@ const NOTIF_TYPES: Record<string, { label: string; icon: any }> = {
 };
 
 export default function Settings() {
-  const { user, logout, isOwner, refreshUser } = useAuth();
+  const { user, isOwner, refreshUser } = useAuth();
   const { mode, setMode } = useTheme();
   const { subscribed, supported, permission, subscribe, unsubscribe, error: pushError } = usePush();
   const { centers, activeCenterId, setActiveCenterId } = useCenters();
@@ -72,6 +72,9 @@ export default function Settings() {
   const [tgBotEnabled, setTgBotEnabled] = useState(false);
   const [tgStorageChatId, setTgStorageChatId] = useState('');
   const [tgStorageTopicId, setTgStorageTopicId] = useState('');
+  const [tgChatInfo, setTgChatInfo] = useState<{ id: number; title: string; type: string; is_forum: boolean } | null>(null);
+  const [tgKnownTopics, setTgKnownTopics] = useState<Record<string, string>>({});
+  const [tgVerifying, setTgVerifying] = useState(false);
   const [baseUrl, setBaseUrl] = useState('');
   const [tgSaving, setTgSaving] = useState(false);
   const [tgMessage, setTgMessage] = useState('');
@@ -94,6 +97,9 @@ export default function Settings() {
       if (res.telegram_storage_chat_id !== undefined) setTgStorageChatId(res.telegram_storage_chat_id);
       if (res.telegram_storage_topic_id !== undefined) setTgStorageTopicId(res.telegram_storage_topic_id);
       if (res.base_url !== undefined) setBaseUrl(res.base_url);
+    }).catch(() => {});
+    api.settings.getTopics().then(res => {
+      if (res.topics) setTgKnownTopics(res.topics);
     }).catch(() => {});
   }, []);
 
@@ -324,6 +330,32 @@ export default function Settings() {
               })}
             </div>
           </div>
+
+          {isOwner && (
+            <div className="flex items-center justify-between p-3 rounded-lg mt-3" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+              <div className="flex items-center gap-2">
+                <Wallet size={16} style={{ color: 'var(--accent)' }} />
+                <div>
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Финансы</p>
+                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Баланс и операции</p>
+                </div>
+              </div>
+              <button
+                onClick={async () => {
+                  setFinanceSaving(true);
+                  try {
+                    const res = await api.finance.toggle(!localFinance);
+                    setLocalFinance(res.finance_enabled);
+                  } catch {}
+                  setFinanceSaving(false);
+                }}
+                disabled={financeSaving}
+                className={`relative w-10 h-6 rounded-full transition-colors shrink-0 disabled:opacity-50`}
+                style={{ backgroundColor: localFinance ? 'var(--accent)' : 'var(--bg-secondary)' }}>
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${localFinance ? 'translate-x-4' : ''}`} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -499,38 +531,12 @@ export default function Settings() {
       )}
 
 
-      {/* ДОПОЛНИТЕЛЬНО */}
+      {/* TELEGRAM БОТ */}
       {isOwner && (
         <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
           <div className="p-5">
-            <h3 className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>Дополнительно</h3>
+            <h3 className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>Telegram Бот</h3>
 
-            {/* Финансы */}
-            <div className="flex items-center justify-between p-3 rounded-lg mb-3" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-              <div className="flex items-center gap-2">
-                <Wallet size={16} style={{ color: 'var(--accent)' }} />
-                <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Финансы</p>
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Баланс и операции</p>
-                </div>
-              </div>
-              <button
-                onClick={async () => {
-                  setFinanceSaving(true);
-                  try {
-                    const res = await api.finance.toggle(!localFinance);
-                    setLocalFinance(res.finance_enabled);
-                  } catch {}
-                  setFinanceSaving(false);
-                }}
-                disabled={financeSaving}
-                className={`relative w-10 h-6 rounded-full transition-colors shrink-0 disabled:opacity-50`}
-                style={{ backgroundColor: localFinance ? 'var(--accent)' : 'var(--bg-secondary)' }}>
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${localFinance ? 'translate-x-4' : ''}`} />
-              </button>
-            </div>
-
-            {/* Telegram Bot */}
             <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -562,20 +568,65 @@ export default function Settings() {
                     className="w-full px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2"
                     style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
                 </div>
+
                 <div>
                   <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Chat ID для документов</label>
-                  <input type="text" value={tgStorageChatId} onChange={e => setTgStorageChatId(e.target.value)}
-                    placeholder="-100123456789"
-                    className="w-full px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2"
-                    style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
+                  <div className="flex gap-1.5">
+                    <input type="text" value={tgStorageChatId} onChange={e => { setTgStorageChatId(e.target.value); setTgChatInfo(null); }}
+                      placeholder="-100123456789"
+                      className="flex-1 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2"
+                      style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
+                    <button onClick={async () => {
+                      setTgVerifying(true);
+                      try {
+                        const info = await api.settings.verifyChat(tgStorageChatId);
+                        setTgChatInfo(info);
+                        const topics = await api.settings.getTopics();
+                        if (topics.topics) setTgKnownTopics(topics.topics);
+                      } catch { setTgChatInfo(null); }
+                      setTgVerifying(false);
+                    }}
+                      disabled={tgVerifying || !tgStorageChatId}
+                      className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 transition-colors"
+                      style={{ backgroundColor: 'var(--accent)', color: 'white' }}>
+                      {tgVerifying ? '...' : 'Проверить'}
+                    </button>
+                  </div>
+                  {tgChatInfo && (
+                    <div className="flex items-center gap-1.5 mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                      <CheckCircle2 size={11} />
+                      {tgChatInfo.title}
+                      <span className="opacity-50">({tgChatInfo.is_forum ? 'форум' : tgChatInfo.type})</span>
+                    </div>
+                  )}
                 </div>
+
                 <div>
-                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Topic ID (если есть темы)</label>
-                  <input type="text" value={tgStorageTopicId} onChange={e => setTgStorageTopicId(e.target.value)}
-                    placeholder="42"
-                    className="w-full px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2"
-                    style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
+                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Тема</label>
+                  {Object.keys(tgKnownTopics).length > 0 ? (
+                    <select value={tgStorageTopicId} onChange={e => setTgStorageTopicId(e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2"
+                      style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}>
+                      <option value="">Без темы (общий чат)</option>
+                      {Object.entries(tgKnownTopics).map(([id, name]) => (
+                        <option key={id} value={id}>{name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="flex gap-1.5">
+                      <input type="text" value={tgStorageTopicId} onChange={e => setTgStorageTopicId(e.target.value)}
+                        placeholder="42"
+                        className="flex-1 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2"
+                        style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
+                    </div>
+                  )}
+                  {tgChatInfo?.is_forum && Object.keys(tgKnownTopics).length === 0 && (
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-disabled)' }}>
+                      Отправьте любое сообщение в нужную тему в Telegram — её ID определится автоматически
+                    </p>
+                  )}
                 </div>
+
                 <div>
                   <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Base URL</label>
                   <input type="text" value={baseUrl} onChange={e => setBaseUrl(e.target.value)}
@@ -622,18 +673,6 @@ export default function Settings() {
           </div>
         </div>
       )}
-
-      <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-        <div className="p-5">
-          <button onClick={logout}
-            className="flex items-center gap-2 w-full p-3 rounded-lg transition-colors"
-            style={{ color: 'var(--error)', backgroundColor: 'var(--bg-tertiary)' }}>
-            <LogOut size={16} />
-            <span className="text-sm font-medium flex-1 text-left">Выйти из аккаунта</span>
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      </div>
 
       <div className="flex items-center justify-center gap-1.5 pb-2">
         <span className="text-xs" style={{ color: 'var(--text-disabled)' }}>Сборка {buildHash}</span>

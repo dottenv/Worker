@@ -44,6 +44,35 @@ def _build_handlers(dp_instance: Dispatcher, base_url: str):
             "/help - Помощь"
         )
 
+    @dp_instance.message()
+    async def capture_forum_topic(message: types.Message):
+        if not message.message_thread_id or not message.chat:
+            return
+        from models import Setting
+        storage_chat = Setting.get("telegram_storage_chat_id", "")
+        if not storage_chat:
+            return
+        try:
+            storage_chat_id = int(storage_chat)
+        except ValueError:
+            return
+        if message.chat.id != storage_chat_id:
+            return
+        topic_name = message.chat.forum_topic_name if hasattr(message.chat, 'forum_topic_name') else None
+        if not topic_name and message.is_topic_message:
+            topic_name = message.forum_topic_created.name if message.forum_topic_created else None
+        if not topic_name:
+            topic_name = f"Topic {message.message_thread_id}"
+        import json as _json
+        known = Setting.get("telegram_known_topics", "{}")
+        try:
+            topics = _json.loads(known)
+        except _json.JSONDecodeError:
+            topics = {}
+        topics[str(message.message_thread_id)] = topic_name
+        Setting.set("telegram_known_topics", _json.dumps(topics))
+
+
 
 async def _poll_loop(b: Bot, d: Dispatcher):
     global _stop_event

@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
-import { Phone, Building2, Calendar, MessageCircle, Globe, Save, X } from 'lucide-react';
+import { Phone, Building2, Calendar, MessageCircle, Globe, Save, X, LogOut } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function UserProfile() {
   const { userId } = useParams();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, logout } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [centers, setCenters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -165,6 +165,14 @@ export default function UserProfile() {
           Зарегистрирован: {new Date(profile.created_at).toLocaleDateString('ru')}
         </div>
       </div>
+
+      {isOwn && (
+        <button onClick={logout}
+          className="flex items-center justify-center gap-2 w-full p-3 rounded-2xl text-sm font-medium bg-white border border-gray-100 shadow-sm text-red-500 hover:text-red-600 transition-colors">
+          <LogOut size={16} />
+          Выйти из аккаунта
+        </button>
+      )}
     </div>
   );
 }
