@@ -302,6 +302,8 @@ export const api = {
       request<{ id: number; title: string; type: string; is_forum: boolean }>(`/settings/verify-chat?chat_id=${encodeURIComponent(chatId)}`),
     getTopics: () =>
       request<{ topics: Record<string, string> }>('/settings/topics'),
+    forumTopics: (chatId: string) =>
+      request<{ topics: Record<string, string> }>(`/settings/forum-topics?chat_id=${encodeURIComponent(chatId)}`),
   },
   telegram: {
     status: () => request<{ connected: boolean; telegram_id: number | null; telegram_username: string }>('/telegram/status'),

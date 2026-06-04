@@ -581,8 +581,14 @@ export default function Settings() {
                       try {
                         const info = await api.settings.verifyChat(tgStorageChatId);
                         setTgChatInfo(info);
+                        if (info.is_forum) {
+                          try {
+                            const ft = await api.settings.forumTopics(tgStorageChatId);
+                            if (ft.topics) setTgKnownTopics(ft.topics);
+                          } catch {}
+                        }
                         const topics = await api.settings.getTopics();
-                        if (topics.topics) setTgKnownTopics(topics.topics);
+                        if (topics.topics) setTgKnownTopics(prev => ({...prev, ...topics.topics}));
                       } catch { setTgChatInfo(null); }
                       setTgVerifying(false);
                     }}
@@ -604,25 +610,55 @@ export default function Settings() {
                 <div>
                   <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Тема</label>
                   {Object.keys(tgKnownTopics).length > 0 ? (
-                    <select value={tgStorageTopicId} onChange={e => setTgStorageTopicId(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2"
-                      style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}>
-                      <option value="">Без темы (общий чат)</option>
-                      {Object.entries(tgKnownTopics).map(([id, name]) => (
-                        <option key={id} value={id}>{name}</option>
-                      ))}
-                    </select>
+                    <div className="flex gap-1.5">
+                      <select value={tgStorageTopicId} onChange={e => setTgStorageTopicId(e.target.value)}
+                        className="flex-1 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2"
+                        style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}>
+                        <option value="">Без темы (общий чат)</option>
+                        {Object.entries(tgKnownTopics).map(([id, name]) => (
+                          <option key={id} value={id}>{name}</option>
+                        ))}
+                      </select>
+                      <button onClick={async () => {
+                        try {
+                          const ft = await api.settings.forumTopics(tgStorageChatId);
+                          if (ft.topics) setTgKnownTopics(ft.topics);
+                        } catch {}
+                        const topics = await api.settings.getTopics();
+                        if (topics.topics) setTgKnownTopics(prev => ({...prev, ...topics.topics}));
+                      }}
+                        className="shrink-0 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                        style={{ backgroundColor: 'var(--accent)', color: 'white' }}>
+                        ↻
+                      </button>
+                    </div>
                   ) : (
                     <div className="flex gap-1.5">
                       <input type="text" value={tgStorageTopicId} onChange={e => setTgStorageTopicId(e.target.value)}
                         placeholder="42"
                         className="flex-1 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2"
                         style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
+                      <button onClick={async () => {
+                        try {
+                          const ft = await api.settings.forumTopics(tgStorageChatId);
+                          if (ft.topics && Object.keys(ft.topics).length > 0) {
+                            setTgKnownTopics(ft.topics);
+                            return;
+                          }
+                        } catch {}
+                        const topics = await api.settings.getTopics();
+                        if (topics.topics) setTgKnownTopics(prev => ({...prev, ...topics.topics}));
+                      }}
+                        className="shrink-0 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                        style={{ backgroundColor: 'var(--accent)', color: 'white' }}>
+                        ↻
+                      </button>
                     </div>
                   )}
                   {tgChatInfo?.is_forum && Object.keys(tgKnownTopics).length === 0 && (
                     <p className="text-xs mt-1" style={{ color: 'var(--text-disabled)' }}>
-                      Отправьте любое сообщение в нужную тему в Telegram — её ID определится автоматически
+                      Не удалось получить темы. Убедитесь что бот — администратор группы с правом менять информацию.
+                      Либо отправьте любое сообщение в нужную тему — её ID определится автоматически.
                     </p>
                   )}
                 </div>

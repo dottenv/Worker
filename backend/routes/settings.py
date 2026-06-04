@@ -144,6 +144,46 @@ def verify_chat():
     })
 
 
+@settings_bp.route("/forum-topics", methods=["GET"])
+@jwt_required()
+def get_forum_topics():
+    if not is_owner():
+        return jsonify({"error": "Access denied"}), 403
+
+    chat_id = request.args.get("chat_id", "")
+    if not chat_id:
+        return jsonify({"error": "chat_id required"}), 400
+
+    token = Setting.get("telegram_bot_token", "")
+    if not token:
+        return jsonify({"error": "Bot token not configured"}), 400
+
+    import json
+    from urllib.request import urlopen, Request
+    from urllib.error import URLError
+
+    try:
+        req = Request(
+            f"https://api.telegram.org/bot{token}/getForumTopics",
+            data=json.dumps({"chat_id": int(chat_id)}).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        resp = urlopen(req, timeout=10)
+        data = json.loads(resp.read().decode())
+    except URLError as e:
+        return jsonify({"error": f"Telegram API error: {e.reason}"}), 502
+    except ValueError:
+        return jsonify({"error": "Invalid chat_id"}), 400
+
+    if not data.get("ok"):
+        return jsonify({"error": data.get("description", "Unknown error")}), 400
+
+    topics_list = data.get("result", {}).get("forum_topics", [])
+    topics = {str(t["message_thread_id"]): t["name"] for t in topics_list}
+    return jsonify({"topics": topics})
+
+
 @settings_bp.route("/topics", methods=["GET"])
 @jwt_required()
 def get_known_topics():
