@@ -635,30 +635,30 @@ export default function Settings() {
                   ) : (
                     <div className="flex gap-1.5">
                       <input type="text" value={tgStorageTopicId} onChange={e => setTgStorageTopicId(e.target.value)}
-                        placeholder="42"
+                        placeholder="ID темы"
                         className="flex-1 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2"
                         style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
                       <button onClick={async () => {
+                        const name = prompt('Название темы:');
+                        if (!name) return;
+                        const id = prompt('ID темы (message_thread_id):');
+                        if (!id) return;
                         try {
-                          const ft = await api.settings.forumTopics(tgStorageChatId);
-                          if (ft.topics && Object.keys(ft.topics).length > 0) {
-                            setTgKnownTopics(ft.topics);
-                            return;
-                          }
+                          const res = await api.settings.addTopic(id, name);
+                          setTgKnownTopics(res.topics);
+                          setTgStorageTopicId(id);
                         } catch {}
-                        const topics = await api.settings.getTopics();
-                        if (topics.topics) setTgKnownTopics(prev => ({...prev, ...topics.topics}));
                       }}
                         className="shrink-0 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
                         style={{ backgroundColor: 'var(--accent)', color: 'white' }}>
-                        ↻
+                        +
                       </button>
                     </div>
                   )}
                   {tgChatInfo?.is_forum && Object.keys(tgKnownTopics).length === 0 && (
                     <p className="text-xs mt-1" style={{ color: 'var(--text-disabled)' }}>
-                      Не удалось получить темы. Убедитесь что бот — администратор группы с правом менять информацию.
-                      Либо отправьте любое сообщение в нужную тему — её ID определится автоматически.
+                      Бот не администратор группы? Добавьте тему вручную через кнопку +.
+                      Либо отправьте любое сообщение в нужную тему — ID определится автоматически.
                     </p>
                   )}
                 </div>

@@ -302,6 +302,11 @@ export const api = {
       request<{ id: number; title: string; type: string; is_forum: boolean }>(`/settings/verify-chat?chat_id=${encodeURIComponent(chatId)}`),
     getTopics: () =>
       request<{ topics: Record<string, string> }>('/settings/topics'),
+    addTopic: (id: string, name: string) =>
+      request<{ status: string; topics: Record<string, string> }>('/settings/topics', {
+        method: 'POST',
+        body: JSON.stringify({ id, name }),
+      }),
     forumTopics: (chatId: string) =>
       request<{ topics: Record<string, string> }>(`/settings/forum-topics?chat_id=${encodeURIComponent(chatId)}`),
   },

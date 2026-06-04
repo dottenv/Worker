@@ -197,3 +197,24 @@ def get_known_topics():
     except _json.JSONDecodeError:
         topics = {}
     return jsonify({"topics": topics})
+
+
+@settings_bp.route("/topics", methods=["POST"])
+@jwt_required()
+def add_topic():
+    if not is_owner():
+        return jsonify({"error": "Access denied"}), 403
+
+    data = request.get_json()
+    if not data or "id" not in data or "name" not in data:
+        return jsonify({"error": "id and name required"}), 400
+
+    import json as _json
+    raw = Setting.get("telegram_known_topics", "{}")
+    try:
+        topics = _json.loads(raw)
+    except _json.JSONDecodeError:
+        topics = {}
+    topics[str(data["id"])] = data["name"]
+    Setting.set("telegram_known_topics", _json.dumps(topics))
+    return jsonify({"status": "ok", "topics": topics})
