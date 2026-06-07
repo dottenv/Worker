@@ -40,8 +40,10 @@ def add_member(sc_id):
     data = request.get_json()
     target = None
 
-    user_id = data.get("user_id", type=int)
-    email = data.get("email", "").strip().lower()
+    user_id = data.get("user_id")
+    if user_id is not None:
+        user_id = int(user_id)
+    email = data.get("email", "").strip().lower() if data.get("email") else ""
 
     if user_id:
         target = User.query.get(user_id)
