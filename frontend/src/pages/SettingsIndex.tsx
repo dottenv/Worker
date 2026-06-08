@@ -99,10 +99,6 @@ export default function SettingsIndex() {
     }
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(buildHash).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => {});
-  };
-
   return (
     <div className="space-y-6">
       <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Настройки</h1>
