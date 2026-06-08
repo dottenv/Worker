@@ -4,12 +4,9 @@ import { useTheme } from '../contexts/ThemeContext';
 import { usePush } from '../contexts/PushContext';
 import { useCenters } from '../contexts/CenterContext';
 import {
-  User, Building2, Save,
-  CheckCircle2, AlertCircle, Sun, Moon, Monitor,
-  Bell, BellOff, Volume2, VolumeX, ArrowRightLeft,
-  CalendarSync, Building2 as BuildingIcon, Zap, XCircle, Eye, EyeOff,
-  ChevronUp, ChevronDown, Copy, Check, Wallet, Mail,
-  Phone, Settings as SettingsIcon, Lock, ChevronRight
+  Building2, Bell, Volume2,
+  ArrowRightLeft, CalendarSync, CheckCircle2, XCircle, Zap,
+  Copy, Check, ChevronRight, Palette, Wallet
 } from 'lucide-react';
 import { api } from '../api/client';
 import { getAvailableItems } from '../config/navItems';
@@ -22,61 +19,96 @@ const NOTIF_TYPES: Record<string, { label: string; icon: any }> = {
   swap_cancelled: { label: 'Обмен отменён', icon: XCircle },
   swap_forced:    { label: 'Принудительный обмен', icon: Zap },
   schedule_update:{ label: 'Изменение графика', icon: CalendarSync },
-  welcome:        { label: 'Добро пожаловать', icon: Bell },
-  center_access:  { label: 'Доступ к центру', icon: BuildingIcon },
+  welcome:        { label: 'Добро пожаловать', icon: CheckCircle2 },
+  center_access:  { label: 'Доступ к центру', icon: Building2 },
 };
+
+function Toggle({ value, onChange, disabled }: { value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <button onClick={() => onChange(!value)} disabled={disabled}
+      className="relative w-[51px] h-[31px] rounded-full transition-colors shrink-0 disabled:opacity-50"
+      style={{ backgroundColor: value ? 'var(--accent)' : '#e5e5ea' }}>
+      <span className={`absolute top-[2px] left-[2px] w-[27px] h-[27px] bg-white rounded-full shadow transition-transform duration-200 ${value ? 'translate-x-5' : ''}`} />
+    </button>
+  );
+}
+
+function Cell({ icon: Icon, label, value, href, onClick }: { icon: any; label: string; value?: string; href?: string; onClick?: () => void }) {
+  const content = (
+    <div className="flex items-center gap-3 px-4 py-3 min-h-[44px]" style={{ backgroundColor: 'var(--bg-card)' }}>
+      <Icon size={20} style={{ color: 'var(--accent)' }} />
+      <span className="flex-1 text-[15px]" style={{ color: 'var(--text-primary)' }}>{label}</span>
+      {value && <span className="text-[15px] text-gray-400">{value}</span>}
+      {onClick && <ChevronRight size={16} className="text-gray-400" />}
+    </div>
+  );
+  if (href) return <a href={href} className="block border-b" style={{ borderColor: 'var(--border)' }}>{content}</a>;
+  return <div className="block border-b" style={{ borderColor: 'var(--border)' }} onClick={onClick}>{content}</div>;
+}
+
+function Section({ title, children }: { title?: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-6">
+      {title && (
+        <p className="text-[13px] font-semibold uppercase tracking-wide px-4 mb-1.5" style={{ color: 'var(--text-secondary)' }}>{title}</p>
+      )}
+      <div className="rounded-xl overflow-hidden mx-3" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function CellToggle({ icon: Icon, label, value, onChange, disabled }: { icon: any; label: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 border-b min-h-[44px]" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+      <Icon size={20} style={{ color: 'var(--accent)' }} />
+      <span className="flex-1 text-[15px]" style={{ color: 'var(--text-primary)' }}>{label}</span>
+      <Toggle value={value} onChange={onChange} disabled={disabled} />
+    </div>
+  );
+}
 
 export default function Settings() {
   const { user, isOwner, refreshUser } = useAuth();
   const { mode, setMode } = useTheme();
   const { subscribed, supported, permission, subscribe, unsubscribe, error: pushError } = usePush();
-  const { centers, activeCenterId, setActiveCenterId } = useCenters();
+  const { centers, activeCenter, setActiveCenterId } = useCenters();
   const [copied, setCopied] = useState(false);
   const buildHash = import.meta.env.VITE_GIT_HASH || 'unknown';
-
-  const copyBuildHash = () => {
-    navigator.clipboard.writeText(buildHash).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }).catch(() => {});
-  };
-
-  const [fullName, setFullName] = useState(user?.full_name || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [phone, setPhone] = useState(user?.phone || '');
-  const [password, setPassword] = useState('');
-  const [passwordConfirm, setPasswordConfirm] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
-
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
-  const [isSuccess, setIsSuccess] = useState(false);
 
   const [pushPrefs, setPushPrefs] = useState<Record<string, boolean>>({});
   const [pushSound, setPushSound] = useState(true);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
+
+  const [financeAvailable, setFinanceAvailable] = useState(false);
+  const [localFinance, setLocalFinance] = useState(false);
+
+  const [navPinned, setNavPinned] = useState<string[]>([]);
+  const [navSaving, setNavSaving] = useState(false);
+  const [navMessage, setNavMessage] = useState('');
+
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState('');
 
   useEffect(() => {
     if (!user) return;
     setPushPrefs(user.push_prefs || {});
     setPushSound(user.push_sound ?? true);
     setPrefsLoaded(true);
+    setFullName(user.full_name);
+    setEmail(user.email);
+    setPhone(user.phone || '');
   }, [user]);
 
-  const [financeAvailable, setFinanceAvailable] = useState(false);
-  const [navPinned, setNavPinned] = useState<string[]>([]);
-  const [navSaving, setNavSaving] = useState(false);
-  const [navMessage, setNavMessage] = useState('');
-
-  const [localFinance, setLocalFinance] = useState(false);
-  const [financeSaving, setFinanceSaving] = useState(false);
-
   useEffect(() => {
-    api.get('/finance/status').then(res => {
-      setFinanceAvailable(res.available);
-      setLocalFinance(res.finance_enabled);
-    }).catch(() => {});
+    api.get('/finance/status').then(r => { setFinanceAvailable(r.available); setLocalFinance(r.finance_enabled); }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -84,25 +116,8 @@ export default function Settings() {
     setNavPinned(user.nav_config.pinned);
   }, [user]);
 
-  // Форматирование номера телефона
-  const formatPhone = (value: string) => {
-    const digits = value.replace(/\D/g, '');
-    if (!digits) return '';
-    
-    let formatted = digits;
-    if (digits.length > 0) {
-      if (digits.startsWith('7') || digits.startsWith('8')) {
-        formatted = '+' + digits.slice(0, 1) + ' (' + digits.slice(1, 4);
-        if (digits.length > 4) formatted += ') ' + digits.slice(4, 7);
-        if (digits.length > 7) formatted += '-' + digits.slice(7, 9);
-        if (digits.length > 9) formatted += '-' + digits.slice(9, 11);
-      }
-    }
-    return formatted;
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPhone(formatPhone(e.target.value));
+  const copyBuildHash = () => {
+    navigator.clipboard.writeText(buildHash).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => {});
   };
 
   const updatePref = async (key: string, value: boolean) => {
@@ -117,356 +132,166 @@ export default function Settings() {
     try { await api.put('/push/preferences', { sound: next }); } catch {}
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveProfile = async () => {
+    if (!fullName.trim()) { setSaveMsg('Введите ФИО'); return; }
+    if (!email.trim()) { setSaveMsg('Введите email'); return; }
+    if (password && password !== passwordConfirm) { setSaveMsg('Пароли не совпадают'); return; }
+    if (password && password.length < 6) { setSaveMsg('Пароль минимум 6 символов'); return; }
     setSaving(true);
-    setMessage('');
-
-    // Валидация
-    if (!fullName.trim()) {
-      setIsSuccess(false);
-      setMessage('Введите ФИО');
-      setSaving(false);
-      return;
-    }
-    if (!email.trim()) {
-      setIsSuccess(false);
-      setMessage('Введите email');
-      setSaving(false);
-      return;
-    }
-    if (password && password !== passwordConfirm) {
-      setIsSuccess(false);
-      setMessage('Пароли не совпадают');
-      setSaving(false);
-      return;
-    }
-    if (password && password.length < 6) {
-      setIsSuccess(false);
-      setMessage('Пароль должен быть минимум 6 символов');
-      setSaving(false);
-      return;
-    }
-
     try {
-      const payload: any = {
-        full_name: fullName,
-        email: email,
-        phone: phone || null,
-      };
-      if (password) {
-        payload.password = password;
-      }
-
-      await api.put('/auth/profile', payload);
-      setIsSuccess(true);
-      setMessage('Данные сохранены');
-      setPassword('');
-      setPasswordConfirm('');
+      const p: any = { full_name: fullName, email, phone: phone || null };
+      if (password) p.password = password;
+      await api.put('/auth/profile', p);
+      refreshUser();
+      setPassword(''); setPasswordConfirm('');
+      setEditingProfile(false); setSaveMsg(''); setSaving(false);
     } catch (err: any) {
-      setIsSuccess(false);
-      setMessage(err.response?.data?.error || err.message || 'Ошибка сохранения');
+      setSaveMsg(err.message); setSaving(false);
     }
-    setSaving(false);
-    setTimeout(() => setMessage(''), 4000);
+  };
+
+  const toggleFinance = async () => {
+    const next = !localFinance;
+    setLocalFinance(next);
+    try { await api.finance.toggle(next); } catch { setLocalFinance(!next); }
   };
 
   if (!user) return <LoadingSpinner />;
 
-   return (
-     <div className="space-y-4">
-       <div>
-         <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Настройки</h1>
-       </div>
-       
-       {/* АККАУНТ */}
-       <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-         <div className="p-5 border-b" style={{ borderColor: 'var(--border)' }}>
-           <h3 className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>Аккаунт</h3>
-           <div className="flex items-center gap-4 mb-4">
-             <div className="w-14 h-14 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-bg)' }}>
-               <User size={24} style={{ color: 'var(--accent)' }} />
-             </div>
-             <div className="flex-1 space-y-1">
-               <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{user.full_name}</p>
-               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{user.email}</p>
-             </div>
-           </div>
-         </div>
-         
-          <div className="p-5 space-y-4">
-            {/* Статус аккаунта */}
-            <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-              <div className="flex items-center gap-2">
-                <Mail size={16} style={{ color: 'var(--accent)' }} />
-                <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Email подтверждён</p>
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{user.email_verified ? 'Да' : 'Нет'}</p>
-                </div>
-              </div>
-              <button onClick={() => {}}
-                className="text-xs font-medium text-accent hover:text-accent/80">
-                Подтвердить email
-              </button>
-            </div>
-            
-            {/* Изменение пароля */}
-            <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-              <div className="flex items-center gap-2">
-                <Lock size={16} style={{ color: 'var(--accent)' }} />
-                <div className="flex-1">
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Пароль</p>
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Обновить для повышения безопасности</p>
-                </div>
-              </div>
-              <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
-            </div>
-            
-            {/* Уведомления по email */}
-            <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-              <div className="flex items-center gap-2">
-                <Bell size={16} style={{ color: 'var(--accent)' }} />
-                <div className="flex-1">
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Email-уведомления</p>
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}">Получать обновления на почту</p>
-                </div>
-              </div>
-              <button onClick={() => {}}
-                className={`relative w-10 h-6 rounded-full transition-colors shrink-0`}
-                style={{ backgroundColor: user.email_notifications ? 'var(--accent)' : 'var(--bg-secondary)' }}>
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${user.email_notifications ? 'translate-x-4' : ''}`} />
-              </button>
-            </div>
-            
-            {/* Активные сессии */}
-            <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-              <div className="flex items-center gap-2">
-                <Monitor size={16} style={{ color: 'var(--accent)' }} />
-                <div className="flex-1">
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Активные сессии</p>
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}">2 устройства онлайн</p>
-                </div>
-              </div>
-              <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
-            </div>
-         </div>
-       </div>
+  const modeLabel = mode === 'light' ? 'Светлая' : mode === 'dark' ? 'Тёмная' : 'Авто';
 
+  return (
+    <div className="space-y-1 pb-8">
+      <div className="px-4 pt-2 pb-4">
+        <h1 className="text-[28px] font-bold" style={{ color: 'var(--text-primary)' }}>Настройки</h1>
+      </div>
 
+      {/* ПРОФИЛЬ */}
+      <Section title={editingProfile ? 'Редактирование профиля' : 'Профиль'}>
+        <div className="flex items-center gap-4 px-4 py-4" style={{ backgroundColor: 'var(--bg-card)' }}>
+          <div className="w-14 h-14 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-bg)' }}>
+            <span className="text-xl font-bold" style={{ color: 'var(--accent)' }}>{user.full_name?.slice(0, 1)}</span>
+          </div>
+          <div className="flex-1">
+            <p className="text-[17px] font-semibold" style={{ color: 'var(--text-primary)' }}>{user.full_name}</p>
+            <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{user.email}</p>
+          </div>
+          <button onClick={() => setEditingProfile(!editingProfile)} className="text-[15px] font-medium" style={{ color: 'var(--accent)' }}>
+            {editingProfile ? 'Отмена' : 'Изменить'}
+          </button>
+        </div>
+        {editingProfile && (
+          <div className="px-4 py-3 space-y-3 border-t" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+            <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Имя"
+              className="w-full px-3 py-2.5 text-[15px] rounded-xl focus:outline-none" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email"
+              className="w-full px-3 py-2.5 text-[15px] rounded-xl focus:outline-none" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
+            <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Телефон"
+              className="w-full px-3 py-2.5 text-[15px] rounded-xl focus:outline-none" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Новый пароль"
+              className="w-full px-3 py-2.5 text-[15px] rounded-xl focus:outline-none" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
+            <input type="password" value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)} placeholder="Повторите пароль"
+              className="w-full px-3 py-2.5 text-[15px] rounded-xl focus:outline-none" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
+            {saveMsg && <p className="text-[13px] text-red-500">{saveMsg}</p>}
+            <button onClick={saveProfile} disabled={saving}
+              className="w-full py-2.5 rounded-xl text-[15px] font-medium text-white transition-opacity disabled:opacity-50"
+              style={{ backgroundColor: 'var(--accent)' }}>
+              {saving ? 'Сохранение...' : 'Сохранить'}
+            </button>
+          </div>
+        )}
+      </Section>
 
-       {/* ОБЩИЕ */}
-       <div className="space-y-1">
-         {/* Склад */}
-         <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
-           <div className="flex items-center gap-3">
-             <Building2 size={18} style={{ color: 'var(--accent)' }} />
-             <div className="flex-1">
-               <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Склад</p>
-               <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{centers.find(c => c.id === activeCenterId)?.name || 'Не выбран'}</p>
-             </div>
-           </div>
-           <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
-         </div>
-         
-         {/* Тема */}
-         <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
-           <div className="flex items-center gap-3">
-             <Monitor size={18} style={{ color: 'var(--accent)' }} />
-             <div className="flex-1">
-               <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Тема оформления</p>
-               <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{mode === 'light' ? 'Светлая' : mode === 'dark' ? 'Тёмная' : 'Авто'}</p>
-             </div>
-           </div>
-           <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
-         </div>
-         
-         {isOwner && (
-           <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
-             <div className="flex items-center gap-3">
-               <Wallet size={18} style={{ color: 'var(--accent)' }} />
-               <div className="flex-1">
-                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Финансы</p>
-                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{localFinance ? 'Включено' : 'Выключено'}</p>
-               </div>
-             </div>
-             <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
-           </div>
-         )}
-       </div>
+      {/* ПРИЛОЖЕНИЕ */}
+      <Section title="Приложение">
+        <Cell icon={Building2} label="Активный склад" value={activeCenter?.name || 'Не выбран'} onClick={() => {
+          const idx = centers.findIndex(c => c.id === activeCenter?.id);
+          const next = centers[(idx + 1) % centers.length];
+          if (next) setActiveCenterId(next.id);
+        }} />
+        <Cell icon={Palette} label="Тема" value={modeLabel} onClick={() => {
+          const next = mode === 'light' ? 'dark' as const : mode === 'dark' ? 'auto' as const : 'light' as const;
+          setMode(next);
+        }} />
+        {isOwner && (
+          <div className="flex items-center gap-3 px-4 py-3 min-h-[44px]" style={{ backgroundColor: 'var(--bg-card)' }}>
+            <Wallet size={20} style={{ color: 'var(--accent)' }} />
+            <span className="flex-1 text-[15px]" style={{ color: 'var(--text-primary)' }}>Финансы</span>
+            <Toggle value={localFinance} onChange={toggleFinance} />
+          </div>
+        )}
+      </Section>
 
       {/* НАВИГАЦИЯ */}
-      <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-        <div className="p-5">
-          <h3 className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>Навигация</h3>
-          <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
-            Первые 5 закреплённых разделов отображаются в нижней панели. Остальные — в меню «Ещё».
-          </p>
-          <div className="space-y-1 mb-3">
-            {getAvailableItems(isOwner, financeAvailable).map((item, idx) => {
-              const isPinned = navPinned.includes(item.id);
+      <Section title="Нижняя навигация">
+        <div className="px-4 py-2" style={{ backgroundColor: 'var(--bg-card)' }}>
+          <p className="text-[13px] mb-2" style={{ color: 'var(--text-secondary)' }}>Первые 5 — в панели снизу, остальные в меню «Ещё»</p>
+          {getAvailableItems(isOwner, financeAvailable).map((item) => {
+            const isPinned = navPinned.includes(item.id);
+            return (
+              <div key={item.id} className="flex items-center gap-2 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
+                <button onClick={() => {
+                  const i = navPinned.indexOf(item.id);
+                  if (i > 0) { const n = [...navPinned]; [n[i-1], n[i]] = [n[i], n[i-1]]; setNavPinned(n); }
+                }} disabled={!isPinned || navPinned.indexOf(item.id) <= 0}
+                  className="p-0.5 disabled:opacity-20" style={{ color: 'var(--text-secondary)' }}>↑</button>
+                <button onClick={() => {
+                  const i = navPinned.indexOf(item.id);
+                  if (i >= 0 && i < navPinned.length - 1) { const n = [...navPinned]; [n[i], n[i+1]] = [n[i+1], n[i]]; setNavPinned(n); }
+                }} disabled={!isPinned || navPinned.indexOf(item.id) >= navPinned.length - 1}
+                  className="p-0.5 disabled:opacity-20" style={{ color: 'var(--text-secondary)' }}>↓</button>
+                <item.icon size={18} style={{ color: isPinned ? 'var(--accent)' : 'var(--text-disabled)' }} />
+                <span className="flex-1 text-[15px]" style={{ color: 'var(--text-primary)' }}>{item.label}</span>
+                <Toggle value={isPinned} onChange={() => {
+                  if (isPinned) setNavPinned(navPinned.filter(id => id !== item.id));
+                  else setNavPinned([...navPinned, item.id]);
+                }} />
+              </div>
+            );
+          })}
+          <button onClick={async () => {
+            if (!user) return;
+            setNavSaving(true);
+            try { await api.auth.navConfig.update(navPinned); refreshUser(); setNavMessage('Сохранено'); } catch { setNavMessage('Ошибка'); }
+            setNavSaving(false);
+            setTimeout(() => setNavMessage(''), 2000);
+          }} disabled={navSaving}
+            className="w-full mt-2 py-2.5 rounded-xl text-[15px] font-medium text-white disabled:opacity-50"
+            style={{ backgroundColor: 'var(--accent)' }}>
+            {navSaving ? '...' : navMessage || 'Сохранить'}
+          </button>
+        </div>
+      </Section>
+
+      {/* УВЕДОМЛЕНИЯ */}
+      {supported && prefsLoaded && (
+        <Section title="Уведомления">
+          <CellToggle icon={Bell} label="Push-уведомления" value={subscribed} onChange={subscribed ? unsubscribe : subscribe} disabled={permission === 'denied'} />
+          <CellToggle icon={Volume2} label="Звук" value={pushSound} onChange={toggleSound} />
+          {pushError && (
+            <div className="px-4 py-2 text-[13px] text-red-500" style={{ backgroundColor: 'var(--bg-card)' }}>{pushError}</div>
+          )}
+          <div className="px-4 py-3 space-y-2" style={{ backgroundColor: 'var(--bg-card)' }}>
+            <p className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>Типы уведомлений</p>
+            {Object.entries(NOTIF_TYPES).map(([key, { label, icon: Icon }]) => {
+              const enabled = pushPrefs[key] !== false;
               return (
-                <div key={item.id}
-                  className="flex items-center gap-2 p-2.5 rounded-lg"
-                  style={{ backgroundColor: isPinned ? 'var(--accent-bg)' : 'var(--bg-tertiary)' }}>
-                  <button
-                    onClick={() => {
-                      const idxInList = navPinned.indexOf(item.id);
-                      if (idxInList > 0) {
-                        const next = [...navPinned];
-                        [next[idxInList - 1], next[idxInList]] = [next[idxInList], next[idxInList - 1]];
-                        setNavPinned(next);
-                      }
-                    }}
-                    disabled={!isPinned || navPinned.indexOf(item.id) <= 0}
-                    className="p-0.5 rounded disabled:opacity-20 hover:opacity-60"
-                    style={{ color: 'var(--text-secondary)' }}>
-                    <ChevronUp size={14} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      const idxInList = navPinned.indexOf(item.id);
-                      if (idxInList >= 0 && idxInList < navPinned.length - 1) {
-                        const next = [...navPinned];
-                        [next[idxInList], next[idxInList + 1]] = [next[idxInList + 1], next[idxInList]];
-                        setNavPinned(next);
-                      }
-                    }}
-                    disabled={!isPinned || navPinned.indexOf(item.id) >= navPinned.length - 1}
-                    className="p-0.5 rounded disabled:opacity-20 hover:opacity-60"
-                    style={{ color: 'var(--text-secondary)' }}>
-                    <ChevronDown size={14} />
-                  </button>
-                  <item.icon size={16} style={{ color: isPinned ? 'var(--accent)' : 'var(--text-disabled)' }} />
-                  <span className="flex-1 text-sm" style={{ color: 'var(--text-primary)' }}>{item.label}</span>
-                  <div className="flex items-center gap-1">
-                    {idx < 5 && isPinned && (
-                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--accent-bg)', color: 'var(--accent)' }}>
-                        {idx + 1}
-                      </span>
-                    )}
-                    <button
-                      onClick={() => {
-                        if (isPinned) {
-                          setNavPinned(navPinned.filter(id => id !== item.id));
-                        } else {
-                          setNavPinned([...navPinned, item.id]);
-                        }
-                      }}
-                      className={`relative w-8 h-5 rounded-full transition-colors shrink-0`}
-                      style={{ backgroundColor: isPinned ? 'var(--accent)' : 'var(--bg-secondary)' }}>
-                      <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${isPinned ? 'translate-x-3.5' : ''}`} />
-                    </button>
-                  </div>
+                <div key={key} className="flex items-center gap-3 min-h-[36px]">
+                  <Icon size={16} style={{ color: enabled ? 'var(--accent)' : 'var(--text-disabled)' }} />
+                  <span className="flex-1 text-[15px]" style={{ color: 'var(--text-primary)' }}>{label}</span>
+                  <Toggle value={enabled} onChange={() => updatePref(key, !enabled)} />
                 </div>
               );
             })}
           </div>
-          <button
-            onClick={async () => {
-              if (!user) return;
-              setNavSaving(true);
-              setNavMessage('');
-                try {
-                  await api.auth.navConfig.update(navPinned);
-                  refreshUser();
-                  setNavMessage('Сохранено');
-                } catch (err: any) {
-                setNavMessage(err.message);
-              }
-              setNavSaving(false);
-              setTimeout(() => setNavMessage(''), 3000);
-            }}
-            disabled={navSaving}
-            className="w-full py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-            style={{ backgroundColor: 'var(--accent)', color: 'white' }}>
-            <Save size={14} />
-            {navSaving ? 'Сохранение...' : 'Сохранить настройки навигации'}
-          </button>
-          {navMessage && (
-            <div className={`flex items-center gap-1.5 mt-2 text-xs ${navMessage === 'Сохранено' ? 'text-emerald-600' : 'text-red-500'}`}>
-              {navMessage === 'Сохранено' ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-              {navMessage}
-            </div>
-          )}
-        </div>
-      </div>
+        </Section>
+      )}
 
-       {/* УВЕДОМЛЕНИЯ */}
-       {supported && prefsLoaded && (
-         <div className="space-y-1">
-           {/* Push-уведомления */}
-           <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
-             <div className="flex items-center gap-3">
-               <Bell size={18} style={{ color: 'var(--accent)' }} />
-               <div className="flex-1">
-                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Push-уведомления</p>
-                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{subscribed ? 'Включено' : 'Выключено'}</p>
-               </div>
-             </div>
-             <button onClick={subscribed ? unsubscribe : subscribe}
-               disabled={permission === "denied"}
-               className={`relative w-10 h-6 rounded-full transition-colors shrink-0 disabled:opacity-50`}
-               style={{ backgroundColor: subscribed ? 'var(--accent)' : 'var(--bg-secondary)' }}>
-               <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${subscribed ? 'translate-x-4' : ''}`} />
-             </button>
-           </div>
-           
-           {pushError && (
-             <div className="p-4" style={{ backgroundColor: 'var(--error-bg, #fee2e2)', color: 'var(--error)' }}>
-               {pushError}
-             </div>
-           )}
-           
-           {/* Звук уведомлений */}
-           <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
-             <div className="flex items-center gap-3">
-               <Volume2 size={18} style={{ color: 'var(--accent)' }} />
-               <div className="flex-1">
-                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Звук</p>
-                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{pushSound ? 'Включено' : 'Выключено'}</p>
-               </div>
-             </div>
-             <button onClick={toggleSound}
-               className={`relative w-10 h-6 rounded-full transition-colors shrink-0`}
-               style={{ backgroundColor: pushSound ? 'var(--accent)' : 'var(--bg-secondary)' }}>
-               <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${pushSound ? 'translate-x-4' : ''}`} />
-             </button>
-           </div>
-           
-           {/* Типы уведомлений */}
-           <div className="p-4" style={{ backgroundColor: 'var(--bg-card)' }}>
-             <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Типы уведомлений</p>
-             <div className="space-y-2">
-               {Object.entries(NOTIF_TYPES).map(([key, { label, icon: Icon }]) => {
-                 const enabled = pushPrefs[key] !== false;
-                 return (
-                   <div key={key}
-                     className="flex items-center justify-between p-3 rounded-lg"
-                     style={{ backgroundColor: enabled ? 'var(--accent-bg)' : 'var(--bg-tertiary)' }}>
-                     <div className="flex items-center gap-3">
-                       <Icon size={16} style={{ color: enabled ? 'var(--accent)' : 'var(--text-secondary)' }} />
-                       <span className="flex-1 text-sm">{label}</span>
-                     </div>
-                     <button onClick={() => updatePref(key, !enabled)}
-                       className={`relative w-10 h-6 rounded-full transition-colors shrink-0`}
-                       style={{ backgroundColor: enabled ? 'var(--accent)' : 'var(--bg-secondary)' }}>
-                       <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${enabled ? 'translate-x-4' : ''}`} />
-                     </button>
-                   </div>
-                 );
-               })}
-             </div>
-           </div>
-         </div>
-       )}
-
-
-
-
-      <div className="flex items-center justify-center gap-1.5 pb-2">
-        <span className="text-xs" style={{ color: 'var(--text-disabled)' }}>Сборка {buildHash}</span>
-        <button onClick={copyBuildHash} className="p-0.5 rounded hover:opacity-70 transition-opacity" style={{ color: 'var(--text-disabled)' }}>
-          {copied ? <Check size={11} /> : <Copy size={11} />}
+      {/* ВЕРСИЯ */}
+      <div className="flex items-center justify-center gap-1.5 pt-4 pb-8">
+        <span className="text-[13px]" style={{ color: 'var(--text-disabled)' }}>Сборка {buildHash}</span>
+        <button onClick={copyBuildHash} className="p-0.5" style={{ color: 'var(--text-disabled)' }}>
+          {copied ? <Check size={12} /> : <Copy size={12} />}
         </button>
       </div>
     </div>

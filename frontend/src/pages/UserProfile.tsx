@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
-import { Phone, Building2, Calendar, Globe, Save, X, LogOut, User as UserIcon, Mail } from 'lucide-react';
+import { Phone, Building2, Calendar, Globe, Save, LogOut, User as UserIcon } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function UserProfile() {
@@ -11,10 +11,7 @@ export default function UserProfile() {
   const [profile, setProfile] = useState<any>(null);
   const [centers, setCenters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
   const [profileEditing, setProfileEditing] = useState(false);
-  const [editMax, setEditMax] = useState('');
-  const [saving, setSaving] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -41,23 +38,6 @@ export default function UserProfile() {
       .then(setCenters)
       .catch(() => {});
   }, [userId]);
-
-  const startEditing = () => {
-    setEditMax(profile?.max_link || '');
-    setEditing(true);
-  };
-
-  const saveSocial = async () => {
-    setSaving(true);
-    try {
-      const updated = await api.put('/auth/profile', { max_link: editMax });
-      setProfile((prev: any) => ({ ...prev, max_link: updated.max_link }));
-      setEditing(false);
-    } catch (err: any) {
-      alert(err.message);
-    }
-    setSaving(false);
-  };
 
   const saveProfile = async () => {
     // Валидация
@@ -183,12 +163,7 @@ export default function UserProfile() {
            </div>
          )}
 
-        {isOwn && !editing && profile.max_link && (
-          <button onClick={startEditing}
-            className="mt-2 text-xs text-gray-400 hover:text-gray-600 transition-colors">
-            Редактировать
-          </button>
-        )}
+
       </div>
 
       {centers.length > 0 && (
