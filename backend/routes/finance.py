@@ -176,7 +176,7 @@ def list_employees():
         ServiceCenterMember.query
         .filter(
             ServiceCenterMember.service_center_id.in_(center_ids),
-            ServiceCenterMember.user_id != user_id,
+            ServiceCenterMember.is_active == True,
         )
         .all()
     )

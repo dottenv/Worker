@@ -30,7 +30,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function Dashboard() {
   const { user, isOwner, isAdmin } = useAuth();
-  const { centers } = useCenters();
+  const { centers, activeCenterId } = useCenters();
   const [upcomingCount, setUpcomingCount] = useState(0);
   const [employeesCount, setEmployeesCount] = useState(0);
   const [shiftsThisMonth, setShiftsThisMonth] = useState(0);
@@ -41,7 +41,6 @@ export default function Dashboard() {
   const [clockLoading, setClockLoading] = useState(false);
   const [clockMessage, setClockMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [clockNotes, setClockNotes] = useState('');
-  const [selectedScId, setSelectedScId] = useState<number | null>(null);
   const [attendanceByCenter, setAttendanceByCenter] = useState<any[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [expandedCenters, setExpandedCenters] = useState<Set<number>>(new Set());
@@ -63,17 +62,8 @@ export default function Dashboard() {
   useEffect(() => {
     api.timeEntries.active().then(e => {
       setActiveEntry(e);
-      if (e) setSelectedScId(e.service_center_id);
     }).catch(() => {});
   }, []);
-
-  const myCenters = centers.filter((c: any) => c.role !== 'owner');
-  const defaultSc = myCenters.length > 0 ? (selectedScId || myCenters[0].id) : null;
-  useEffect(() => {
-    if (myCenters.length > 0 && !selectedScId) {
-      setSelectedScId(myCenters[0].id);
-    }
-  }, [myCenters, selectedScId]);
 
   const loadStats = useCallback(async () => {
     try {
@@ -281,7 +271,7 @@ export default function Dashboard() {
   useEffect(() => { loadWorkStats(); }, [loadWorkStats]);
 
   const handleClockIn = async () => {
-    const scId = selectedScId || (myCenters.length > 0 ? myCenters[0].id : null);
+    const scId = activeCenterId;
     if (!scId) return;
     setClockLoading(true);
     setClockMessage(null);
@@ -610,19 +600,11 @@ export default function Dashboard() {
                 <Clock size={16} className="text-indigo-500" />
                 <h3 className="text-sm font-semibold text-gray-900">Начать смену</h3>
               </div>
-              {myCenters.length > 1 && (
-                <select value={selectedScId || ''} onChange={e => setSelectedScId(Number(e.target.value))}
-                  className="w-full mb-3 px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
-                  {myCenters.map((c: any) => (
-                    <option key={c.id} value={c.id}>{c.address ? `${c.name} (${c.address})` : c.name}</option>
-                  ))}
-                </select>
-              )}
               <textarea value={clockNotes} onChange={e => setClockNotes(e.target.value)}
                 placeholder="Комментарий (причина, если смена уже была закрыта)"
                 rows={2}
                 className="w-full mb-3 px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/40" />
-              <button onClick={handleClockIn} disabled={clockLoading || !defaultSc}
+              <button onClick={handleClockIn} disabled={clockLoading || !activeCenterId}
                 className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-40 transition-colors">
                 {clockLoading ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
                 {clockLoading ? 'Отправка...' : 'Начать смену'}

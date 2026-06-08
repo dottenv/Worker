@@ -10,7 +10,6 @@ import {
   Calendar,
   Clock,
   User,
-  Building2,
   DollarSign,
   AlertCircle,
   CheckCircle2,
@@ -56,7 +55,7 @@ function generateDates(workDays: number, restDays: number, start: string, end: s
 
 export default function AdminSchedule() {
   const navigate = useNavigate();
-  const { centers, activeCenterId, setActiveCenterId } = useCenters();
+  const { centers, activeCenterId } = useCenters();
   const [members, setMembers] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,6 +72,17 @@ export default function AdminSchedule() {
 
   const [scId, setScId] = useState('');
   const [userId, setUserId] = useState('');
+
+  // auto-set scId from activeCenterId
+  useEffect(() => {
+    setScId(activeCenterId ? String(activeCenterId) : '');
+  }, [activeCenterId]);
+
+  useEffect(() => {
+    if (!scId) { setMembers([]); setShifts([]); return; }
+    loadMembersBySc(scId);
+    api.shifts.list(Number(scId)).then(setShifts).catch(() => setShifts([]));
+  }, [scId]);
 
   const [shifts, setShifts] = useState<any[]>([]);
   const [sShiftId, setSShiftId] = useState('');
@@ -158,13 +168,7 @@ export default function AdminSchedule() {
   };
 
   const handleScChange = async (id: string) => {
-    setScId(id); setUserId(''); loadMembersBySc(id);
-    if (id) {
-      try { const s = await api.shifts.list(Number(id)); setShifts(s); }
-      catch { setShifts([]); }
-    } else {
-      setShifts([]);
-    }
+    setScId(id); setUserId('');
   };
 
   const applyShiftToSingle = (shiftId: string) => {
@@ -300,8 +304,6 @@ export default function AdminSchedule() {
 
   if (loading) return <LoadingSpinner />;
 
-  const ownedCenters = centers.filter((c: any) => ['owner', 'admin'].includes(c.role));
-  const adminCenterOptions = ownedCenters.length > 0 ? ownedCenters : centers;
   const headerLabel = viewMode === 'week'
     ? `${new Date(weekDays[0]).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} – ${new Date(weekDays[6]).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`
     : monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
@@ -407,14 +409,6 @@ export default function AdminSchedule() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-               <label className="flex items-center gap-1 text-xs font-medium text-gray-500"><Building2 size={12} /> Склад</label>
-              <select value={scId} onChange={(e) => handleScChange(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40" required>
-                <option value="">Выберите</option>
-                {ownedCenters.map((c: any) => (<option key={c.id} value={c.id}>{c.address ? `${c.name} (${c.address})` : c.name}</option>))}
-              </select>
-            </div>
             <div className="space-y-1.5">
               <label className="flex items-center gap-1 text-xs font-medium text-gray-500"><User size={12} /> Сотрудник</label>
               <select value={userId} onChange={(e) => setUserId(e.target.value)}
@@ -617,15 +611,6 @@ export default function AdminSchedule() {
           )}
         </div>
       )}
-
-      <div className="relative">
-        <select value={activeCenterId || ''}
-          onChange={(e) => setActiveCenterId(Number(e.target.value))}
-          className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 appearance-none cursor-pointer mb-3">
-          {adminCenterOptions.map((c: any) => (<option key={c.id} value={c.id}>{c.address ? `${c.name} (${c.address})` : c.name}</option>))}
-        </select>
-        <Building2 size={16} className="absolute right-3 top-3 text-gray-400 pointer-events-none" />
-      </div>
 
       <div className="flex gap-1.5 bg-gray-100 p-1 rounded-2xl">
         <button onClick={() => { setViewMode('week'); localStorage.setItem(STORAGE_VIEW_KEY, 'week'); }}

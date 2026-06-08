@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
+import { useCenters } from '../contexts/CenterContext';
 import {
   Clock,
-  Building2,
   Save,
   Coffee,
   FileText,
@@ -11,18 +11,11 @@ import {
   AlertCircle,
 } from 'lucide-react';
 
-interface Center {
-  id: number;
-  name: string;
-  address?: string;
-}
-
 export default function TimeTracker() {
   const [searchParams] = useSearchParams();
   const preselectedCenter = searchParams.get('center');
-
-  const [centers, setCenters] = useState<Center[]>([]);
-  const [selectedCenter, setSelectedCenter] = useState(preselectedCenter || '');
+  const { activeCenterId } = useCenters();
+  const [selectedCenter, setSelectedCenter] = useState(preselectedCenter || activeCenterId ? String(activeCenterId) : '');
   const [clockIn, setClockIn] = useState('');
   const [clockOut, setClockOut] = useState('');
   const [breakMinutes, setBreakMinutes] = useState(0);
@@ -32,8 +25,10 @@ export default function TimeTracker() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api.serviceCenters.list().then(setCenters).catch(console.error);
-  }, []);
+    if (!selectedCenter && activeCenterId) {
+      setSelectedCenter(String(activeCenterId));
+    }
+  }, [activeCenterId, selectedCenter]);
 
   useEffect(() => {
     if (preselectedCenter) setSelectedCenter(preselectedCenter);
@@ -44,7 +39,7 @@ export default function TimeTracker() {
     setMessage('');
     setIsSuccess(false);
     if (!selectedCenter || !clockIn) {
-      setMessage('Выберите центр и укажите время начала');
+      setMessage('Укажите время начала');
       return;
     }
     setSaving(true);
@@ -86,26 +81,6 @@ export default function TimeTracker() {
         onSubmit={handleSubmit}
         className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4"
       >
-        <div className="space-y-1.5">
-          <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
-            <Building2 size={14} />
-            Склад
-          </label>
-          <select
-            value={selectedCenter}
-            onChange={(e) => setSelectedCenter(e.target.value)}
-            className="w-full px-3.5 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-            required
-          >
-            <option value="">Выберите центр</option>
-            {centers.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.address ? `${c.name} (${c.address})` : c.name}
-            </option>
-            ))}
-          </select>
-        </div>
-
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
