@@ -49,6 +49,7 @@ export default function Dashboard() {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
+  const [hasScheduledToday, setHasScheduledToday] = useState(false);
 
   // Close shift modal
   const [closeModalEntry, setCloseModalEntry] = useState<any>(null);
