@@ -13,12 +13,12 @@ export function Toggle({ value, onChange, disabled }: { value: boolean; onChange
 
 export function Cell({ icon: Icon, label, value, onClick }: { icon: any; label: string; value?: string; onClick?: () => void }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 min-h-[44px] border-b cursor-pointer active:opacity-60"
+    <div className="flex items-center gap-3 px-5 py-3.5 border-b cursor-pointer active:opacity-60 last:border-b-0"
       style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
       onClick={onClick}>
       <Icon size={20} style={{ color: 'var(--accent)' }} />
-      <span className="flex-1 text-[15px]" style={{ color: 'var(--text-primary)' }}>{label}</span>
-      {value && <span className="text-[15px]" style={{ color: 'var(--text-disabled)' }}>{value}</span>}
+      <span className="flex-1 text-sm" style={{ color: 'var(--text-primary)' }}>{label}</span>
+      {value && <span className="text-sm" style={{ color: 'var(--text-disabled)' }}>{value}</span>}
       {onClick && <ChevronRight size={16} style={{ color: 'var(--text-disabled)' }} />}
     </div>
   );
@@ -26,9 +26,10 @@ export function Cell({ icon: Icon, label, value, onClick }: { icon: any; label: 
 
 export function CellToggle({ icon: Icon, label, value, onChange, disabled }: { icon: any; label: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 border-b min-h-[44px]" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+    <div className="flex items-center gap-3 px-5 py-3.5 border-b last:border-b-0"
+      style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}>
       <Icon size={20} style={{ color: 'var(--accent)' }} />
-      <span className="flex-1 text-[15px]" style={{ color: 'var(--text-primary)' }}>{label}</span>
+      <span className="flex-1 text-sm" style={{ color: 'var(--text-primary)' }}>{label}</span>
       <Toggle value={value} onChange={onChange} disabled={disabled} />
     </div>
   );
@@ -36,11 +37,11 @@ export function CellToggle({ icon: Icon, label, value, onChange, disabled }: { i
 
 export function Section({ title, children }: { title?: string; children: ReactNode }) {
   return (
-    <div className="mb-6">
+    <div>
       {title && (
-        <p className="text-[13px] font-semibold uppercase tracking-wide px-4 mb-1.5" style={{ color: 'var(--text-secondary)' }}>{title}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide px-0 mb-1.5" style={{ color: 'var(--text-secondary)' }}>{title}</p>
       )}
-      <div className="rounded-xl overflow-hidden mx-3" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+      <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
         {children}
       </div>
     </div>

@@ -48,33 +48,33 @@ export default function SettingsNotifications() {
   if (!prefsLoaded) return null;
 
   return (
-    <div className="space-y-1 pb-8">
-      <div className="px-4 pt-2 pb-4">
-        <h1 className="text-[28px] font-bold" style={{ color: 'var(--text-primary)' }}>Уведомления</h1>
-      </div>
+    <div className="space-y-6">
+      <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Уведомления</h1>
 
       {supported && (
-        <Section title="Уведомления">
+        <Section title="PUSH-УВЕДОМЛЕНИЯ">
           <CellToggle icon={Bell} label="Push-уведомления" value={subscribed} onChange={subscribed ? unsubscribe : subscribe} disabled={permission === 'denied'} />
           <CellToggle icon={Volume2} label="Звук" value={pushSound} onChange={toggleSound} />
           {pushError && (
-            <div className="px-4 py-2 text-[13px] text-red-500" style={{ backgroundColor: 'var(--bg-card)' }}>{pushError}</div>
+            <div className="px-5 py-2 text-xs text-red-500" style={{ backgroundColor: 'var(--bg-card)' }}>{pushError}</div>
           )}
-          <div className="px-4 py-3 space-y-2" style={{ backgroundColor: 'var(--bg-card)' }}>
-            <p className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>Типы уведомлений</p>
-            {Object.entries(NOTIF_TYPES).map(([key, { label, icon: Icon }]) => {
-              const enabled = pushPrefs[key] !== false;
-              return (
-                <div key={key} className="flex items-center gap-3 min-h-[36px]">
-                  <Icon size={16} style={{ color: enabled ? 'var(--accent)' : 'var(--text-disabled)' }} />
-                  <span className="flex-1 text-[15px]" style={{ color: 'var(--text-primary)' }}>{label}</span>
-                  <Toggle value={enabled} onChange={() => updatePref(key, !enabled)} />
-                </div>
-              );
-            })}
-          </div>
         </Section>
       )}
+
+      <Section title="ТИПЫ УВЕДОМЛЕНИЙ">
+        <div className="px-5 py-3 space-y-3" style={{ backgroundColor: 'var(--bg-card)' }}>
+          {Object.entries(NOTIF_TYPES).map(([key, { label, icon: Icon }]) => {
+            const enabled = pushPrefs[key] !== false;
+            return (
+              <div key={key} className="flex items-center gap-3 min-h-[36px]">
+                <Icon size={16} style={{ color: enabled ? 'var(--accent)' : 'var(--text-disabled)' }} />
+                <span className="flex-1 text-sm" style={{ color: 'var(--text-primary)' }}>{label}</span>
+                <Toggle value={enabled} onChange={() => updatePref(key, !enabled)} />
+              </div>
+            );
+          })}
+        </div>
+      </Section>
     </div>
   );
 }

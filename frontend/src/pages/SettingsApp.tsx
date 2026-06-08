@@ -25,10 +25,8 @@ export default function SettingsApp() {
   const modeLabel = mode === 'light' ? 'Светлая' : mode === 'dark' ? 'Тёмная' : 'Авто';
 
   return (
-    <div className="space-y-1 pb-8">
-      <div className="px-4 pt-2 pb-4">
-        <h1 className="text-[28px] font-bold" style={{ color: 'var(--text-primary)' }}>Приложение</h1>
-      </div>
+    <div className="space-y-6">
+      <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Приложение</h1>
 
       <Section>
         <Cell icon={Building2} label="Активный склад" value={activeCenter?.name || 'Не выбран'} onClick={() => {
@@ -41,9 +39,9 @@ export default function SettingsApp() {
           setMode(next);
         }} />
         {isOwner && (
-          <div className="flex items-center gap-3 px-4 py-3 min-h-[44px] border-b" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+          <div className="flex items-center gap-3 px-5 py-3.5" style={{ backgroundColor: 'var(--bg-card)' }}>
             <Wallet size={20} style={{ color: 'var(--accent)' }} />
-            <span className="flex-1 text-[15px]" style={{ color: 'var(--text-primary)' }}>Финансы</span>
+            <span className="flex-1 text-sm" style={{ color: 'var(--text-primary)' }}>Финансы</span>
             <Toggle value={localFinance} onChange={toggleFinance} />
           </div>
         )}
