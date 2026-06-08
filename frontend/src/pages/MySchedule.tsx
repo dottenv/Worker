@@ -5,7 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCenters } from '../contexts/CenterContext';
 import { useSocketEvent } from '../contexts/SocketContext';
 import {
-  Building2,
   ChevronLeft,
   ChevronRight,
   Sun,
@@ -22,7 +21,7 @@ type ViewMode = 'week' | 'month';
 export default function MySchedule() {
   const navigate = useNavigate();
   const { user, isOwner, isAdmin } = useAuth();
-  const { centers, activeCenterId, setActiveCenterId } = useCenters();
+  const { centers, activeCenterId } = useCenters();
   const [incomingCount, setIncomingCount] = useState(0);
 
   const loadIncoming = useCallback(async () => {
@@ -219,19 +218,6 @@ export default function MySchedule() {
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold text-gray-900">Мой график</h1>
-
-      <div className="mt-2 relative">
-        <select
-          value={activeCenterId || ''}
-          onChange={(e) => setActiveCenterId(Number(e.target.value))}
-          className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 appearance-none cursor-pointer"
-        >
-          {centers.map((c) => (
-            <option key={c.id} value={c.id}>{c.address ? `${c.name} (${c.address})` : c.name}</option>
-          ))}
-        </select>
-        <Building2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-      </div>
 
       <Link
         to="/swaps"
