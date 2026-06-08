@@ -42,8 +42,16 @@ def add_member(sc_id):
 
     user_id = data.get("user_id")
     if user_id is not None:
+<<<<<<< HEAD
         user_id = int(user_id)
     email = data.get("email", "").strip().lower() if data.get("email") else ""
+=======
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            user_id = None
+    email = data.get("email", "").strip().lower()
+>>>>>>> 42712091c7c3757e678ca1fd19bd6c3d400c4eb0
 
     if user_id:
         target = User.query.get(user_id)

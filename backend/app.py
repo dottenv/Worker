@@ -190,18 +190,5 @@ def create_app():
 
 app = create_app()
 
-# Sync Telegram bot from DB settings
-with app.app_context():
-    from telegram_bot import ensure_bot
-    from models import Setting
-    token = Setting.get("telegram_bot_token", app.config.get("TELEGRAM_BOT_TOKEN", ""))
-    base_url = Setting.get("base_url", app.config.get("BASE_URL", "http://localhost:5173"))
-    enabled = Setting.get("telegram_bot_enabled", "true" if token else "false") == "true"
-    if enabled and token:
-        ensure_bot(token, base_url, app=app)
-        app.logger.info("Telegram bot started from settings")
-    else:
-        app.logger.info("Telegram bot not configured (set TELEGRAM_BOT_TOKEN in .env or settings)")
-
 if __name__ == "__main__":
     socketio.run(app, debug=True, host="0.0.0.0", port=5000)
