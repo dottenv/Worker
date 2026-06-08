@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Palette, Grid, Bell, Copy, Check, Building2, RefreshCw, Download, AlertCircle, Loader2 } from 'lucide-react';
+import { User, Palette, Grid, Bell, Copy, Check, Building2, RefreshCw, Download, AlertCircle } from 'lucide-react';
 import { Cell, Section } from '../components/SettingsUI';
 import { useCenters } from '../contexts/CenterContext';
 import { useAuth } from '../contexts/AuthContext';

@@ -22,6 +22,8 @@ services:
       - "5000"
     volumes:
       - ./data:/data
+      - .:/repo:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - SECRET_KEY=${SECRET_KEY}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
@@ -29,6 +31,7 @@ services:
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
       - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
       - BASE_URL=${BASE_URL:-}
+      - UPDATE_REPO_PATH=/repo
     networks:
       - app_network
     logging:
