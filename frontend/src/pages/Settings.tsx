@@ -8,8 +8,8 @@ import {
   CheckCircle2, AlertCircle, Sun, Moon, Monitor,
   Bell, BellOff, Volume2, VolumeX, ArrowRightLeft,
   CalendarSync, Building2 as BuildingIcon, Zap, XCircle, Eye, EyeOff,
-  ChevronUp, ChevronDown, Copy, Check, Wallet, Bot, Mail,
-  Phone, Settings as SettingsIcon, Lock, ChevronRight, FileText, Globe
+  ChevronUp, ChevronDown, Copy, Check, Wallet, Mail,
+  Phone, Settings as SettingsIcon, Lock, ChevronRight
 } from 'lucide-react';
 import { api } from '../api/client';
 import { getAvailableItems } from '../config/navItems';
@@ -69,18 +69,6 @@ export default function Settings() {
   const [navSaving, setNavSaving] = useState(false);
   const [navMessage, setNavMessage] = useState('');
 
-  const [tgBotToken, setTgBotToken] = useState('');
-  const [tgBotEnabled, setTgBotEnabled] = useState(false);
-  const [tgStorageChatId, setTgStorageChatId] = useState('');
-  const [tgStorageTopicId, setTgStorageTopicId] = useState('');
-  const [tgChatInfo, setTgChatInfo] = useState<{ id: number; title: string; type: string; is_forum: boolean } | null>(null);
-  const [tgKnownTopics, setTgKnownTopics] = useState<Record<string, string>>({});
-  const [tgVerifying, setTgVerifying] = useState(false);
-  const [baseUrl, setBaseUrl] = useState('');
-  const [tgSaving, setTgSaving] = useState(false);
-  const [tgMessage, setTgMessage] = useState('');
-  const [tgIsSuccess, setTgIsSuccess] = useState(false);
-
   const [localFinance, setLocalFinance] = useState(false);
   const [financeSaving, setFinanceSaving] = useState(false);
 
@@ -88,19 +76,6 @@ export default function Settings() {
     api.get('/finance/status').then(res => {
       setFinanceAvailable(res.available);
       setLocalFinance(res.finance_enabled);
-    }).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    api.settings.list().then(res => {
-      if (res.telegram_bot_token !== undefined) setTgBotToken(res.telegram_bot_token);
-      if (res.telegram_bot_enabled !== undefined) setTgBotEnabled(res.telegram_bot_enabled === 'true');
-      if (res.telegram_storage_chat_id !== undefined) setTgStorageChatId(res.telegram_storage_chat_id);
-      if (res.telegram_storage_topic_id !== undefined) setTgStorageTopicId(res.telegram_storage_topic_id);
-      if (res.base_url !== undefined) setBaseUrl(res.base_url);
-    }).catch(() => {});
-    api.settings.getTopics().then(res => {
-      if (res.topics) setTgKnownTopics(res.topics);
     }).catch(() => {});
   }, []);
 
@@ -486,80 +461,7 @@ export default function Settings() {
        )}
 
 
-       {/* TELEGRAM БОТ */}
-       {isOwner && (
-         <div className="space-y-1">
-           {/* Статус бота */}
-           <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
-             <div className="flex items-center gap-3">
-               <Bot size={18} style={{ color: tgBotEnabled ? 'var(--accent)' : 'var(--text-disabled)' }} />
-               <div className="flex-1">
-                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Telegram Бот</p>
-                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{tgBotEnabled ? 'Включено' : 'Выключено'}</p>
-               </div>
-             </div>
-             <button onClick={async () => {
-               const next = !tgBotEnabled;
-               setTgBotEnabled(next);
-               try {
-                 await api.settings.update({ telegram_bot_enabled: String(next), telegram_bot_token: tgBotToken, base_url: baseUrl });
-                 await api.settings.syncBot();
-               } catch { setTgBotEnabled(!next); }
-             }}
-             className={`relative w-10 h-6 rounded-full transition-colors shrink-0`}
-             style={{ backgroundColor: tgBotEnabled ? 'var(--accent)' : 'var(--bg-secondary)' }}>
-             <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${tgBotEnabled ? 'translate-x-4' : ''}`} />
-           </button>
-           </div>
-           
-           {/* Токен бота */}
-           <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
-             <div className="flex items-center gap-3">
-               <MessageCircle size={18} style={{ color: 'var(--accent)' }} />
-               <div className="flex-1">
-                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Токен бота</p>
-                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}">{tgBotToken.length > 0 ? 'Задан' : 'Не задан'}</p>
-               </div>
-             </div>
-             <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
-           </div>
-           
-           {/* Chat ID для документов */}
-           <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
-             <div className="flex items-center gap-3">
-               <FileText size={18} style={{ color: 'var(--accent)' }} />
-               <div className="flex-1">
-                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Chat ID для документов</p>
-                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}">{tgStorageChatId || 'Не задан'}</p>
-               </div>
-             </div>
-             <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
-           </div>
-           
-           {/* Тема бота */}
-           <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
-             <div className="flex items-center gap-3">
-               <MessageCircle size={18} style={{ color: 'var(--accent)' }} />
-               <div className="flex-1">
-                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Тема</p>
-                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}">{tgStorageTopicId || 'Общий чат'}</p>
-               </div>
-             </div>
-             <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
-           </div>
-           
-           {/* Base URL */}
-           <div className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--bg-card)' }}>
-             <div className="flex items-center gap-3">
-               <Globe size={18} style={{ color: 'var(--accent)' }} />
-               <div className="flex-1">
-                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Base URL</p>
-                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}">{baseUrl || 'Не задан'}</p>
-               </div>
-             </div>
-           </div>
-         </div>
-       )}
+
 
       <div className="flex items-center justify-center gap-1.5 pb-2">
         <span className="text-xs" style={{ color: 'var(--text-disabled)' }}>Сборка {buildHash}</span>

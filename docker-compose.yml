@@ -28,7 +28,6 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
       - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - BASE_URL=${BASE_URL:-}
     networks:
       - app_network
@@ -46,29 +45,6 @@ services:
     restart: unless-stopped
     expose:
       - "80"
-    depends_on:
-      - backend
-    networks:
-      - app_network
-    logging:
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  bot:
-    build:
-      context: ./backend
-      dockerfile: bot/Dockerfile
-    container_name: sc-bot
-    restart: unless-stopped
-    volumes:
-      - ./data:/data
-    environment:
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
-      - DATABASE_URL=${DATABASE_URL}
-      - SECRET_KEY=${SECRET_KEY}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
-      - BASE_URL=${BASE_URL:-}
     depends_on:
       - backend
     networks:

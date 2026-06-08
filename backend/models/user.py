@@ -26,9 +26,6 @@ class User(db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     full_name = db.Column(db.String(120), nullable=False)
     phone = db.Column(db.String(20))
-    telegram = db.Column(db.String(120), default='')
-    telegram_chat_id = db.Column(db.BigInteger, nullable=True)
-    telegram_username = db.Column(db.String(120), default='')
     max_link = db.Column(db.String(300), default='')
     color = db.Column(db.String(7), default='')
     created_at = db.Column(
@@ -71,9 +68,6 @@ class User(db.Model):
             "email": self.email,
             "full_name": self.full_name,
             "phone": self.phone,
-            "telegram": self.telegram,
-            "telegram_chat_id": self.telegram_chat_id,
-            "telegram_username": self.telegram_username,
             "max_link": self.max_link,
             "color": self.color,
             "is_superuser": self.is_superuser,

@@ -160,9 +160,6 @@ def update_profile():
     if "phone" in data:
         user.phone = data["phone"] or ""
 
-    if "telegram" in data:
-        user.telegram = data["telegram"] or ""
-
     if "max_link" in data:
         user.max_link = data["max_link"] or ""
 

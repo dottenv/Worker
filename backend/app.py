@@ -16,7 +16,7 @@ from routes import (auth_bp, service_centers_bp, members_bp, shifts_bp,
                     schedule_bp, swaps_bp, push_bp, notifications_bp,
                     finance_bp, time_entries_bp,
                     custom_fields_bp, shift_documents_bp, vapid_bp,
-                    telegram_bp, settings_bp)
+                    settings_bp)
 from socket_events import register_socket_handlers
 
 
@@ -42,14 +42,12 @@ def create_app():
     app.register_blueprint(custom_fields_bp)
     app.register_blueprint(shift_documents_bp)
     app.register_blueprint(vapid_bp)
-    app.register_blueprint(telegram_bp)
     app.register_blueprint(settings_bp)
 
     with app.app_context():
         db.create_all()
         for col, spec in [
             ("color", "VARCHAR(7) DEFAULT ''"),
-            ("telegram", "VARCHAR(120) DEFAULT ''"),
             ("max_link", "VARCHAR(300) DEFAULT ''"),
             ("is_superuser", "BOOLEAN DEFAULT 0"),
             ("finance_enabled", "BOOLEAN DEFAULT 0"),
@@ -57,8 +55,6 @@ def create_app():
             ("push_sound", "BOOLEAN DEFAULT 1"),
             ("push_prefs", "TEXT DEFAULT ''"),
             ("nav_config", "TEXT DEFAULT ''"),
-            ("telegram_chat_id", "BIGINT"),
-            ("telegram_username", "VARCHAR(120) DEFAULT ''"),
         ]:
             try:
                 db.session.execute(db.text(f'ALTER TABLE users ADD COLUMN {col} {spec}'))
@@ -158,14 +154,6 @@ def create_app():
                 db.session.execute(db.text(
                     f"CREATE TABLE IF NOT EXISTS {table_ddl[0]} ({table_ddl[1]})"
                 ))
-                db.session.commit()
-            except Exception:
-                db.session.rollback()
-        for col, spec in [
-            ("telegram_file_id", "VARCHAR(300)"),
-        ]:
-            try:
-                db.session.execute(db.text(f'ALTER TABLE shift_documents ADD COLUMN {col} {spec}'))
                 db.session.commit()
             except Exception:
                 db.session.rollback()

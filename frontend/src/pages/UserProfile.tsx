@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
-import { Phone, Building2, Calendar, MessageCircle, Globe, Save, X, LogOut, User as UserIcon, Mail } from 'lucide-react';
+import { Phone, Building2, Calendar, Globe, Save, X, LogOut, User as UserIcon, Mail } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function UserProfile() {
@@ -13,7 +13,6 @@ export default function UserProfile() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [profileEditing, setProfileEditing] = useState(false);
-  const [editTelegram, setEditTelegram] = useState('');
   const [editMax, setEditMax] = useState('');
   const [saving, setSaving] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
@@ -44,7 +43,6 @@ export default function UserProfile() {
   }, [userId]);
 
   const startEditing = () => {
-    setEditTelegram(profile?.telegram || '');
     setEditMax(profile?.max_link || '');
     setEditing(true);
   };
@@ -52,8 +50,8 @@ export default function UserProfile() {
   const saveSocial = async () => {
     setSaving(true);
     try {
-      const updated = await api.put('/auth/profile', { telegram: editTelegram, max_link: editMax });
-      setProfile((prev: any) => ({ ...prev, telegram: updated.telegram, max_link: updated.max_link }));
+      const updated = await api.put('/auth/profile', { max_link: editMax });
+      setProfile((prev: any) => ({ ...prev, max_link: updated.max_link }));
       setEditing(false);
     } catch (err: any) {
       alert(err.message);
@@ -139,7 +137,7 @@ export default function UserProfile() {
           </div>
         )}
 
-         {(isOwn && profileEditing) || (!isOwn && (profile.telegram || profile.max_link)) && (
+         {(isOwn && profileEditing) || (!isOwn && profile.max_link) && (
            <div className="flex flex-col gap-4 w-full mt-4">
              {isOwn && profileEditing ? (
                <>
@@ -165,15 +163,8 @@ export default function UserProfile() {
                  </div>
                </>
              ) : (
-               <div className="flex items-center justify-center gap-3 mt-3">
-                 {profile.telegram && (
-                   <a href={`https://t.me/${profile.telegram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
-                     className="flex items-center gap-1.5 text-xs text-sky-600 bg-sky-50 px-3 py-1.5 rounded-xl hover:bg-sky-100 transition-colors">
-                     <MessageCircle size={13} />
-                     {profile.telegram}
-                   </a>
-                 )}
-                 {profile.max_link && (
+            <div className="flex items-center justify-center gap-3 mt-3">
+                  {profile.max_link && (
                    <a href={profile.max_link.startsWith('http') ? profile.max_link : `https://${profile.max_link}`}
                      target="_blank" rel="noopener noreferrer"
                      className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-3 py-1.5 rounded-xl hover:bg-gray-100 transition-colors">
@@ -181,18 +172,18 @@ export default function UserProfile() {
                      Max
                    </a>
                  )}
-                 {isOwn && !profile.telegram && !profile.max_link && (
-                   <button onClick={() => setProfileEditing(true)}
-                     className="text-xs text-indigo-600 hover:text-indigo-800 transition-colors">
-                     + Добавить соцсети
-                   </button>
-                 )}
+                  {isOwn && !profile.max_link && (
+                    <button onClick={() => setProfileEditing(true)}
+                      className="text-xs text-indigo-600 hover:text-indigo-800 transition-colors">
+                      + Добавить соцсети
+                    </button>
+                  )}
                </div>
              )}
            </div>
          )}
 
-        {isOwn && !editing && (profile.telegram || profile.max_link) && (
+        {isOwn && !editing && profile.max_link && (
           <button onClick={startEditing}
             className="mt-2 text-xs text-gray-400 hover:text-gray-600 transition-colors">
             Редактировать

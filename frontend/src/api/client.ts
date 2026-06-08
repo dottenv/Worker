@@ -296,29 +296,6 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
-    syncBot: () =>
-      request<{ status: string }>('/settings/sync-bot', { method: 'POST' }),
-    verifyChat: (chatId: string) =>
-      request<{ id: number; title: string; type: string; is_forum: boolean }>(`/settings/verify-chat?chat_id=${encodeURIComponent(chatId)}`),
-    getTopics: () =>
-      request<{ topics: Record<string, string> }>('/settings/topics'),
-    addTopic: (id: string, name: string) =>
-      request<{ status: string; topics: Record<string, string> }>('/settings/topics', {
-        method: 'POST',
-        body: JSON.stringify({ id, name }),
-      }),
-    forumTopics: (chatId: string) =>
-      request<{ topics: Record<string, string> }>(`/settings/forum-topics?chat_id=${encodeURIComponent(chatId)}`),
-  },
-  telegram: {
-    status: () => request<{ connected: boolean; telegram_id: number | null; telegram_username: string }>('/telegram/status'),
-    connect: (data: { init_data?: string; telegram_id?: number; telegram_username?: string }) =>
-      request<{ status: string; telegram_id: number; username: string }>('/telegram/connect', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
-    disconnect: () =>
-      request<{ status: string }>('/telegram/disconnect', { method: 'POST' }),
   },
   shiftDocuments: {
     list: (entryId: number) => request<any[]>(`/shift-documents/by-entry/${entryId}`),

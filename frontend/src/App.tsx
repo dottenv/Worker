@@ -31,8 +31,6 @@ import ShiftManager from './pages/ShiftManager';
 import ShiftDocuments from './pages/ShiftDocuments';
 import ShiftDocumentsList from './pages/ShiftDocumentsList';
 import CustomFieldManager from './pages/CustomFieldManager';
-import TelegramConnect from './pages/TelegramConnect';
-import { TelegramProvider } from './contexts/TelegramContext';
 import LoadingSpinner from './components/LoadingSpinner';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -125,14 +123,6 @@ function AppRoutes() {
           <PublicRoute>
             <Register />
           </PublicRoute>
-        }
-      />
-      <Route
-        path="/telegram/connect"
-        element={
-          <TelegramProvider>
-            <TelegramConnect />
-          </TelegramProvider>
         }
       />
       <Route
