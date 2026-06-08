@@ -55,7 +55,7 @@ function generateDates(workDays: number, restDays: number, start: string, end: s
 
 export default function AdminSchedule() {
   const navigate = useNavigate();
-  const { centers, activeCenterId } = useCenters();
+  const { activeCenterId } = useCenters();
   const [members, setMembers] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -167,9 +167,7 @@ export default function AdminSchedule() {
     catch { setMembers([]); }
   };
 
-  const handleScChange = async (id: string) => {
-    setScId(id); setUserId('');
-  };
+
 
   const applyShiftToSingle = (shiftId: string) => {
     setSShiftId(shiftId);
