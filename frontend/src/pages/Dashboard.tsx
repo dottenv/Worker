@@ -201,7 +201,6 @@ export default function Dashboard() {
       setAttendanceByCenter(results);
       setExpandedCenters(new Set(results.map(r => r.centerId)));
       // Check if user has scheduled shift today (manager can be also employee in some center)
-      const todayStr = formatLocal(new Date());
       const myScheduledToday = results.some((c: any) => 
         c.scheduled.some((e: any) => e.user_id === user?.id)
       );
@@ -264,9 +263,9 @@ export default function Dashboard() {
     if (!isOwner && !isAdmin) return;
     const managed = centers.filter((c: any) => ['owner', 'admin'].includes(c.role));
     if (managed.length === 0) return;
-    const todayStr = formatLocal(new Date());
     try {
       const results = await Promise.all(managed.map(async (c: any) => {
+        const todayStr = formatLocal(new Date());
         const [scheduleData, timeEntries] = await Promise.all([
           api.schedule.admin({ from: todayStr, to: todayStr, service_center_id: c.id }).catch(() => []),
           api.timeEntries.center(c.id, { from: todayStr, to: todayStr }).catch(() => []),
@@ -592,6 +591,57 @@ export default function Dashboard() {
                 ))}
               </div>
             </div>
+          )}
+
+          {/* Clock widget for managers - show if has scheduled today */}
+          {(hasScheduledToday || activeEntry) && (
+            !activeEntry ? (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock size={16} className="text-indigo-500" />
+                  <h3 className="text-sm font-semibold text-gray-900">Начать смену</h3>
+                </div>
+                <textarea value={clockNotes} onChange={e => setClockNotes(e.target.value)}
+                  placeholder="Комментарий (причина, если смена уже была закрыта)"
+                  rows={2}
+                  className="w-full mb-3 px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/40" />
+                <button onClick={handleClockIn} disabled={clockLoading || !activeCenterId}
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-40 transition-colors">
+                  {clockLoading ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
+                  {clockLoading ? 'Отправка...' : 'Начать смену'}
+                </button>
+                {clockMessage && (
+                  <div className={`flex items-center gap-1.5 mt-2 text-xs ${clockMessage.ok ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {clockMessage.ok ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                    {clockMessage.text}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-emerald-200 shadow-sm p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className={`w-2 h-2 rounded-full animate-pulse ${activeEntry.status === 'pending' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                  <h3 className="text-sm font-semibold text-gray-900">Смена {activeEntry.status === 'pending' ? 'ожидает подтверждения' : 'активна'}</h3>
+                </div>
+                <div className="text-xs text-gray-400 space-y-1 mb-3">
+                  <p>{activeEntry.service_center_address ? `${activeEntry.service_center_name} (${activeEntry.service_center_address})` : activeEntry.service_center_name}</p>
+                  <p>Начало: {new Date(activeEntry.clock_in).toLocaleString('ru', { hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+                {activeEntry.status !== 'pending' && (
+                  <button onClick={handleClockOut} disabled={clockLoading}
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 disabled:opacity-40 transition-colors">
+                    {clockLoading ? <Loader2 size={16} className="animate-spin" /> : <Square size={16} />}
+                    Завершить смену
+                  </button>
+                )}
+                {activeEntry.status === 'pending' && (
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 text-amber-700 text-sm">
+                    <Clock size={16} />
+                    Ожидает подтверждения администратора
+                  </div>
+                )}
+              </div>
+            )
           )}
         </>
       ) : centers.length === 0 ? (
