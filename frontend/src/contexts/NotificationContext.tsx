@@ -95,21 +95,27 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   });
 
   const markRead = useCallback(async (id: number) => {
-    await api.put(`/notifications/${id}/read`);
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-    setUnreadCount(c => Math.max(0, c - 1));
+    try {
+      await api.put(`/notifications/${id}/read`);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+      setUnreadCount(c => Math.max(0, c - 1));
+    } catch {}
   }, []);
 
   const markAllRead = useCallback(async () => {
-    await api.put('/notifications/read-all');
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    setUnreadCount(0);
+    try {
+      await api.put('/notifications/read-all');
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch {}
   }, []);
 
    const deleteRead = useCallback(async () => {
-     await api.del('/notifications/read');
-     setNotifications(prev => prev.filter(n => !n.read));
-     setUnreadCount(0);
+     try {
+       await api.del('/notifications/read');
+       setNotifications(prev => prev.filter(n => !n.read));
+       setUnreadCount(0);
+     } catch {}
    }, []);
 
   return (

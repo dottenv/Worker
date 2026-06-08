@@ -27,7 +27,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     const s = io(window.location.origin, {
       path: '/socket.io',
       auth: { token },
-      transports: ["websocket"],
+      transports: ["websocket", "polling"],
       reconnection: true,
       reconnectionAttempts: Infinity,
       timeout: 20000,
