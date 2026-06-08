@@ -3,3 +3,4 @@ data/
 .refact/
 __pycache__/
 *.pyc
+.refact/buddy/state.json
