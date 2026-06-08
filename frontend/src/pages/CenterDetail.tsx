@@ -91,6 +91,16 @@ export default function CenterDetail() {
     }
   };
 
+  const handleRoleChange = async (memberId: number, newRole: string) => {
+    if (!confirm(`Назначить ${newRole === 'admin' ? 'администратором' : 'сотрудником'}?`)) return;
+    try {
+      await api.members.update(Number(id), memberId, { role: newRole });
+      fetchData();
+    } catch (err: any) {
+      alert(err.message || 'Ошибка');
+    }
+  };
+
   const openEdit = () => {
     setEditName(center.name);
     setEditDescription(center.description || '');
@@ -201,32 +211,60 @@ export default function CenterDetail() {
           </div>
         ) : (
           <div className="divide-y divide-gray-50">
-            {members.map((m: any) => (
-              <div
-                key={m.id}
-                className="flex items-center gap-3 px-5 py-3.5"
-              >
-                <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                  <span className="text-sm font-medium text-gray-500">
-                    {m.user.full_name?.slice(0, 1) || '?'}
-                  </span>
+            {members.map((m: any) => {
+              const roleLabel = m.role === 'owner' ? 'Владелец' : m.role === 'admin' ? 'Админ' : 'Сотрудник';
+              const roleColor = m.role === 'owner' ? 'text-amber-600 bg-amber-50' : m.role === 'admin' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 bg-gray-100';
+              return (
+                <div
+                  key={m.id}
+                  className="flex items-center gap-3 px-5 py-3.5"
+                >
+                  <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                    <span className="text-sm font-medium text-gray-500">
+                      {m.user.full_name?.slice(0, 1) || '?'}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-gray-900">
+                        {m.user.full_name}
+                      </p>
+                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${roleColor}`}>
+                        {roleLabel}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-400">{m.user.email}</p>
+                  </div>
+                  {center.role === 'owner' && m.role !== 'owner' && (
+                    <div className="flex items-center gap-1">
+                      {m.role === 'admin' ? (
+                        <button
+                          onClick={() => handleRoleChange(m.id, 'employee')}
+                          className="text-[11px] font-medium px-2 py-1 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
+                          title="Сделать сотрудником"
+                        >
+                          Снять админа
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleRoleChange(m.id, 'admin')}
+                          className="text-[11px] font-medium px-2 py-1 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-colors"
+                          title="Назначить администратором"
+                        >
+                          Сделать админом
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleRemoveMember(m.id)}
+                        className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">
-                    {m.user.full_name}
-                  </p>
-                  <p className="text-xs text-gray-400">{m.user.email}</p>
-                </div>
-                {center.role === 'owner' && m.role !== 'owner' && (
-                  <button
-                    onClick={() => handleRemoveMember(m.id)}
-                    className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

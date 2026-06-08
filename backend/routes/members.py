@@ -169,6 +169,9 @@ def update_member(sc_id, member_id):
             return jsonify({"error": "Invalid role"}), 400
         if member.role == "owner":
             return jsonify({"error": "Cannot change owner role"}), 403
+        sc = ServiceCenter.query.get(sc_id)
+        if sc.owner_id != user.id:
+            return jsonify({"error": "Only the owner can change roles"}), 403
         member.role = data["role"]
     if "hourly_rate" in data:
         member.hourly_rate = data["hourly_rate"]
