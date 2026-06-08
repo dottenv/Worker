@@ -15,7 +15,11 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import CentersList from './pages/CentersList';
 import CenterDetail from './pages/CenterDetail';
-import Settings from './pages/Settings';
+import SettingsIndex from './pages/SettingsIndex';
+import SettingsProfile from './pages/SettingsProfile';
+import SettingsApp from './pages/SettingsApp';
+import SettingsNavigation from './pages/SettingsNavigation';
+import SettingsNotifications from './pages/SettingsNotifications';
 import EmployeeCard from './pages/EmployeeCard';
 import MySchedule from './pages/MySchedule';
 import AdminSchedule from './pages/AdminSchedule';
@@ -72,6 +76,8 @@ function HeaderSync() {
       setBack('/schedule', 'График');
     } else if (path === '/settings') {
       setBack(null);
+    } else if (path.startsWith('/settings/')) {
+      setBack('/settings', 'Настройки');
     } else if (path === '/time-requests') {
       setBack('/');
     } else if (/^\/profile\/\d+$/.test(path)) {
@@ -164,7 +170,11 @@ function AppRoutes() {
         <Route path="shift-documents" element={<ShiftDocumentsList />} />
         <Route path="shift-documents/:entryId" element={<ShiftDocuments />} />
         <Route path="centers/:scId/custom-fields" element={<CustomFieldManager />} />
-        <Route path="settings" element={<Settings />} />
+        <Route path="settings" element={<SettingsIndex />} />
+        <Route path="settings/profile" element={<SettingsProfile />} />
+        <Route path="settings/app" element={<SettingsApp />} />
+        <Route path="settings/navigation" element={<SettingsNavigation />} />
+        <Route path="settings/notifications" element={<SettingsNotifications />} />
         <Route path="profile/:userId" element={<UserProfile />} />
   
       </Route>
