@@ -77,12 +77,13 @@ export default function Dashboard() {
 
   const loadStats = useCallback(async () => {
     try {
-      const entries = await (isOwner ? api.schedule.admin() : api.schedule.my());
+      const isManager = isOwner || isAdmin;
+      const entries = await (isManager ? api.schedule.admin() : api.schedule.my());
       const now = new Date();
       const monthStart = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1);
       const monthEnd = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 0);
 
-      if (isOwner) {
+      if (isManager) {
         const allEntries = entries.flatMap((g: any) => g.entries || []);
         setUpcomingCount(allEntries.filter((e: any) => new Date(e.date) >= now).length);
         setEmployeesCount(new Set(allEntries.filter((e: any) => {
@@ -102,13 +103,13 @@ export default function Dashboard() {
       }
     } catch {}
     finally { setLoading(false); }
-  }, [isOwner, displayMonth]);
+  }, [isOwner, isAdmin, displayMonth]);
 
   const loadStatsRef = useRef(loadStats);
   loadStatsRef.current = loadStats;
 
   const loadWeekSchedule = useCallback(async () => {
-    if (isOwner) return;
+    if (isOwner || isAdmin) return;
     const today = new Date();
     const monday = new Date(today);
     monday.setDate(today.getDate() - today.getDay() + 1);
@@ -125,13 +126,13 @@ export default function Dashboard() {
       }
       setWeekGrouped(grouped);
     }).catch(console.error).finally(() => setWeekLoading(false));
-  }, [isOwner]);
+  }, [isOwner, isAdmin]);
 
   const loadWeekRef = useRef(loadWeekSchedule);
   loadWeekRef.current = loadWeekSchedule;
 
   const loadWorkStats = useCallback(async () => {
-    if (isOwner) return;
+    if (isOwner || isAdmin) return;
     const now = new Date();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay() + 1);
@@ -154,7 +155,7 @@ export default function Dashboard() {
         sum + toHours(new Date(e.clock_out).getTime() - new Date(e.clock_in).getTime()), 0);
       setWorkStats({ weekHours, monthHours, completedShifts: monthEntries.length });
     }).catch(() => {});
-  }, [isOwner, displayMonth]);
+  }, [isOwner, isAdmin, displayMonth]);
 
   const loadWorkStatsRef = useRef(loadWorkStats);
   loadWorkStatsRef.current = loadWorkStats;
@@ -245,7 +246,7 @@ export default function Dashboard() {
 
   // re-fetch attendance for owner when schedule or members change
   const loadAttendance = useCallback(async () => {
-    if (!isOwner) return;
+    if (!isOwner && !isAdmin) return;
     const managed = centers.filter((c: any) => ['owner', 'admin'].includes(c.role));
     if (managed.length === 0) return;
     const todayStr = formatLocal(new Date());
@@ -270,11 +271,11 @@ export default function Dashboard() {
       setAttendanceByCenter(results);
       setExpandedCenters(new Set(results.map(r => r.centerId)));
     } catch {}
-  }, [isOwner, centers]);
+  }, [isOwner, isAdmin, centers]);
   const loadAttendanceRef = useRef(loadAttendance);
   loadAttendanceRef.current = loadAttendance;
-  useSocketEvent('member:updated', () => { if (isOwner) { loadStatsRef.current(); loadAttendanceRef.current(); } });
-  useSocketEvent('center:updated', () => { if (isOwner) { loadStatsRef.current(); } });
+  useSocketEvent('member:updated', () => { if (isOwner || isAdmin) { loadStatsRef.current(); loadAttendanceRef.current(); } });
+  useSocketEvent('center:updated', () => { if (isOwner || isAdmin) { loadStatsRef.current(); } });
 
   // initial load of employee work stats
   useEffect(() => { loadWorkStats(); }, [loadWorkStats]);

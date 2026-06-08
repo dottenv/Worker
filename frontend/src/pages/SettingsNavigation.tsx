@@ -6,7 +6,7 @@ import { getAvailableItems } from '../config/navItems';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function SettingsNavigation() {
-  const { user, isOwner, refreshUser } = useAuth();
+  const { user, isOwner, isAdmin, refreshUser } = useAuth();
   const [navPinned, setNavPinned] = useState<string[]>([]);
   const [navSaving, setNavSaving] = useState(false);
   const [navMessage, setNavMessage] = useState('');
@@ -23,7 +23,7 @@ export default function SettingsNavigation() {
 
   if (!user) return <LoadingSpinner />;
 
-  const availableItems = getAvailableItems(isOwner, financeAvailable);
+  const availableItems = getAvailableItems(isOwner, isAdmin, financeAvailable);
 
   return (
     <div className="space-y-6">

@@ -33,7 +33,7 @@ function formatLocal(d: Date): string {
 
 export default function SwapNew() {
   const navigate = useNavigate();
-  const { user, isOwner } = useAuth();
+  const { user, isOwner, isAdmin } = useAuth();
   const [centers, setCenters] = useState<any[]>([]);
   const [otherCenters, setOtherCenters] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
@@ -100,7 +100,7 @@ export default function SwapNew() {
       try {
         const [ms, entries] = await Promise.all([
           api.members.list(Number(scId)),
-          isOwner ? api.schedule.admin({ service_center_id: Number(scId) })
+          isOwner || isAdmin ? api.schedule.admin({ service_center_id: Number(scId) })
                   : api.schedule.myGrouped(Number(scId)),
         ]);
         setMembers(ms.filter((m: any) => m.is_active !== false));
@@ -133,8 +133,8 @@ export default function SwapNew() {
   );
 
   const sourceEntries = useMemo(
-    () => isOwner ? allEntries : myEntries,
-    [isOwner, allEntries, myEntries],
+    () => isOwner || isAdmin ? allEntries : myEntries,
+    [isOwner, isAdmin, allEntries, myEntries],
   );
 
   const selectedSource = useMemo(
@@ -306,7 +306,7 @@ export default function SwapNew() {
       {/* Step 3: My shift */}
       <section className="p-4 rounded-2xl" style={{ backgroundColor: 'var(--bg-card)' }}>
         <label className="flex items-center gap-1.5 text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-          <Calendar size={13} /> {isOwner ? 'Чья смена' : 'Моя смена'}
+          <Calendar size={13} /> {isOwner || isAdmin ? 'Чья смена' : 'Моя смена'}
         </label>
         {sourceEntries.length === 0 ? (
           <p className="text-sm py-3 text-center" style={{ color: 'var(--text-disabled)' }}>
@@ -331,7 +331,7 @@ export default function SwapNew() {
                   </p>
                   <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                     {formatTime(e)}
-                    {isOwner && e.user_name && ` · ${e.user_name}`}
+                    {(isOwner || isAdmin) && e.user_name && ` · ${e.user_name}`}
                   </p>
                 </div>
                 {sourceEntryId === String(e.id) && (

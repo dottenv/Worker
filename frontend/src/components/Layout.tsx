@@ -58,7 +58,7 @@ function BellButton() {
 
 export default function Layout() {
   useHapticFeedback();
-  const { user, isOwner } = useAuth();
+  const { user, isOwner, isAdmin } = useAuth();
   const { state } = useHeader();
   const location = useLocation();
   const [financeAvailable, setFinanceAvailable] = useState(false);
@@ -71,8 +71,8 @@ export default function Layout() {
   }, []);
 
   const availableItems = useMemo(
-    () => getAvailableItems(isOwner, financeAvailable),
-    [isOwner, financeAvailable]
+    () => getAvailableItems(isOwner, isAdmin, financeAvailable),
+    [isOwner, isAdmin, financeAvailable]
   );
 
   const pinnedIds = user?.nav_config?.pinned?.length

@@ -19,7 +19,7 @@ const DataContext = createContext<DataContextType>({
 });
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const { user, isOwner } = useAuth();
+  const { user, isOwner, isAdmin } = useAuth();
   const [loaded, setLoaded] = useState(false);
   const [centers] = useState<any[]>([]);
   const [swaps, setSwaps] = useState<any[]>([]);
@@ -29,7 +29,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     try {
       const [sw, sc] = await Promise.all([
-        (isOwner ? api.swaps.admin() : api.swaps.list()).catch(() => []),
+        (isOwner || isAdmin ? api.swaps.admin() : api.swaps.list()).catch(() => []),
         (() => {
           const scId = Number(localStorage.getItem("activeCenterId"));
           if (scId) {
@@ -51,7 +51,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setLoaded(false);
     if (user) refresh();
     else setLoaded(true);
-  }, [user, isOwner]);
+  }, [user, isOwner, isAdmin]);
 
   return (
     <DataContext.Provider value={{ loaded, centers, swaps, schedule, refresh }}>

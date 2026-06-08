@@ -38,12 +38,13 @@ export const DEFAULT_PINNED = ['dashboard', 'schedule', 'settings'];
 
 export function getAvailableItems(
   isOwner: boolean,
+  isAdmin: boolean,
   financeAvailable: boolean,
 ): NavItemDef[] {
   return ALL_NAV_ITEMS.filter((item) => {
     if (item.requiresOwner && !isOwner) return false;
     if (item.requiresFinance && !financeAvailable) return false;
-    if (item.requiresAdmin && !isOwner) return false;
+    if (item.requiresAdmin && !isOwner && !isAdmin) return false;
     if (item.hideForOwner && isOwner) return false;
     return true;
   });

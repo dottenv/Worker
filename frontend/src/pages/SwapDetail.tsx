@@ -33,7 +33,7 @@ const TYPE_LABELS: Record<string, string> = {
 export default function SwapDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, isOwner } = useAuth();
+  const { user, isOwner, isAdmin } = useAuth();
   const [swap, setSwap] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -55,7 +55,7 @@ export default function SwapDetail() {
 
   const isResponder = swap?.responder_id === user?.id;
   const isRequester = swap?.requester_id === user?.id;
-  const isManager = isOwner;
+  const isManager = isOwner || isAdmin;
 
   const canAccept = swap?.status === 'pending' && (isResponder || isManager);
   const canReject = swap?.status === 'pending' && (isResponder || isManager);

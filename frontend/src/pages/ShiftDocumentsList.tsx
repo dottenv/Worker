@@ -48,13 +48,13 @@ interface CenterGroup {
 }
 
 export default function ShiftDocumentsList() {
-  const { isOwner } = useAuth();
+  const { isOwner, isAdmin } = useAuth();
   const [groups, setGroups] = useState<CenterGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [lightbox, setLightbox] = useState<{ docs: DocItem[]; index: number } | null>(null);
 
-  const isManager = isOwner;
+  const isManager = isOwner || isAdmin;
 
   useEffect(() => {
     let cancelled = false;
@@ -159,7 +159,7 @@ export default function ShiftDocumentsList() {
                           {entry.clock_in && new Date(entry.clock_in).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
                           {entry.clock_out && ` – ${new Date(entry.clock_out).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}`}
                         </span>
-                        {isOwner && entry.user_name && (
+                        {(isOwner || isAdmin) && entry.user_name && (
                           <span className="text-[11px] text-indigo-500 font-medium whitespace-nowrap">
                             {entry.user_name}
                           </span>

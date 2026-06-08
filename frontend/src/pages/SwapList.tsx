@@ -31,14 +31,14 @@ const TYPE_LABELS: Record<string, string> = {
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 
 export default function SwapList() {
-  const { isOwner } = useAuth();
+  const { isOwner, isAdmin } = useAuth();
   const [swaps, setSwaps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadSwaps = async () => {
     setLoading(true);
     try {
-      const data = isOwner ? await api.swaps.admin() : await api.swaps.list();
+      const data = isOwner || isAdmin ? await api.swaps.admin() : await api.swaps.list();
       const now = Date.now();
       const filtered = data.filter((s: any) => {
         if (s.status === 'pending') return true;
@@ -50,7 +50,7 @@ export default function SwapList() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { loadSwaps(); }, [isOwner]);
+  useEffect(() => { loadSwaps(); }, [isOwner, isAdmin]);
 
   const sorted = [...swaps].sort(
     (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
@@ -61,7 +61,7 @@ export default function SwapList() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">Обмен сменами</h1>
         <div className="flex items-center gap-2">
-          {isOwner && (
+          {(isOwner || isAdmin) && (
             <Link
               to="/schedule/admin"
               className="flex items-center gap-1.5 bg-white border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"

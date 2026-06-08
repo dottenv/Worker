@@ -21,30 +21,30 @@ type ViewMode = 'week' | 'month';
 
 export default function MySchedule() {
   const navigate = useNavigate();
-  const { user, isOwner } = useAuth();
+  const { user, isOwner, isAdmin } = useAuth();
   const { centers, activeCenterId, setActiveCenterId } = useCenters();
   const [incomingCount, setIncomingCount] = useState(0);
 
   const loadIncoming = useCallback(async () => {
     if (!user) return;
     try {
-      const swaps = isOwner ? await api.swaps.admin() : await api.swaps.list();
+      const swaps = isOwner || isAdmin ? await api.swaps.admin() : await api.swaps.list();
       const pending = swaps.filter(
         (s: any) => s.status === 'pending' && s.responder_id === user.id
       );
       setIncomingCount(pending.length);
     } catch { setIncomingCount(0); }
-  }, [user, isOwner]);
+  }, [user, isOwner, isAdmin]);
 
   useEffect(() => { loadIncoming(); }, [loadIncoming]);
   useSocketEvent("swap:updated", loadIncoming);
 
   // Redirect owners/admins to admin schedule page
   useEffect(() => {
-    if (isOwner) {
+    if (isOwner || isAdmin) {
       navigate('/schedule/admin', { replace: true });
     }
-  }, [isOwner]);
+  }, [isOwner, isAdmin]);
 
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

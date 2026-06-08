@@ -12,6 +12,7 @@ import {
   Clock,
   Pencil,
   Trash2,
+  ShieldCheck,
 } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -240,18 +241,18 @@ export default function CenterDetail() {
                       {m.role === 'admin' ? (
                         <button
                           onClick={() => handleRoleChange(m.id, 'employee')}
-                          className="text-[11px] font-medium px-2 py-1 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
-                          title="Сделать сотрудником"
+                          className="p-1.5 rounded-lg text-amber-500 hover:bg-amber-50 transition-colors"
+                          title="Снять админа"
                         >
-                          Снять админа
+                          <ShieldCheck size={16} />
                         </button>
                       ) : (
                         <button
                           onClick={() => handleRoleChange(m.id, 'admin')}
-                          className="text-[11px] font-medium px-2 py-1 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-colors"
-                          title="Назначить администратором"
+                          className="p-1.5 rounded-lg text-gray-300 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                          title="Назначить админом"
                         >
-                          Сделать админом
+                          <ShieldCheck size={16} />
                         </button>
                       )}
                       <button

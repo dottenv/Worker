@@ -11,7 +11,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function ShiftDocuments() {
   const { entryId } = useParams<{ entryId: string }>();
-  const { isOwner } = useAuth();
+  const { isOwner, isAdmin } = useAuth();
   const [entry, setEntry] = useState<any>(null);
   const [docs, setDocs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,7 +91,7 @@ export default function ShiftDocuments() {
   if (loading) return <LoadingSpinner />;
   if (!entry) return <div className="text-center py-8 text-gray-400">Смена не найдена</div>;
 
-  const isManager = isOwner;
+  const isManager = isOwner || isAdmin;
 
   return (
     <div className="space-y-4">
