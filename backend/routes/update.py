@@ -4,6 +4,8 @@ import logging
 import subprocess
 import threading
 import urllib.request
+import time
+import threading
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from helpers import get_current_user
@@ -14,6 +16,10 @@ update_bp = Blueprint("update", __name__, url_prefix="/api/update")
 
 GITHUB_REPO = "dottenv/Worker"
 GITHUB_API = f"https://api.github.com/repos/{GITHUB_REPO}"
+
+# In-memory cache for auto-check
+_last_check_result = {"update_available": False, "latest": "", "behind": 0, "last_check": 0}
+_check_lock = threading.Lock()
 
 
 def fetch_json(url):
@@ -62,16 +68,40 @@ def check_update():
         if not found_current:
             behind = len(data)
 
-        return jsonify({
+        result = {
             "current": current,
             "latest": latest_short,
             "behind": behind if not found_current else behind,
             "commits": commits,
             "update_available": behind > 0,
-        })
+        }
+
+        # Update cache
+        global _last_check_result
+        with _check_lock:
+            _last_check_result = {
+                "update_available": result["update_available"],
+                "latest": result["latest"],
+                "behind": result["behind"],
+                "last_check": int(time.time()),
+            }
+
+        return jsonify(result)
     except Exception as e:
         logger.warning("Update check failed: %s", e)
         return jsonify({"error": str(e), "update_available": False}), 500
+
+
+@update_bp.route("/status", methods=["GET"])
+@jwt_required()
+def get_status():
+    """Lightweight endpoint for auto-polling - returns cached result"""
+    user = get_current_user()
+    if not user or not user.is_superuser:
+        return jsonify({"error": "Access denied"}), 403
+
+    with _check_lock:
+        return jsonify(_last_check_result)
 
 
 @update_bp.route("/apply", methods=["POST"])

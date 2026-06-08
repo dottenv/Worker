@@ -319,4 +319,14 @@ export const api = {
     delete: (docId: number) =>
       request<any>(`/shift-documents/${docId}`, { method: 'DELETE' }),
   },
+  update: {
+    check: (current: string) =>
+      request<{ current: string; latest: string; behind: number; commits: any[]; update_available: boolean }>(
+        `/update/check?current=${current}`
+      ),
+    status: () =>
+      request<{ update_available: boolean; latest: string; behind: number; last_check: number }>('/update/status'),
+    apply: () =>
+      request<{ status: string }>('/update/apply', { method: 'POST' }),
+  },
 };
