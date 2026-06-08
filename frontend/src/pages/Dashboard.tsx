@@ -157,6 +157,23 @@ export default function Dashboard() {
 
   const isManager = isOwner || isAdmin;
 
+  // Check if user has scheduled shift today (for all users including managers)
+  const checkScheduledToday = useCallback(async () => {
+    if (!activeCenterId) return;
+    const todayStr = formatLocal(new Date());
+    try {
+      const entries = await api.schedule.my({ service_center_id: activeCenterId, from: todayStr, to: todayStr });
+      setHasScheduledToday(entries && entries.length > 0);
+    } catch {
+      setHasScheduledToday(false);
+    }
+  }, [activeCenterId]);
+
+  const checkScheduledRef = useRef(checkScheduledToday);
+  checkScheduledRef.current = checkScheduledToday;
+
+  useEffect(() => { checkScheduledToday(); }, [checkScheduledToday]);
+
   useEffect(() => {
     if (!isManager) return;
     const managed = centers.filter((c: any) => ['owner', 'admin'].includes(c.role));
@@ -183,8 +200,14 @@ export default function Dashboard() {
     })).then(results => {
       setAttendanceByCenter(results);
       setExpandedCenters(new Set(results.map(r => r.centerId)));
+      // Check if user has scheduled shift today (manager can be also employee in some center)
+      const todayStr = formatLocal(new Date());
+      const myScheduledToday = results.some((c: any) => 
+        c.scheduled.some((e: any) => e.user_id === user?.id)
+      );
+      setHasScheduledToday(myScheduledToday);
     }).finally(() => setAttendanceLoading(false));
-  }, [isManager, centers]);
+  }, [isManager, centers, user]);
 
   const mergeTimeEntry = useCallback((entry: any) => {
     const scId = entry.service_center_id;
@@ -230,6 +253,7 @@ export default function Dashboard() {
     loadStatsRef.current();
     loadWeekRef.current();
     loadWorkStatsRef.current();
+    checkScheduledRef.current();
   }, []);
   const refreshScheduleRef = useRef(refreshOnScheduleChange);
   refreshScheduleRef.current = refreshOnScheduleChange;
