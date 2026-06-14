@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Palette, Grid, Bell, Copy, Check, Building2, RefreshCw, Download, AlertCircle } from 'lucide-react';
+import { User, Palette, Grid, Bell, Copy, Check, Building2, RefreshCw, Download, AlertCircle, Puzzle } from 'lucide-react';
 import { Cell, Section } from '../components/SettingsUI';
 import { useCenters } from '../contexts/CenterContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,7 +26,7 @@ export default function SettingsIndex() {
   const buildHash = import.meta.env.VITE_GIT_HASH || 'unknown';
   const [copied, setCopied] = useState(false);
   const { centers, activeCenter, setActiveCenterId } = useCenters();
-  const { isSuperuser } = useAuth();
+  const { user, isSuperuser } = useAuth();
   
   // Update state
   const [checking, setChecking] = useState(false);
@@ -124,6 +124,9 @@ export default function SettingsIndex() {
         <Cell icon={Palette} label="Приложение" onClick={() => navigate('/settings/app')} />
         <Cell icon={Grid} label="Нижняя навигация" onClick={() => navigate('/settings/navigation')} />
         <Cell icon={Bell} label="Уведомления" onClick={() => navigate('/settings/notifications')} />
+        {(isSuperuser || centers.some(c => c.owner_id === user?.id)) && (
+          <Cell icon={Puzzle} label="Модули" onClick={() => navigate('/settings/modules')} />
+        )}
       </Section>
 
       {/* Build & Update Section */}

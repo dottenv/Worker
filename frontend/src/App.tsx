@@ -37,6 +37,7 @@ import ShiftDocumentsList from './pages/ShiftDocumentsList';
 import CustomFieldManager from './pages/CustomFieldManager';
 import Purchases from './pages/Purchases';
 import PurchasesAdmin from './pages/PurchasesAdmin';
+import Modules from './pages/Modules';
 import LoadingSpinner from './components/LoadingSpinner';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -78,6 +79,8 @@ function HeaderSync() {
       setBack('/schedule', 'График');
     } else if (path === '/settings') {
       setBack(null);
+    } else if (path === '/settings/modules') {
+      setBack('/settings', 'Настройки');
     } else if (path.startsWith('/settings/')) {
       setBack('/settings', 'Настройки');
     } else if (path === '/time-requests') {
@@ -182,6 +185,7 @@ function AppRoutes() {
         <Route path="settings/profile" element={<SettingsProfile />} />
         <Route path="settings/app" element={<SettingsApp />} />
         <Route path="settings/navigation" element={<SettingsNavigation />} />
+        <Route path="settings/modules" element={<Modules />} />
         <Route path="settings/notifications" element={<SettingsNotifications />} />
         <Route path="profile/:userId" element={<UserProfile />} />
   
