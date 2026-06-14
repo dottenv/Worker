@@ -295,6 +295,64 @@ def delete_order(order_id):
     return jsonify({"ok": True})
 
 
+# ─────────────────────────── RETURNS ───────────────────────────
+
+@purchases_bp.route("/returns", methods=["GET"])
+@jwt_required()
+def list_returns():
+    user_id = int(get_jwt_identity())
+    sc_id = request.args.get("service_center_id", type=int)
+    if not sc_id:
+        return jsonify({"error": "service_center_id required"}), 400
+    if not user_belongs_to_center(user_id, sc_id):
+        return jsonify({"error": "Access denied"}), 403
+    items = (PurchaseItem.query
+             .join(Purchase)
+             .filter(
+                 Purchase.service_center_id == sc_id,
+                 PurchaseItem.returned_quantity > 0,
+             )
+             .order_by(Purchase.created_at.desc())
+             .all())
+    result = []
+    for item in items:
+        d = item.to_dict()
+        d["order_status"] = item.purchase.status if item.purchase else ""
+        d["order_created_at"] = item.purchase.created_at.isoformat() if item.purchase else ""
+        d["supplier_name"] = item.purchase.supplier.name if item.purchase and item.purchase.supplier else ""
+        result.append(d)
+    return jsonify(result)
+
+
+@purchases_bp.route("/orders/<int:order_id>/return", methods=["POST"])
+@jwt_required()
+def return_order_items(order_id):
+    user_id = int(get_jwt_identity())
+    order = Purchase.query.get_or_404(order_id)
+    if not is_purchase_admin(user_id, order.service_center_id):
+        return jsonify({"error": "Access denied"}), 403
+
+    data = request.get_json()
+    if not data or not isinstance(data.get("items"), list):
+        return jsonify({"error": "items required"}), 400
+
+    for ret in data["items"]:
+        item_id = ret.get("item_id")
+        qty = float(ret.get("quantity", 0))
+        if not item_id or qty <= 0:
+            continue
+        item = PurchaseItem.query.filter_by(id=item_id, purchase_id=order_id).first()
+        if not item:
+            continue
+        item.returned_quantity = float(item.returned_quantity or 0) + qty
+        if float(item.returned_quantity) > float(item.quantity):
+            item.returned_quantity = item.quantity
+
+    db.session.commit()
+    emit_to_users_for_order(order)
+    return jsonify({"ok": True})
+
+
 def emit_to_users_for_order(order):
     member_ids = [
         r[0] for r in ServiceCenterMember.query
@@ -463,8 +521,12 @@ def run_parser():
     if config.sync_status in ("parsing", "placing"):
         return jsonify({"error": "Parser already running"}), 409
 
+    worker_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "parsers_worker.py",
+    )
     cmd = [
-        sys.executable, "-m", "backend.parsers_worker", "moba",
+        sys.executable, worker_path, "moba",
         "--action", action,
         "--config-id", str(config.id),
     ]
@@ -473,13 +535,17 @@ def run_parser():
     elif action == "place_order":
         cmd.extend(["--purchase-id", str(purchase_id)])
 
+    log_dir = "/data"
+    os.makedirs(log_dir, exist_ok=True)
+    log_file = open(os.path.join(log_dir, f"parser_{config.id}.log"), "a")
+
     try:
         import subprocess
         subprocess.Popen(
             cmd,
-            cwd=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            cwd=os.path.dirname(worker_path),
+            stdout=log_file,
+            stderr=subprocess.STDOUT,
         )
     except Exception as e:
         return jsonify({"error": f"Failed to start parser: {e}"}), 500

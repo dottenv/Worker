@@ -218,6 +218,16 @@ def create_app():
                 db.session.commit()
             except Exception:
                 db.session.rollback()
+        try:
+            db.session.execute(db.text('ALTER TABLE products ADD COLUMN supplier_id INTEGER REFERENCES suppliers(id)'))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+        try:
+            db.session.execute(db.text('ALTER TABLE purchase_items ADD COLUMN returned_quantity NUMERIC(12,2) DEFAULT 0'))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
         for idx_ddl in [
             "CREATE INDEX IF NOT EXISTS ix_custom_fields_sc ON custom_fields(service_center_id)",
             "CREATE INDEX IF NOT EXISTS ix_custom_field_values_te ON custom_field_values(time_entry_id)",

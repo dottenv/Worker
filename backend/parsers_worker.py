@@ -70,6 +70,7 @@ def _save_products(config_id: int, supplier_id: int, products: list[dict]):
             if not exists:
                 product = Product(
                     service_center_id=config.service_center_id,
+                    supplier_id=supplier_id,
                     name=p["name"],
                     unit=p.get("unit", "шт"),
                     default_price=p.get("price", 0),

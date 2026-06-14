@@ -353,6 +353,11 @@ export const api = {
       create: (data: any) => request<any>('/purchases/orders', { method: 'POST', body: JSON.stringify(data) }),
       update: (id: number, data: any) => request<any>(`/purchases/orders/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
       delete: (id: number) => request<any>(`/purchases/orders/${id}`, { method: 'DELETE' }),
+      returnItems: (orderId: number, items: { item_id: number; quantity: number }[]) =>
+        request<any>(`/purchases/orders/${orderId}/return`, { method: 'POST', body: JSON.stringify({ items }) }),
+    },
+    returns: {
+      list: (scId: number) => request<any[]>(`/purchases/returns?service_center_id=${scId}`),
     },
   },
   update: {
