@@ -319,6 +319,18 @@ export const api = {
     delete: (docId: number) =>
       request<any>(`/shift-documents/${docId}`, { method: 'DELETE' }),
   },
+  parser: {
+    config: {
+      get: (supplierId: number) => request<any>(`/purchases/parser/config?supplier_id=${supplierId}`),
+      save: (data: any) => request<any>('/purchases/parser/config', { method: 'POST', body: JSON.stringify(data) }),
+    },
+    run: (configId: number, action: string, purchaseId?: number) =>
+      request<any>('/purchases/parser/run', {
+        method: 'POST',
+        body: JSON.stringify({ config_id: configId, action, purchase_id: purchaseId || 0 }),
+      }),
+    status: (configId: number) => request<any>(`/purchases/parser/status?config_id=${configId}`),
+  },
   purchases: {
     status: () => request<{ available: boolean; is_admin: boolean; purchases_enabled: boolean; is_owner: boolean }>('/purchases/status'),
     toggle: (enabled: boolean) =>

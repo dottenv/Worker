@@ -4,6 +4,7 @@ from models.supplier import Supplier
 from models.product import Product
 from models.purchase import Purchase
 from models.purchase_item import PurchaseItem
+from models.parser_config import ParserConfig
 from models.user import User
 from models.service_center import ServiceCenter
 from models.service_center_member import ServiceCenterMember
@@ -11,6 +12,8 @@ from extensions import db
 from helpers import is_manager
 from datetime import datetime, timezone
 from socket_events import emit_to_users
+import sys
+import os
 
 purchases_bp = Blueprint("purchases", __name__, url_prefix="/api/purchases")
 
@@ -389,4 +392,115 @@ def purchases_status():
         "is_admin": is_admin,
         "purchases_enabled": user.purchases_enabled,
         "is_owner": is_user_owner(user_id),
+    })
+
+
+# ─────────────────────────── PARSER ───────────────────────────
+
+@purchases_bp.route("/parser/config", methods=["GET"])
+@jwt_required()
+def get_parser_config():
+    user_id = int(get_jwt_identity())
+    supplier_id = request.args.get("supplier_id", type=int)
+    if not supplier_id:
+        return jsonify({"error": "supplier_id required"}), 400
+    supplier = Supplier.query.get_or_404(supplier_id)
+    if not is_purchase_admin(user_id, supplier.service_center_id):
+        return jsonify({"error": "Access denied"}), 403
+    config = ParserConfig.query.filter_by(supplier_id=supplier_id).first()
+    if not config:
+        return jsonify(None)
+    return jsonify(config.to_dict())
+
+
+@purchases_bp.route("/parser/config", methods=["POST"])
+@jwt_required()
+def save_parser_config():
+    user_id = int(get_jwt_identity())
+    data = request.get_json()
+    if not data or not data.get("supplier_id"):
+        return jsonify({"error": "supplier_id required"}), 400
+    supplier = Supplier.query.get_or_404(data["supplier_id"])
+    if not is_purchase_admin(user_id, supplier.service_center_id):
+        return jsonify({"error": "Access denied"}), 403
+
+    config = ParserConfig.query.filter_by(supplier_id=data["supplier_id"]).first()
+    if config:
+        config.login = data.get("login", config.login)
+        config.password = data.get("password", config.password)
+        config.base_url = data.get("base_url", config.base_url)
+        config.is_active = data.get("is_active", config.is_active)
+    else:
+        config = ParserConfig(
+            service_center_id=supplier.service_center_id,
+            supplier_id=data["supplier_id"],
+            parser_type="moba_ru",
+            login=data.get("login", ""),
+            password=data.get("password", ""),
+            base_url=data.get("base_url", "https://novosibirsk.moba.ru"),
+        )
+        db.session.add(config)
+    db.session.commit()
+    return jsonify(config.to_dict())
+
+
+@purchases_bp.route("/parser/run", methods=["POST"])
+@jwt_required()
+def run_parser():
+    user_id = int(get_jwt_identity())
+    data = request.get_json()
+    if not data or not data.get("config_id"):
+        return jsonify({"error": "config_id required"}), 400
+
+    config = ParserConfig.query.get_or_404(data["config_id"])
+    supplier = Supplier.query.get(config.supplier_id)
+    if not supplier or not is_purchase_admin(user_id, supplier.service_center_id):
+        return jsonify({"error": "Access denied"}), 403
+
+    action = data.get("action", "parse_catalog")
+    purchase_id = data.get("purchase_id", 0)
+
+    if config.sync_status in ("parsing", "placing"):
+        return jsonify({"error": "Parser already running"}), 409
+
+    cmd = [
+        sys.executable, "-m", "backend.parsers_worker", "moba",
+        "--action", action,
+        "--config-id", str(config.id),
+    ]
+    if action == "parse_catalog":
+        cmd.extend(["--supplier-id", str(config.supplier_id or 0)])
+    elif action == "place_order":
+        cmd.extend(["--purchase-id", str(purchase_id)])
+
+    try:
+        import subprocess
+        subprocess.Popen(
+            cmd,
+            cwd=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception as e:
+        return jsonify({"error": f"Failed to start parser: {e}"}), 500
+
+    return jsonify({"ok": True, "action": action})
+
+
+@purchases_bp.route("/parser/status", methods=["GET"])
+@jwt_required()
+def parser_status():
+    user_id = int(get_jwt_identity())
+    config_id = request.args.get("config_id", type=int)
+    if not config_id:
+        return jsonify({"error": "config_id required"}), 400
+    config = ParserConfig.query.get_or_404(config_id)
+    supplier = Supplier.query.get(config.supplier_id)
+    if not supplier or not is_purchase_admin(user_id, supplier.service_center_id):
+        return jsonify({"error": "Access denied"}), 403
+    return jsonify({
+        "status": config.sync_status,
+        "progress": config.sync_progress,
+        "log": config.sync_log,
+        "last_sync_at": config.last_sync_at.isoformat() if config.last_sync_at else None,
     })

@@ -4,11 +4,11 @@ import { api } from '../api/client';
 import { useSocketEvent } from '../contexts/SocketContext';
 import {
   ShoppingCart, Plus, X, Truck, Package, Building2,
-  CheckCircle, XCircle, Clock, Trash2, Pencil,
+  CheckCircle, XCircle, Clock, Trash2, Pencil, Bot,
 } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
-type Tab = 'orders' | 'suppliers' | 'products';
+type Tab = 'orders' | 'suppliers' | 'products' | 'parser';
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Черновик', ordered: 'Заказано', received: 'Получено', cancelled: 'Отменено',
@@ -46,11 +46,12 @@ export default function PurchasesAdmin() {
         </div>
       )}
 
-      <div className="flex gap-1 border-b pb-2" style={{ borderColor: 'var(--border)' }}>
+      <div className="flex gap-1 border-b pb-2 overflow-x-auto" style={{ borderColor: 'var(--border)' }}>
         {([
           { id: 'orders', label: 'Заказы', icon: ShoppingCart },
           { id: 'suppliers', label: 'Поставщики', icon: Building2 },
           { id: 'products', label: 'Товары', icon: Package },
+          { id: 'parser', label: 'Парсер', icon: Bot },
         ] as const).map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-t-lg transition-colors ${
@@ -69,6 +70,7 @@ export default function PurchasesAdmin() {
           {tab === 'orders' && <OrdersTab scId={scId} />}
           {tab === 'suppliers' && <SuppliersTab scId={scId} />}
           {tab === 'products' && <ProductsTab scId={scId} />}
+          {tab === 'parser' && <ParserTab scId={scId} />}
         </>
       )}
     </div>
@@ -595,6 +597,199 @@ function ProductFormModal({ scId, product, onClose, onSaved }: {
           </button>
         </form>
       </div>
+    </div>
+  );
+}
+
+/* ─── Parser Tab ─── */
+function ParserTab({ scId }: { scId: number }) {
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<number | ''>('');
+  const [config, setConfig] = useState<any | null>(null);
+  const [login, setLogin] = useState('');
+  const [password, setPassword] = useState('');
+  const [baseUrl, setBaseUrl] = useState('https://novosibirsk.moba.ru');
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<{ status: string; progress: number; log: string; last_sync_at: string | null } | null>(null);
+  const [statusInterval, setStatusInterval] = useState<any>(null);
+  const [logEntries, setLogEntries] = useState<{ time: string; msg: string }[]>([]);
+
+  useEffect(() => {
+    api.purchases.suppliers.list(scId).then(setSuppliers).catch(() => {});
+  }, [scId]);
+
+  const selectSupplier = async (sid: number | '') => {
+    setSelectedSupplierId(sid);
+    setConfig(null);
+    setLogin('');
+    setPassword('');
+    setBaseUrl('https://novosibirsk.moba.ru');
+    setStatus(null);
+    setLogEntries([]);
+    if (statusInterval) clearInterval(statusInterval);
+    if (!sid) return;
+    try {
+      const c = await api.parser.config.get(Number(sid));
+      if (c) {
+        setConfig(c);
+        setLogin(c.login || '');
+        setPassword('');
+        setBaseUrl(c.base_url || 'https://novosibirsk.moba.ru');
+        if (c.sync_status && c.sync_status !== 'idle') {
+          fetchStatus(c.id);
+        }
+      }
+    } catch {}
+  };
+
+  const saveConfig = async () => {
+    if (!selectedSupplierId || !login) return;
+    setSaving(true);
+    try {
+      const data: any = {
+        supplier_id: Number(selectedSupplierId),
+        login,
+        base_url: baseUrl,
+      };
+      if (password) data.password = password;
+      const c = await api.parser.config.save(data);
+      setConfig(c);
+      setPassword('');
+    } catch (err: any) { alert(err.message); }
+    finally { setSaving(false); }
+  };
+
+  const fetchStatus = (configId: number) => {
+    api.parser.status(configId).then(s => {
+      setStatus(s);
+      try { setLogEntries(JSON.parse(s.log || '[]')); } catch { setLogEntries([]); }
+      if (s.status === 'parsing' || s.status === 'placing') {
+        const iv = setInterval(() => {
+          api.parser.status(configId).then(s2 => {
+            setStatus(s2);
+            try { setLogEntries(JSON.parse(s2.log || '[]')); } catch {}
+            if (s2.status !== 'parsing' && s2.status !== 'placing') {
+              clearInterval(iv);
+              setStatusInterval(null);
+              api.invalidate('/purchases');
+            }
+          }).catch(() => {});
+        }, 2000);
+        setStatusInterval(iv);
+      }
+    }).catch(() => {});
+  };
+
+  const runParse = async () => {
+    if (!config) return;
+    try {
+      await api.parser.run(config.id, 'parse_catalog');
+      fetchStatus(config.id);
+    } catch (err: any) { alert(err.message); }
+  };
+
+  const statusColor = (s: string) => {
+    switch (s) {
+      case 'idle': return 'var(--text-secondary)';
+      case 'parsing': case 'placing': return '#3b82f6';
+      case 'done': return '#10b981';
+      case 'error': return '#ef4444';
+      default: return 'var(--text-secondary)';
+    }
+  };
+
+  const statusLabel = (s: string) => {
+    switch (s) {
+      case 'idle': return 'Ожидание';
+      case 'parsing': return 'Парсинг каталога...';
+      case 'placing': return 'Оформление заказа...';
+      case 'done': return 'Завершено';
+      case 'error': return 'Ошибка';
+      default: return s;
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Парсер поставщика</h3>
+        <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+          Автоматический парсинг каталога и оформление заказов через аккаунт поставщика
+        </p>
+      </div>
+
+      <div>
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: 'var(--text-secondary)' }}>Поставщик</label>
+        <select value={selectedSupplierId} onChange={e => selectSupplier(e.target.value ? Number(e.target.value) : '')}
+          className="w-full px-3.5 py-3 rounded-xl text-sm"
+          style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}>
+          <option value="">Выберите поставщика</option>
+          {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+      </div>
+
+      {selectedSupplierId && (
+        <>
+          <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border)' }}>
+            <h4 className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Подключение к MOBA.RU</h4>
+            <input value={login} onChange={e => setLogin(e.target.value)} placeholder="Логин (email)"
+              className="w-full px-3.5 py-3 rounded-xl text-sm"
+              style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+              placeholder={config ? 'Новый пароль (оставьте пустым если не меняется)' : 'Пароль'}
+              className="w-full px-3.5 py-3 rounded-xl text-sm"
+              style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
+            <input value={baseUrl} onChange={e => setBaseUrl(e.target.value)} placeholder="Базовый URL"
+              className="w-full px-3.5 py-3 rounded-xl text-sm"
+              style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
+            <button onClick={saveConfig} disabled={saving || !login}
+              className="flex items-center justify-center gap-1.5 w-full text-sm font-medium py-2.5 rounded-xl transition-colors"
+              style={{ backgroundColor: 'var(--accent)', color: 'white' }}>
+              {saving ? 'Сохранение...' : 'Сохранить настройки'}
+            </button>
+          </div>
+
+          {config && (
+            <div className="space-y-3">
+              <button onClick={runParse} disabled={status?.status === 'parsing' || status?.status === 'placing'}
+                className="flex items-center justify-center gap-2 w-full text-sm font-medium py-3 rounded-xl transition-colors disabled:opacity-50"
+                style={{ backgroundColor: '#6366f1', color: 'white' }}>
+                <Bot size={18} />
+                {status?.status === 'parsing' ? 'Парсинг...' : status?.status === 'placing' ? 'Оформление...' : 'Парсить каталог'}
+              </button>
+
+              {status && (
+                <div className="rounded-xl p-4 space-y-2" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium" style={{ color: statusColor(status.status) }}>
+                      {statusLabel(status.status)}
+                    </span>
+                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{status.progress}%</span>
+                  </div>
+                  <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                    <div className="h-full rounded-full transition-all duration-300"
+                      style={{ width: `${status.progress}%`, backgroundColor: statusColor(status.status) }} />
+                  </div>
+                  {logEntries.length > 0 && (
+                    <div className="mt-2 max-h-40 overflow-y-auto space-y-0.5">
+                      {logEntries.map((e, i) => (
+                        <p key={i} className="text-[10px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                          {new Date(e.time).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} — {e.msg}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                  {status.last_sync_at && (
+                    <p className="text-[10px] pt-1" style={{ color: 'var(--text-disabled)' }}>
+                      Последняя синхр.: {new Date(status.last_sync_at).toLocaleString('ru-RU')}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
