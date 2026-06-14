@@ -106,22 +106,39 @@ def make_progress_callback(config_id: int):
     return callback
 
 
-async def run_moba_parse_catalog(config_id: int, supplier_id: int):
-    from parsers.moba_parser import MobaParser
-
+def _load_parser_creds(config_id: int):
     app = Flask(__name__)
     app.config.from_object(Config)
     db.init_app(app)
     with app.app_context():
         config = ParserConfig.query.get(config_id)
         if not config:
-            print("Config not found")
-            return 1
+            return None
+        return {
+            "login": config.login,
+            "password": config.password,
+            "base_url": config.base_url,
+        }
 
+
+async def run_moba_parse_catalog(config_id: int, supplier_id: int):
     _update_config(config_id, sync_status="parsing", sync_progress=0, sync_log="[]")
     _append_log(config_id, "Запуск парсинга каталога MOBA...")
 
-    parser = MobaParser(config.login, config.password, config.base_url)
+    try:
+        from parsers.moba_parser import MobaParser
+    except ImportError as e:
+        _update_config(config_id, sync_status="error")
+        _append_log(config_id, f"Ошибка: не удалось загрузить модуль парсера (проверьте установку Playwright): {e}")
+        return 1
+
+    creds = _load_parser_creds(config_id)
+    if not creds:
+        _update_config(config_id, sync_status="error")
+        _append_log(config_id, "Конфигурация парсера не найдена")
+        return 1
+
+    parser = MobaParser(creds["login"], creds["password"], creds["base_url"])
     try:
         logged_in = await parser.login()
         if not logged_in:
@@ -143,29 +160,43 @@ async def run_moba_parse_catalog(config_id: int, supplier_id: int):
             _append_log(config_id, f"Парсинг завершён с ошибкой: {result.message}")
 
         return 0 if result.success else 1
-
     except Exception as e:
         _update_config(config_id, sync_status="error")
         _append_log(config_id, f"Критическая ошибка: {e}")
         return 1
     finally:
-        await parser.close()
+        try:
+            await parser.close()
+        except Exception:
+            pass
 
 
 async def run_moba_place_order(config_id: int, purchase_id: int):
-    from parsers.moba_parser import MobaParser
+    _update_config(config_id, sync_status="placing", sync_progress=0, sync_log="[]")
+    _append_log(config_id, f"Оформление заказа №{purchase_id} на MOBA...")
+
+    try:
+        from parsers.moba_parser import MobaParser
+    except ImportError as e:
+        _update_config(config_id, sync_status="error")
+        _append_log(config_id, f"Ошибка: не удалось загрузить модуль парсера: {e}")
+        return 1
+
+    creds = _load_parser_creds(config_id)
+    if not creds:
+        _update_config(config_id, sync_status="error")
+        _append_log(config_id, "Конфигурация парсера не найдена")
+        return 1
 
     app = Flask(__name__)
     app.config.from_object(Config)
     db.init_app(app)
     with app.app_context():
-        config = ParserConfig.query.get(config_id)
         purchase = Purchase.query.get(purchase_id)
-
-        if not config or not purchase:
-            print("Config or purchase not found")
+        if not purchase:
+            _update_config(config_id, sync_status="error")
+            _append_log(config_id, f"Заказ №{purchase_id} не найден")
             return 1
-
         items = []
         for item in purchase.items:
             items.append({
@@ -175,10 +206,7 @@ async def run_moba_place_order(config_id: int, purchase_id: int):
                 "price": float(item.price_per_unit),
             })
 
-    _update_config(config_id, sync_status="placing", sync_progress=0, sync_log="[]")
-    _append_log(config_id, f"Оформление заказа №{purchase_id} на MOBA...")
-
-    parser = MobaParser(config.login, config.password, config.base_url)
+    parser = MobaParser(creds["login"], creds["password"], creds["base_url"])
     try:
         logged_in = await parser.login()
         if not logged_in:
@@ -201,13 +229,15 @@ async def run_moba_place_order(config_id: int, purchase_id: int):
             _append_log(config_id, f"Ошибка оформления: {result.message}")
 
         return 0 if result.success else 1
-
     except Exception as e:
         _update_config(config_id, sync_status="error")
         _append_log(config_id, f"Критическая ошибка: {e}")
         return 1
     finally:
-        await parser.close()
+        try:
+            await parser.close()
+        except Exception:
+            pass
 
 
 def main():

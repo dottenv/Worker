@@ -330,6 +330,7 @@ export const api = {
         body: JSON.stringify({ config_id: configId, action, purchase_id: purchaseId || 0 }),
       }),
     status: (configId: number) => request<any>(`/purchases/parser/status?config_id=${configId}`),
+    reset: (configId: number) => request<any>('/purchases/parser/reset', { method: 'POST', body: JSON.stringify({ config_id: configId }) }),
   },
   purchases: {
     status: () => request<{ available: boolean; is_admin: boolean; purchases_enabled: boolean; is_owner: boolean }>('/purchases/status'),
@@ -343,9 +344,6 @@ export const api = {
     },
     products: {
       list: (scId: number) => request<any[]>(`/purchases/products?service_center_id=${scId}`),
-      create: (data: any) => request<any>('/purchases/products', { method: 'POST', body: JSON.stringify(data) }),
-      update: (id: number, data: any) => request<any>(`/purchases/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-      delete: (id: number) => request<any>(`/purchases/products/${id}`, { method: 'DELETE' }),
     },
     orders: {
       list: (scId?: number) => request<any[]>(`/purchases/orders${scId ? `?service_center_id=${scId}` : ''}`),

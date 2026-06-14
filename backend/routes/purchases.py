@@ -521,6 +521,11 @@ def run_parser():
     if config.sync_status in ("parsing", "placing"):
         return jsonify({"error": "Parser already running"}), 409
 
+    config.sync_status = "parsing" if action == "parse_catalog" else "placing"
+    config.sync_progress = 0
+    config.sync_log = "[]"
+    db.session.commit()
+
     worker_path = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "parsers_worker.py",
@@ -551,6 +556,24 @@ def run_parser():
         return jsonify({"error": f"Failed to start parser: {e}"}), 500
 
     return jsonify({"ok": True, "action": action})
+
+
+@purchases_bp.route("/parser/reset", methods=["POST"])
+@jwt_required()
+def reset_parser():
+    user_id = int(get_jwt_identity())
+    data = request.get_json()
+    if not data or not data.get("config_id"):
+        return jsonify({"error": "config_id required"}), 400
+    config = ParserConfig.query.get_or_404(data["config_id"])
+    supplier = Supplier.query.get(config.supplier_id)
+    if not supplier or not is_purchase_admin(user_id, supplier.service_center_id):
+        return jsonify({"error": "Access denied"}), 403
+    config.sync_status = "idle"
+    config.sync_progress = 0
+    config.sync_log = "[]"
+    db.session.commit()
+    return jsonify({"ok": True})
 
 
 @purchases_bp.route("/parser/status", methods=["GET"])

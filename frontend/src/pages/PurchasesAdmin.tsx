@@ -627,23 +627,28 @@ function ParserConfigSection({ supplierId }: { supplierId: number }) {
     finally { setSaving(false); }
   };
 
-  const fetchStatus = (configId: number) => {
-    api.parser.status(configId).then(s => {
+  const doFetchStatus = (configId: number) => {
+    api.invalidate('/purchases/parser/status');
+    return api.parser.status(configId).then(s => {
       setStatus(s);
       try { setLogEntries(JSON.parse(s.log || '[]')); } catch { setLogEntries([]); }
-      if (s.status === 'parsing' || s.status === 'placing') {
+      return s;
+    }).catch(() => null);
+  };
+
+  const fetchStatus = (configId: number) => {
+    doFetchStatus(configId).then(s => {
+      if (s && (s.status === 'parsing' || s.status === 'placing')) {
         const iv = setInterval(() => {
-          api.parser.status(configId).then(s2 => {
-            setStatus(s2);
-            try { setLogEntries(JSON.parse(s2.log || '[]')); } catch {}
-            if (s2.status !== 'parsing' && s2.status !== 'placing') {
+          doFetchStatus(configId).then(s2 => {
+            if (s2 && s2.status !== 'parsing' && s2.status !== 'placing') {
               clearInterval(iv);
               api.invalidate('/purchases');
             }
-          }).catch(() => {});
+          });
         }, 2000);
       }
-    }).catch(() => {});
+    });
   };
 
   const runParse = async () => {
@@ -651,6 +656,15 @@ function ParserConfigSection({ supplierId }: { supplierId: number }) {
     try {
       await api.parser.run(config.id, 'parse_catalog');
       fetchStatus(config.id);
+    } catch (err: any) { alert(err.message); }
+  };
+
+  const resetParser = async () => {
+    if (!config) return;
+    try {
+      await api.parser.reset(config.id);
+      setStatus(null);
+      setLogEntries([]);
     } catch (err: any) { alert(err.message); }
   };
 
@@ -715,6 +729,11 @@ function ParserConfigSection({ supplierId }: { supplierId: number }) {
                 </p>
               ))}
             </div>
+          )}
+          {status.status === 'error' && (
+            <button onClick={resetParser} className="text-[10px] font-medium mt-1" style={{ color: '#ef4444' }}>
+              Сбросить статус
+            </button>
           )}
         </div>
       )}
