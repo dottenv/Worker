@@ -1,9 +1,19 @@
 import asyncio
+import os
 import re
+import shutil
 from typing import Optional, Callable
 from playwright.async_api import async_playwright, Page, Browser
 
 from parsers.base import BaseParser, ParseResult
+
+
+def _find_chromium() -> Optional[str]:
+    for name in ("chromium", "chromium-browser", "google-chrome", "google-chrome-stable"):
+        path = shutil.which(name)
+        if path:
+            return path
+    return None
 
 
 class MobaParser(BaseParser):
@@ -14,8 +24,12 @@ class MobaParser(BaseParser):
 
     async def _ensure_browser(self):
         if not self.browser:
+            chromium_path = _find_chromium()
             p = await async_playwright().start()
-            self.browser = await p.chromium.launch(headless=True)
+            launch_kwargs = {"headless": True}
+            if chromium_path:
+                launch_kwargs["executable_path"] = chromium_path
+            self.browser = await p.chromium.launch(**launch_kwargs)
             self.page = await self.browser.new_page()
             self.page.set_default_timeout(30000)
 
