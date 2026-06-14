@@ -8,6 +8,7 @@ import {
   Bell,
   Settings,
   FileText,
+  ShoppingCart,
 } from 'lucide-react';
 
 export interface NavItemDef {
@@ -17,6 +18,7 @@ export interface NavItemDef {
   path: string;
   requiresOwner?: boolean;
   requiresFinance?: boolean;
+  requiresPurchases?: boolean;
   requiresAdmin?: boolean;
   hideForOwner?: boolean;
 }
@@ -29,6 +31,8 @@ export const ALL_NAV_ITEMS: NavItemDef[] = [
   { id: 'time_requests',     label: 'Запросы',             icon: Clock,       path: '/time-requests',     requiresOwner: true },
   { id: 'finance',           label: 'Финансы',             icon: Wallet,      path: '/finance',            requiresFinance: true, hideForOwner: true },
   { id: 'finance_admin',     label: 'Финансы (админ)',     icon: Wallet,      path: '/finance/admin',      requiresAdmin: true, requiresFinance: true },
+  { id: 'purchases',         label: 'Закупки',             icon: ShoppingCart, path: '/purchases',          requiresPurchases: true, hideForOwner: true },
+  { id: 'purchases_admin',   label: 'Закупки (админ)',     icon: ShoppingCart, path: '/purchases/admin',    requiresAdmin: true, requiresPurchases: true },
   { id: 'shift_documents',   label: 'Документы смен',      icon: FileText,    path: '/shift-documents' },
   { id: 'notifications',     label: 'Уведомления',         icon: Bell,        path: '/notifications' },
   { id: 'settings',          label: 'Настройки',           icon: Settings,    path: '/settings' },
@@ -40,10 +44,12 @@ export function getAvailableItems(
   isOwner: boolean,
   isAdmin: boolean,
   financeAvailable: boolean,
+  purchasesAvailable: boolean,
 ): NavItemDef[] {
   return ALL_NAV_ITEMS.filter((item) => {
     if (item.requiresOwner && !isOwner) return false;
     if (item.requiresFinance && !financeAvailable) return false;
+    if (item.requiresPurchases && !purchasesAvailable) return false;
     if (item.requiresAdmin && !isOwner && !isAdmin) return false;
     if (item.hideForOwner && isOwner) return false;
     return true;

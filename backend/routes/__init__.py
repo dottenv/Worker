@@ -13,6 +13,7 @@ from .shift_documents import shift_documents_bp
 from .vapid import vapid_bp
 from .settings import settings_bp
 from .update import update_bp
+from .purchases import purchases_bp
 __all__ = [
     "auth_bp",
     "service_centers_bp",
@@ -29,4 +30,5 @@ __all__ = [
     "vapid_bp",
     "settings_bp",
     "update_bp",
+    "purchases_bp",
 ]

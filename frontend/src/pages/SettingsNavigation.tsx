@@ -11,6 +11,7 @@ export default function SettingsNavigation() {
   const [navSaving, setNavSaving] = useState(false);
   const [navMessage, setNavMessage] = useState('');
   const [financeAvailable, setFinanceAvailable] = useState(false);
+  const [purchasesAvailable, setPurchasesAvailable] = useState(false);
 
   useEffect(() => {
     if (!user?.nav_config?.pinned) return;
@@ -19,11 +20,12 @@ export default function SettingsNavigation() {
 
   useEffect(() => {
     api.get('/finance/status').then(r => setFinanceAvailable(r.available)).catch(() => {});
+    api.get('/purchases/status').then(r => setPurchasesAvailable(r.available)).catch(() => {});
   }, []);
 
   if (!user) return <LoadingSpinner />;
 
-  const availableItems = getAvailableItems(isOwner, isAdmin, financeAvailable);
+  const availableItems = getAvailableItems(isOwner, isAdmin, financeAvailable, purchasesAvailable);
 
   return (
     <div className="space-y-6">

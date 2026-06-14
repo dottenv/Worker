@@ -319,6 +319,30 @@ export const api = {
     delete: (docId: number) =>
       request<any>(`/shift-documents/${docId}`, { method: 'DELETE' }),
   },
+  purchases: {
+    status: () => request<{ available: boolean; is_admin: boolean; purchases_enabled: boolean; is_owner: boolean }>('/purchases/status'),
+    toggle: (enabled: boolean) =>
+      request<{ purchases_enabled: boolean }>('/purchases/toggle', { method: 'PUT', body: JSON.stringify({ enabled }) }),
+    suppliers: {
+      list: (scId: number) => request<any[]>(`/purchases/suppliers?service_center_id=${scId}`),
+      create: (data: any) => request<any>('/purchases/suppliers', { method: 'POST', body: JSON.stringify(data) }),
+      update: (id: number, data: any) => request<any>(`/purchases/suppliers/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+      delete: (id: number) => request<any>(`/purchases/suppliers/${id}`, { method: 'DELETE' }),
+    },
+    products: {
+      list: (scId: number) => request<any[]>(`/purchases/products?service_center_id=${scId}`),
+      create: (data: any) => request<any>('/purchases/products', { method: 'POST', body: JSON.stringify(data) }),
+      update: (id: number, data: any) => request<any>(`/purchases/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+      delete: (id: number) => request<any>(`/purchases/products/${id}`, { method: 'DELETE' }),
+    },
+    orders: {
+      list: (scId?: number) => request<any[]>(`/purchases/orders${scId ? `?service_center_id=${scId}` : ''}`),
+      get: (id: number) => request<any>(`/purchases/orders/${id}`),
+      create: (data: any) => request<any>('/purchases/orders', { method: 'POST', body: JSON.stringify(data) }),
+      update: (id: number, data: any) => request<any>(`/purchases/orders/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+      delete: (id: number) => request<any>(`/purchases/orders/${id}`, { method: 'DELETE' }),
+    },
+  },
   update: {
     check: (current: string) =>
       request<{ current: string; latest: string; behind: number; commits: any[]; update_available: boolean }>(

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  Wallet, CheckCircle2, AlertCircle, Zap
+  Wallet, ShoppingCart, CheckCircle2, AlertCircle, Zap
 } from 'lucide-react';
 import { api } from '../api/client';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -14,6 +14,13 @@ const MODULES = [
     description: 'Управление балансом, операциями и детализацией по сотрудникам',
     features: ['Просмотр баланса', 'История операций', 'Авансы и выплаты', 'Корректировки'],
   },
+  {
+    id: 'purchases',
+    name: 'Закупки',
+    icon: ShoppingCart,
+    description: 'Управление закупками товаров у поставщиков',
+    features: ['Поставщики', 'Товары и номенклатура', 'Заказы поставщикам', 'Статусы заказов'],
+  },
 ];
 
 export default function Modules() {
@@ -21,11 +28,14 @@ export default function Modules() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
-  const [localFinance, setLocalFinance] = useState(false);
+  const [moduleStates, setModuleStates] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (user) {
-      setLocalFinance(user.finance_enabled || false);
+      setModuleStates({
+        finance: user.finance_enabled || false,
+        purchases: (user as any).purchases_enabled || false,
+      });
     }
   }, [user]);
 
@@ -47,8 +57,11 @@ export default function Modules() {
     setMessage('');
     try {
       if (moduleId === 'finance') {
-        await api.finance.toggle(!enabled);
-        setLocalFinance(!enabled);
+        const res = await api.finance.toggle(!enabled);
+        setModuleStates(prev => ({ ...prev, finance: res.finance_enabled }));
+      } else if (moduleId === 'purchases') {
+        const res = await api.purchases.toggle(!enabled);
+        setModuleStates(prev => ({ ...prev, purchases: res.purchases_enabled }));
       }
       setIsSuccess(true);
       setMessage('Сохранено');
@@ -73,7 +86,7 @@ export default function Modules() {
         <div>
           <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Активные модули</p>
           <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-            {[localFinance].filter(Boolean).length} / {MODULES.length}
+            {Object.values(moduleStates).filter(Boolean).length} / {MODULES.length}
           </p>
         </div>
       </div>
@@ -81,7 +94,7 @@ export default function Modules() {
       <div className="space-y-3">
         {MODULES.map((module) => {
           const Icon = module.icon;
-          const enabled = localFinance;
+          const enabled = moduleStates[module.id] || false;
 
           return (
             <div key={module.id}

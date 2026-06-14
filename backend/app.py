@@ -9,14 +9,15 @@ from extensions import db, jwt, socketio
 from models import (User, ServiceCenter, ServiceCenterMember, Shift,
                     ScheduleEntry, SwapRequest, PushSubscription,
                     Notification, FinanceOperation, TimeEntry,
-                    CustomField, CustomFieldValue, ShiftDocument)
+                    CustomField, CustomFieldValue, ShiftDocument,
+                    Supplier, Product, Purchase, PurchaseItem)
 from models.user import USER_COLORS
 import random
 from routes import (auth_bp, service_centers_bp, members_bp, shifts_bp,
                     schedule_bp, swaps_bp, push_bp, notifications_bp,
                     finance_bp, time_entries_bp,
                     custom_fields_bp, shift_documents_bp, vapid_bp,
-                    settings_bp, update_bp)
+                    settings_bp, update_bp, purchases_bp)
 from socket_events import register_socket_handlers
 
 
@@ -44,6 +45,7 @@ def create_app():
     app.register_blueprint(vapid_bp)
     app.register_blueprint(settings_bp)
     app.register_blueprint(update_bp)
+    app.register_blueprint(purchases_bp)
 
     with app.app_context():
         db.create_all()
@@ -56,6 +58,7 @@ def create_app():
             ("push_sound", "BOOLEAN DEFAULT 1"),
             ("push_prefs", "TEXT DEFAULT ''"),
             ("nav_config", "TEXT DEFAULT ''"),
+            ("purchases_enabled", "BOOLEAN DEFAULT 0"),
         ]:
             try:
                 db.session.execute(db.text(f'ALTER TABLE users ADD COLUMN {col} {spec}'))
@@ -141,6 +144,47 @@ def create_app():
                 "value TEXT DEFAULT ''"
             ),
             (
+                "suppliers",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                "service_center_id INTEGER NOT NULL REFERENCES service_centers(id), "
+                "name VARCHAR(200) NOT NULL, "
+                "contact_person VARCHAR(200) DEFAULT '', "
+                "phone VARCHAR(50) DEFAULT '', "
+                "email VARCHAR(120) DEFAULT '', "
+                "address VARCHAR(300) DEFAULT '', "
+                "notes TEXT DEFAULT '', "
+                "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
+            ),
+            (
+                "products",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                "service_center_id INTEGER NOT NULL REFERENCES service_centers(id), "
+                "name VARCHAR(200) NOT NULL, "
+                "unit VARCHAR(20) DEFAULT 'шт', "
+                "default_price NUMERIC(12,2) DEFAULT 0, "
+                "description TEXT DEFAULT '', "
+                "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
+            ),
+            (
+                "purchases",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                "service_center_id INTEGER NOT NULL REFERENCES service_centers(id), "
+                "supplier_id INTEGER NOT NULL REFERENCES suppliers(id), "
+                "user_id INTEGER NOT NULL REFERENCES users(id), "
+                "status VARCHAR(20) NOT NULL DEFAULT 'draft', "
+                "notes TEXT DEFAULT '', "
+                "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, "
+                "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
+            ),
+            (
+                "purchase_items",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                "purchase_id INTEGER NOT NULL REFERENCES purchases(id), "
+                "product_id INTEGER NOT NULL REFERENCES products(id), "
+                "quantity NUMERIC(12,2) NOT NULL DEFAULT 1, "
+                "price_per_unit NUMERIC(12,2) NOT NULL DEFAULT 0"
+            ),
+            (
                 "shift_documents",
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                 "time_entry_id INTEGER NOT NULL REFERENCES time_entries(id), "
@@ -162,6 +206,11 @@ def create_app():
             "CREATE INDEX IF NOT EXISTS ix_custom_fields_sc ON custom_fields(service_center_id)",
             "CREATE INDEX IF NOT EXISTS ix_custom_field_values_te ON custom_field_values(time_entry_id)",
             "CREATE INDEX IF NOT EXISTS ix_shift_documents_te ON shift_documents(time_entry_id)",
+            "CREATE INDEX IF NOT EXISTS ix_suppliers_sc ON suppliers(service_center_id)",
+            "CREATE INDEX IF NOT EXISTS ix_products_sc ON products(service_center_id)",
+            "CREATE INDEX IF NOT EXISTS ix_purchases_sc ON purchases(service_center_id)",
+            "CREATE INDEX IF NOT EXISTS ix_purchases_user ON purchases(user_id)",
+            "CREATE INDEX IF NOT EXISTS ix_purchase_items_purchase ON purchase_items(purchase_id)",
         ]:
             try:
                 db.session.execute(db.text(idx_ddl))

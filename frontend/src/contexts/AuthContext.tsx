@@ -10,6 +10,7 @@ interface User {
   push_sound?: boolean;
   push_prefs?: Record<string, boolean>;
   finance_enabled?: boolean;
+  purchases_enabled?: boolean;
   is_superuser?: boolean;
   nav_config?: { pinned?: string[] };
 }

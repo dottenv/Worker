@@ -35,6 +35,8 @@ import ShiftManager from './pages/ShiftManager';
 import ShiftDocuments from './pages/ShiftDocuments';
 import ShiftDocumentsList from './pages/ShiftDocumentsList';
 import CustomFieldManager from './pages/CustomFieldManager';
+import Purchases from './pages/Purchases';
+import PurchasesAdmin from './pages/PurchasesAdmin';
 import LoadingSpinner from './components/LoadingSpinner';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -82,6 +84,10 @@ function HeaderSync() {
       setBack('/');
     } else if (/^\/profile\/\d+$/.test(path)) {
       setBack('/');
+    } else if (path === '/purchases') {
+      setBack(null);
+    } else if (path === '/purchases/admin') {
+      setBack('/purchases', 'Закупки');
     } else if (path === '/shift-documents') {
       setBack(null);
     } else if (/^\/shift-documents\/\d+$/.test(path)) {
@@ -166,6 +172,8 @@ function AppRoutes() {
         <Route path="notifications" element={<Notifications />} />
         <Route path="finance" element={<Finance />} />
         <Route path="finance/admin" element={<FinanceAdmin />} />
+        <Route path="purchases" element={<Purchases />} />
+        <Route path="purchases/admin" element={<PurchasesAdmin />} />
         <Route path="time-requests" element={<TimeRequests />} />
         <Route path="shift-documents" element={<ShiftDocumentsList />} />
         <Route path="shift-documents/:entryId" element={<ShiftDocuments />} />

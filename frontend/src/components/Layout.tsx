@@ -62,17 +62,21 @@ export default function Layout() {
   const { state } = useHeader();
   const location = useLocation();
   const [financeAvailable, setFinanceAvailable] = useState(false);
+  const [purchasesAvailable, setPurchasesAvailable] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     api.get('/finance/status').then(res => {
       setFinanceAvailable(res.available);
     }).catch(() => {});
+    api.get('/purchases/status').then(res => {
+      setPurchasesAvailable(res.available);
+    }).catch(() => {});
   }, []);
 
   const availableItems = useMemo(
-    () => getAvailableItems(isOwner, isAdmin, financeAvailable),
-    [isOwner, isAdmin, financeAvailable]
+    () => getAvailableItems(isOwner, isAdmin, financeAvailable, purchasesAvailable),
+    [isOwner, isAdmin, financeAvailable, purchasesAvailable]
   );
 
   const pinnedIds = user?.nav_config?.pinned?.length

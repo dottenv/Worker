@@ -34,6 +34,7 @@ class User(db.Model):
 
     is_superuser = db.Column(db.Boolean, default=False)
     finance_enabled = db.Column(db.Boolean, default=False)
+    purchases_enabled = db.Column(db.Boolean, default=False)
     messenger_enabled = db.Column(db.Boolean, default=False)
     push_sound = db.Column(db.Boolean, default=True)
     push_prefs = db.Column(db.Text, default='')  # JSON: {"swap_created":true,"schedule_update":true,...}
@@ -72,6 +73,7 @@ class User(db.Model):
             "color": self.color,
             "is_superuser": self.is_superuser,
             "finance_enabled": self.finance_enabled,
+            "purchases_enabled": self.purchases_enabled,
             "messenger_enabled": self.messenger_enabled,
             "push_sound": self.push_sound,
             "push_prefs": prefs,
