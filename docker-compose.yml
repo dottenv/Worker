@@ -32,6 +32,7 @@ services:
       - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
       - BASE_URL=${BASE_URL:-}
       - UPDATE_REPO_PATH=/repo
+      - GUNICORN_WORKER_CLASS=sync # или gevent
     networks:
       - app_network
     logging:
