@@ -666,6 +666,8 @@ def widget_schedule():
     if not sc:
         return jsonify({"error": "Service center not found"}), 404
 
+    sc_id = sc.id
+
     # ensure a share token exists (for encrypted links)
     if not sc.widget_token:
         sc.widget_token = _secrets.token_hex(16)
