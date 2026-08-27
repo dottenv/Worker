@@ -38,6 +38,7 @@ import CustomFieldManager from './pages/CustomFieldManager';
 import Purchases from './pages/Purchases';
 import PurchasesAdmin from './pages/PurchasesAdmin';
 import Modules from './pages/Modules';
+import ScheduleWidget from './pages/ScheduleWidget';
 import LoadingSpinner from './components/LoadingSpinner';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -188,8 +189,9 @@ function AppRoutes() {
         <Route path="settings/modules" element={<Modules />} />
         <Route path="settings/notifications" element={<SettingsNotifications />} />
         <Route path="profile/:userId" element={<UserProfile />} />
-  
+   
       </Route>
+      <Route path="/widget/:scId" element={<ScheduleWidget />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

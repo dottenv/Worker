@@ -5,7 +5,7 @@ from models.finance_operation import FinanceOperation
 from extensions import db
 from datetime import date, time, datetime, timedelta
 import json
-from socket_events import emit_finance_event, emit_to_users
+from socket_events import emit_finance_event, emit_to_users, emit_widget_event
 from helpers import get_current_user, is_manager, get_center_owner, is_finance_enabled_for_center, schedule_payment_exists, compute_schedule_amount
 
 schedule_bp = Blueprint("schedule", __name__, url_prefix="/api/schedule")
@@ -247,6 +247,7 @@ def create_entry():
         admin_ids = [m.user_id for m in admins if m.user_id != int(target_user_id)]
         if admin_ids:
             emit_to_users(admin_ids, "schedule:updated", {})
+        emit_widget_event(sc_id, "schedule:updated", {"service_center_id": sc_id})
     except Exception:
         pass
 
@@ -344,6 +345,7 @@ def copy_schedule():
         affected_user_ids = set(e.user_id for e in source_entries)
         for uid in affected_user_ids:
             emit_to_users([uid], "schedule:updated", {})
+        emit_widget_event(sc_id, "schedule:updated", {"service_center_id": sc_id})
     except Exception as e:
         current_app.logger.error("Failed to emit schedule:updated after copy: %s", e)
 
@@ -457,6 +459,7 @@ def update_entry(entry_id):
         admin_ids = [m.user_id for m in admins if m.user_id != int(entry.user_id)]
         if admin_ids:
             emit_to_users(admin_ids, "schedule:updated", {})
+        emit_widget_event(entry.service_center_id, "schedule:updated", {"service_center_id": entry.service_center_id})
     except Exception as e:
         current_app.logger.error("Failed to emit schedule:updated after entry update: %s", e)
 
@@ -494,6 +497,7 @@ def delete_entry(entry_id):
         admin_ids = [m.user_id for m in admins if m.user_id != int(target_user_id)]
         if admin_ids:
             emit_to_users(admin_ids, "schedule:updated", {})
+        emit_widget_event(sc_id, "schedule:updated", {"service_center_id": sc_id})
     except Exception as e:
         current_app.logger.error("Failed to emit schedule:updated after entry deletion: %s", e)
 
@@ -539,6 +543,12 @@ def bulk_delete_entries():
             emit_to_users([uid], "schedule:updated", {})
         except Exception:
             pass
+
+    try:
+        for sc_id in sc_ids:
+            emit_widget_event(sc_id, "schedule:updated", {"service_center_id": sc_id})
+    except Exception:
+        pass
 
     for sc_id in sc_ids:
         try:
@@ -636,3 +646,75 @@ def available_dates():
         d += timedelta(days=1)
 
     return jsonify(free), 200
+
+
+# ---- Public: read-only schedule widget (no auth) ----
+
+@schedule_bp.route("/widget", methods=["GET"])
+def widget_schedule():
+    """Public, read-only schedule for a service center (display widget)."""
+    sc_id = request.args.get("service_center_id", type=int)
+    if not sc_id:
+        return jsonify({"error": "service_center_id is required"}), 400
+
+    sc = ServiceCenter.query.get(sc_id)
+    if not sc:
+        return jsonify({"error": "Service center not found"}), 404
+
+    date_from = request.args.get("from")
+    date_to = request.args.get("to")
+
+    query = ScheduleEntry.query.filter_by(service_center_id=sc_id)
+    if date_from:
+        try:
+            query = query.filter(ScheduleEntry.date >= date.fromisoformat(date_from))
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid from"}), 400
+    if date_to:
+        try:
+            query = query.filter(ScheduleEntry.date <= date.fromisoformat(date_to))
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid to"}), 400
+
+    entries = query.order_by(ScheduleEntry.date).all()
+
+    members = (
+        ServiceCenterMember.query.filter_by(service_center_id=sc_id, is_active=True)
+        .order_by(ServiceCenterMember.role.desc())
+        .all()
+    )
+    employees = []
+    by_user = {}
+    for m in members:
+        emp = {
+            "user_id": m.user_id,
+            "user_name": m.user.full_name,
+            "user_color": m.user.color or '',
+            "role": m.role,
+            "entries": [],
+        }
+        employees.append(emp)
+        by_user[m.user_id] = emp
+
+    for e in entries:
+        if e.user_id in by_user:
+            by_user[e.user_id]["entries"].append(e.to_dict())
+        else:
+            emp = {
+                "user_id": e.user_id,
+                "user_name": e.user_name or f"User {e.user_id}",
+                "user_color": e.user_color or '',
+                "role": "",
+                "entries": [e.to_dict()],
+            }
+            employees.append(emp)
+            by_user[e.user_id] = emp
+
+    return jsonify({
+        "service_center": {
+            "id": sc.id,
+            "name": sc.name,
+            "address": sc.address or '',
+        },
+        "employees": employees,
+    }), 200

@@ -295,6 +295,17 @@ export default function CenterDetail() {
         <Calendar size={16} />
         Открыть график
       </Link>
+      {['owner', 'admin'].includes(center.role) && (
+        <Link
+          to={`/widget/${id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 bg-gray-900 text-white py-3 rounded-2xl text-sm font-medium hover:bg-black transition-colors shadow-sm"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          Виджет графика
+        </Link>
+      )}
 
       {showEdit && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-end sm:items-center justify-center z-20 p-5 animate-modal-overlay">

@@ -15,19 +15,35 @@ def register_socket_handlers(socketio):
         elif request.args.get("token"):
             token = request.args.get("token")
 
-        if not token:
-            return False
+        if token:
+            try:
+                decoded = decode_token(token)
+                user_id = decoded["sub"]
+                was_offline = user_id not in user_sids
+                user_sids[user_id] = request.sid
+                join_room(f"user_{user_id}")
+                if was_offline:
+                    emit_swap_event(user_id, "user:online", {"user_id": user_id, "online": True})
+            except Exception:
+                return False
+        # anonymous connections are allowed (e.g. public schedule widget)
+        return True
 
-        try:
-            decoded = decode_token(token)
-            user_id = decoded["sub"]
-            was_offline = user_id not in user_sids
-            user_sids[user_id] = request.sid
-            join_room(f"user_{user_id}")
-            if was_offline:
-                emit_swap_event(user_id, "user:online", {"user_id": user_id, "online": True})
-        except Exception:
-            return False
+    @socketio.on("widget:join")
+    def handle_widget_join(data):
+        if not isinstance(data, dict):
+            return
+        sc_id = data.get("service_center_id")
+        if sc_id is not None:
+            join_room(f"widget_{sc_id}")
+
+    @socketio.on("widget:leave")
+    def handle_widget_leave(data):
+        if not isinstance(data, dict):
+            return
+        sc_id = data.get("service_center_id")
+        if sc_id is not None:
+            leave_room(f"widget_{sc_id}")
 
     @socketio.on("disconnect")
     def handle_disconnect():
@@ -63,6 +79,15 @@ def emit_to_users(user_ids, event, data):
         from extensions import socketio as sio
         for uid in user_ids:
             sio.emit(event, data, room=f"user_{uid}")
+    except Exception:
+        pass
+
+
+def emit_widget_event(service_center_id, event, data):
+    """Emit a socket event to the public widget room of a service center."""
+    try:
+        from extensions import socketio as sio
+        sio.emit(event, data, room=f"widget_{service_center_id}")
     except Exception:
         pass
 
