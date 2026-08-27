@@ -1,7 +1,7 @@
 from flask import request
 from flask_socketio import join_room, leave_room
 from flask_jwt_extended import decode_token
-from models import User
+from models import User, ServiceCenter
 
 user_sids = {}
 
@@ -34,6 +34,11 @@ def register_socket_handlers(socketio):
         if not isinstance(data, dict):
             return
         sc_id = data.get("service_center_id")
+        token = data.get("token")
+        if sc_id is None and token:
+            sc = ServiceCenter.query.filter_by(widget_token=token).first()
+            if sc:
+                sc_id = sc.id
         if sc_id is not None:
             join_room(f"widget_{sc_id}")
 
@@ -42,6 +47,11 @@ def register_socket_handlers(socketio):
         if not isinstance(data, dict):
             return
         sc_id = data.get("service_center_id")
+        token = data.get("token")
+        if sc_id is None and token:
+            sc = ServiceCenter.query.filter_by(widget_token=token).first()
+            if sc:
+                sc_id = sc.id
         if sc_id is not None:
             leave_room(f"widget_{sc_id}")
 

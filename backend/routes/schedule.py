@@ -653,13 +653,23 @@ def available_dates():
 @schedule_bp.route("/widget", methods=["GET"])
 def widget_schedule():
     """Public, read-only schedule for a service center (display widget)."""
-    sc_id = request.args.get("service_center_id", type=int)
-    if not sc_id:
-        return jsonify({"error": "service_center_id is required"}), 400
+    import secrets as _secrets
 
-    sc = ServiceCenter.query.get(sc_id)
+    token = request.args.get("token")
+    sc = None
+    if token:
+        sc = ServiceCenter.query.filter_by(widget_token=token).first()
+    if not sc:
+        sc_id = request.args.get("service_center_id", type=int)
+        if sc_id:
+            sc = ServiceCenter.query.get(sc_id)
     if not sc:
         return jsonify({"error": "Service center not found"}), 404
+
+    # ensure a share token exists (for encrypted links)
+    if not sc.widget_token:
+        sc.widget_token = _secrets.token_hex(16)
+        db.session.commit()
 
     date_from = request.args.get("from")
     date_to = request.args.get("to")

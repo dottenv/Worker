@@ -21,7 +21,7 @@ function fmtLocal(d: Date): string {
 }
 
 export default function ScheduleWidget() {
-  const { scId } = useParams<{ scId: string }>();
+  const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [monthOffset, setMonthOffset] = useState(0);
@@ -42,14 +42,14 @@ export default function ScheduleWidget() {
   const todayStr = fmtLocal(today);
 
   const load = () => {
-    if (!scId) return;
+    if (!token) return;
     setLoading(true);
     const from = days[0];
     const to = days[days.length - 1];
-    const token = localStorage.getItem('token');
+    const authToken = localStorage.getItem('token');
     fetch(
-      `/api/schedule/widget?service_center_id=${scId}&from=${from}&to=${to}`,
-      { headers: token ? { Authorization: `Bearer ${token}` } : undefined }
+      `/api/schedule/widget?token=${encodeURIComponent(token)}&from=${from}&to=${to}`,
+      { headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined }
     )
       .then((r) => r.json())
       .then(setData)
@@ -60,11 +60,11 @@ export default function ScheduleWidget() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scId, monthOffset]);
+  }, [token, monthOffset]);
 
   // real-time socket (anonymous public connection)
   useEffect(() => {
-    if (!scId) return;
+    if (!token) return;
     const s = io(window.location.origin, {
       path: '/socket.io',
       transports: ['websocket', 'polling'],
@@ -74,7 +74,7 @@ export default function ScheduleWidget() {
     socketRef.current = s;
     s.on('connect', () => {
       setConnected(true);
-      s.emit('widget:join', { service_center_id: Number(scId) });
+      s.emit('widget:join', { token });
     });
     s.on('disconnect', () => setConnected(false));
     s.on('connect_error', () => setConnected(false));
@@ -82,7 +82,7 @@ export default function ScheduleWidget() {
 
     return () => {
       try {
-        s.emit('widget:leave', { service_center_id: Number(scId) });
+        s.emit('widget:leave', { token });
         s.removeAllListeners();
         s.disconnect();
       } catch {
@@ -91,7 +91,7 @@ export default function ScheduleWidget() {
       socketRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scId]);
+  }, [token]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {

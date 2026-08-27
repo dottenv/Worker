@@ -191,7 +191,7 @@ function AppRoutes() {
         <Route path="profile/:userId" element={<UserProfile />} />
    
       </Route>
-      <Route path="/widget/:scId" element={<ScheduleWidget />} />
+      <Route path="/widget/:token" element={<ScheduleWidget />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

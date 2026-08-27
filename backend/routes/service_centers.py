@@ -1,4 +1,5 @@
 import os
+import secrets
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required
 from models import (
@@ -52,6 +53,7 @@ def create_center():
         name=data["name"],
         description=data.get("description", ""),
         owner_id=user.id,
+        widget_token=secrets.token_hex(16),
     )
     db.session.add(sc)
     db.session.flush()

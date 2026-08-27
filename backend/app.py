@@ -2,6 +2,7 @@ from gevent import monkey
 monkey.patch_all()
 
 import os
+import secrets
 from flask import Flask
 from flask_cors import CORS
 from config import Config
@@ -220,6 +221,18 @@ def create_app():
                 db.session.rollback()
         try:
             db.session.execute(db.text('ALTER TABLE products ADD COLUMN supplier_id INTEGER REFERENCES suppliers(id)'))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+        try:
+            db.session.execute(db.text('ALTER TABLE service_centers ADD COLUMN widget_token VARCHAR(64)'))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+        # backfill widget tokens for existing centers
+        try:
+            for sc in ServiceCenter.query.filter_by(widget_token=None).all():
+                sc.widget_token = secrets.token_hex(16)
             db.session.commit()
         except Exception:
             db.session.rollback()

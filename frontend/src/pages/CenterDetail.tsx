@@ -295,9 +295,9 @@ export default function CenterDetail() {
         <Calendar size={16} />
         Открыть график
       </Link>
-      {['owner', 'admin'].includes(center.role) && (
+      {['owner', 'admin'].includes(center.role) && center.widget_token && (
         <Link
-          to={`/widget/${id}`}
+          to={`/widget/${center.widget_token}`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 bg-gray-900 text-white py-3 rounded-2xl text-sm font-medium hover:bg-black transition-colors shadow-sm"

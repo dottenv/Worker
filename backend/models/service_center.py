@@ -11,6 +11,7 @@ class ServiceCenter(db.Model):
     address = db.Column(db.String(300), default='')
     phone = db.Column(db.String(20), default='')
     owner_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    widget_token = db.Column(db.String(64), unique=True, nullable=True)
     created_at = db.Column(
         db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
     )
@@ -29,5 +30,6 @@ class ServiceCenter(db.Model):
             "phone": self.phone or '',
             "owner_id": self.owner_id,
             "created_at": self.created_at.isoformat(),
+            "widget_token": self.widget_token or '',
             "members_count": self.members.count(),
         }
