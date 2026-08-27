@@ -22,7 +22,6 @@ import {
 } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ScheduleDetailModal from '../components/ScheduleDetailModal';
-import AdminHistoryWidget from '../components/AdminHistoryWidget';
 
 const PATTERNS = [
   { label: '2/2', work: 2, rest: 2 },
@@ -34,8 +33,9 @@ const PATTERNS = [
   { label: '3/1', work: 3, rest: 1 },
 ];
 const DAY_NAMES = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+const MONTH_NAMES = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 const STORAGE_VIEW_KEY = 'adminScheduleViewMode';
-type ViewMode = 'week' | 'month';
+type ViewMode = 'week' | 'month' | 'year';
 
 function generateDates(workDays: number, restDays: number, start: string, end: string): string[] {
   const dates: string[] = [];
@@ -69,6 +69,7 @@ export default function AdminSchedule() {
   );
   const [weekOffset, setWeekOffset] = useState(0);
   const [monthOffset, setMonthOffset] = useState(0);
+  const [yearOffset, setYearOffset] = useState(0);
 
   const [scId, setScId] = useState('');
   const [userId, setUserId] = useState('');
@@ -140,15 +141,23 @@ export default function AdminSchedule() {
   }
   const days = viewMode === 'week' ? weekDays : monthDays;
 
+  const yearDate = new Date(today.getFullYear() + yearOffset, 0, 1);
+  const yearLabel = `${yearDate.getFullYear()} год`;
+
   const loadData = async () => {
     setLoading(true);
     try {
       let from: string, to: string;
       if (viewMode === 'week') {
         from = weekDays[0]; to = weekDays[6];
-      } else {
+      } else if (viewMode === 'month') {
         const first = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
         const last = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+        from = formatLocal(first);
+        to = formatLocal(last);
+      } else {
+        const first = new Date(yearDate.getFullYear(), 0, 1);
+        const last = new Date(yearDate.getFullYear(), 11, 31);
         from = formatLocal(first);
         to = formatLocal(last);
       }
@@ -304,7 +313,9 @@ export default function AdminSchedule() {
 
   const headerLabel = viewMode === 'week'
     ? `${new Date(weekDays[0]).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} – ${new Date(weekDays[6]).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`
-    : monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+    : viewMode === 'month'
+      ? monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)
+      : yearLabel;
 
   return (
     <div className="space-y-5">
@@ -619,15 +630,19 @@ export default function AdminSchedule() {
           className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${
             viewMode === 'month' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
           }`}>Месяц</button>
+        <button onClick={() => { setViewMode('year'); localStorage.setItem(STORAGE_VIEW_KEY, 'year'); }}
+          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${
+            viewMode === 'year' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+          }`}>Год</button>
       </div>
 
       <div className="flex items-center justify-between bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
-        <button onClick={() => viewMode === 'week' ? setWeekOffset(p => p - 1) : setMonthOffset(p => p - 1)}
+        <button onClick={() => viewMode === 'week' ? setWeekOffset(p => p - 1) : viewMode === 'month' ? setMonthOffset(p => p - 1) : setYearOffset(p => p - 1)}
           className="p-1.5 rounded-lg hover:bg-gray-50 text-gray-400 hover:text-indigo-600">
           <ChevronLeft size={16} />
         </button>
         <span className="text-sm font-semibold text-gray-900">{headerLabel}</span>
-        <button onClick={() => viewMode === 'week' ? setWeekOffset(p => p + 1) : setMonthOffset(p => p + 1)}
+        <button onClick={() => viewMode === 'week' ? setWeekOffset(p => p + 1) : viewMode === 'month' ? setMonthOffset(p => p + 1) : setYearOffset(p => p + 1)}
           className="p-1.5 rounded-lg hover:bg-gray-50 text-gray-400 hover:text-indigo-600">
           <ChevronRight size={16} />
         </button>
@@ -662,73 +677,121 @@ export default function AdminSchedule() {
             <table className="w-full min-w-max border-collapse">
               <thead>
                 <tr className="border-b border-gray-100">
-                  <th className="sticky left-0 z-10 bg-white text-left text-xs font-medium text-gray-400 px-3 py-2.5 min-w-[120px]">
+                  <th className="sticky left-0 z-10 bg-white text-left text-sm font-semibold text-gray-500 px-4 py-3 min-w-[160px]">
                     Сотрудник
                   </th>
-                  {days.map((day) => (
-                    <th
-                      key={day}
-                      className={`text-center text-xs font-medium px-2 py-2.5 ${
-                        day === todayStr ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-400'
-                      }`}
-                    >
-                      <div>{DAY_NAMES[new Date(day).getDay()]}</div>
-                      <div className="text-lg font-bold">{new Date(day).getDate()}</div>
-                    </th>
-                  ))}
+                  {viewMode === 'year'
+                    ? MONTH_NAMES.map((m, i) => (
+                        <th
+                          key={i}
+                          className={`text-center text-sm font-semibold px-3 py-3 ${
+                            i === today.getMonth() && yearDate.getFullYear() === today.getFullYear()
+                              ? 'text-indigo-600 bg-indigo-50/50'
+                              : 'text-gray-500'
+                          }`}
+                        >
+                          {m}
+                        </th>
+                      ))
+                    : days.map((day) => (
+                        <th
+                          key={day}
+                          className={`text-center px-3 py-3 ${
+                            day === todayStr ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-500'
+                          }`}
+                        >
+                          <div className="text-xs font-medium">{DAY_NAMES[new Date(day).getDay()]}</div>
+                          <div className="text-2xl font-bold leading-none mt-1">{new Date(day).getDate()}</div>
+                        </th>
+                      ))}
                 </tr>
               </thead>
               <tbody>
                 {employees.map((emp: any) => (
-                  <tr key={`${emp.user_id}-${emp.service_center_id}`} className="border-b border-gray-50 last:border-b-0">
-                    <td className="sticky left-0 z-10 bg-white px-3 py-2.5">
-                      <div className="flex items-center gap-2">
+                  <tr key={`${emp.user_id}-${emp.service_center_id}`} className="border-b border-gray-50 last:border-b-0 hover:bg-gray-50/40">
+                    <td className="sticky left-0 z-10 bg-white px-4 py-3">
+                      <div className="flex items-center gap-2.5">
                         <span
-                          className="w-2 h-2 rounded-full shrink-0"
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
                           style={{ backgroundColor: emp.user_color || '#6366f1' }}
                         />
-                        <span className="text-sm font-medium text-gray-900 truncate">{emp.user_name}</span>
+                        <span className="text-sm font-semibold text-gray-900 truncate">{emp.user_name}</span>
                       </div>
                     </td>
-                    {days.map((day) => {
-                      const entry = emp.entries?.find((e: any) => e.date === day) || null;
-                      const isToday = day === todayStr;
-                      const checked = entry && selectedIds.has(entry.id);
-                      return (
-                        <td
-                          key={day}
-                          onClick={() => {
-                            if (!entry) return;
-                            if (selectMode) toggleSelect(entry.id);
-                            else setDetailEntry(entry);
-                          }}
-                          className={`text-center text-xs px-2 py-2.5 ${
-                            isToday ? 'bg-indigo-50/20' : ''
-                          } ${entry ? 'hover:bg-gray-50 cursor-pointer' : 'cursor-default'} ${
-                            selectMode && checked ? 'bg-indigo-50' : ''
-                          }`}
-                        >
-                          {entry ? (
-                            <div className="flex items-center justify-center gap-1">
-                              {selectMode && (
-                                <input type="checkbox" checked={checked}
-                                  onChange={() => toggleSelect(entry.id)}
-                                  className="shrink-0 accent-indigo-500 w-3 h-3" />
+                    {viewMode === 'year'
+                      ? MONTH_NAMES.map((_, i) => {
+                          const monthEntries = (emp.entries || []).filter(
+                            (e: any) => new Date(e.date).getMonth() === i
+                          );
+                          const count = monthEntries.length;
+                          const isCurMonth = i === today.getMonth() && yearDate.getFullYear() === today.getFullYear();
+                          return (
+                            <td
+                              key={i}
+                              onClick={() => {
+                                setViewMode('month');
+                                localStorage.setItem(STORAGE_VIEW_KEY, 'month');
+                                setMonthOffset(
+                                  (yearDate.getFullYear() - today.getFullYear()) * 12 + i - today.getMonth()
+                                );
+                              }}
+                              className={`text-center px-3 py-3 cursor-pointer ${
+                                isCurMonth ? 'bg-indigo-50/20' : ''
+                              }`}
+                            >
+                              {count > 0 ? (
+                                <span
+                                  className={`inline-flex items-center justify-center min-w-[28px] h-7 px-1.5 rounded-lg text-sm font-bold ${
+                                    isCurMonth ? 'bg-indigo-100 text-indigo-700' : 'bg-indigo-50 text-indigo-700'
+                                  }`}
+                                >
+                                  {count}
+                                </span>
+                              ) : (
+                                <span className="text-gray-200 text-sm">—</span>
                               )}
-                              <span className={`inline-block px-1.5 py-0.5 rounded-md font-medium ${
-                                entry.type === 'full_day'
-                                  ? 'bg-blue-50 text-blue-700'
-                                  : 'bg-purple-50 text-purple-700'
-                              }`}>
-                                {entry.type === 'full_day' ? 'В.день' : `${entry.start_time || ''}–${entry.end_time || ''}`}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-gray-200">—</span>
-                          )}
-                        </td>
-                      );
-                    })}
+                            </td>
+                          );
+                        })
+                      : days.map((day) => {
+                          const entry = emp.entries?.find((e: any) => e.date === day) || null;
+                          const isToday = day === todayStr;
+                          const checked = entry && selectedIds.has(entry.id);
+                          return (
+                            <td
+                              key={day}
+                              onClick={() => {
+                                if (!entry) return;
+                                if (selectMode) toggleSelect(entry.id);
+                                else setDetailEntry(entry);
+                              }}
+                              className={`text-center px-3 py-3 ${
+                                isToday ? 'bg-indigo-50/20' : ''
+                              } ${entry ? 'hover:bg-indigo-50/60 cursor-pointer' : 'cursor-default'} ${
+                                selectMode && checked ? 'bg-indigo-50' : ''
+                              }`}
+                            >
+                              {entry ? (
+                                <div className="flex items-center justify-center gap-1">
+                                  {selectMode && (
+                                    <input type="checkbox" checked={checked}
+                                      onChange={() => toggleSelect(entry.id)}
+                                      className="shrink-0 accent-indigo-500 w-4 h-4" />
+                                  )}
+                                  <span className={`inline-block px-2 py-1 rounded-lg text-sm font-semibold ${
+                                    entry.type === 'full_day'
+                                      ? 'bg-blue-50 text-blue-700'
+                                      : 'bg-purple-50 text-purple-700'
+                                  }`}>
+                                    {entry.type === 'full_day' ? 'В.день' : `${entry.start_time || ''}–${entry.end_time || ''}`}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-gray-200 text-sm">—</span>
+                              )}
+                            </td>
+                          );
+                        })}
                   </tr>
                 ))}
               </tbody>
@@ -736,8 +799,6 @@ export default function AdminSchedule() {
           </div>
         </div>
       )}
-
-      <AdminHistoryWidget />
 
       {detailEntry && (
         <ScheduleDetailModal
