@@ -4,7 +4,7 @@ from models.supplier import Supplier
 from models.product import Product
 from models.purchase import Purchase
 from models.purchase_item import PurchaseItem
-from models.parser_config import ParserConfig
+from models.stock_movement import StockMovement
 from models.user import User
 from models.service_center import ServiceCenter
 from models.service_center_member import ServiceCenterMember
@@ -12,8 +12,6 @@ from extensions import db
 from helpers import is_manager
 from datetime import datetime, timezone
 from socket_events import emit_to_users
-import sys
-import os
 
 purchases_bp = Blueprint("purchases", __name__, url_prefix="/api/purchases")
 
@@ -39,6 +37,19 @@ def user_belongs_to_center(user_id, service_center_id):
     return ServiceCenterMember.query.filter_by(
         service_center_id=service_center_id, user_id=user_id, is_active=True
     ).first() is not None
+
+
+def emit_to_users_for_center(sc_id):
+    member_ids = [
+        r[0] for r in ServiceCenterMember.query
+        .filter(
+            ServiceCenterMember.service_center_id == sc_id,
+            ServiceCenterMember.is_active == True,
+        )
+        .with_entities(ServiceCenterMember.user_id)
+        .all()
+    ]
+    emit_to_users(member_ids, "purchases:updated", {})
 
 
 # ─────────────────────────── SUPPLIERS ───────────────────────────
@@ -87,18 +98,9 @@ def update_supplier(supplier_id):
     if not is_purchase_admin(user_id, supplier.service_center_id):
         return jsonify({"error": "Access denied"}), 403
     data = request.get_json()
-    if "name" in data:
-        supplier.name = data["name"]
-    if "contact_person" in data:
-        supplier.contact_person = data["contact_person"]
-    if "phone" in data:
-        supplier.phone = data["phone"]
-    if "email" in data:
-        supplier.email = data["email"]
-    if "address" in data:
-        supplier.address = data["address"]
-    if "notes" in data:
-        supplier.notes = data["notes"]
+    for field in ["name", "contact_person", "phone", "email", "address", "notes"]:
+        if field in data:
+            setattr(supplier, field, data[field])
     db.session.commit()
     return jsonify(supplier.to_dict())
 
@@ -130,6 +132,22 @@ def list_products():
     return jsonify([p.to_dict() for p in products])
 
 
+@purchases_bp.route("/products/by-barcode", methods=["GET"])
+@jwt_required()
+def product_by_barcode():
+    user_id = int(get_jwt_identity())
+    sc_id = request.args.get("service_center_id", type=int)
+    barcode = (request.args.get("barcode") or "").strip()
+    if not sc_id or not barcode:
+        return jsonify({"error": "service_center_id and barcode required"}), 400
+    if not user_belongs_to_center(user_id, sc_id):
+        return jsonify({"error": "Access denied"}), 403
+    product = Product.query.filter_by(service_center_id=sc_id, barcode=barcode).first()
+    if not product:
+        return jsonify({"error": "not found"}), 404
+    return jsonify(product.to_dict())
+
+
 @purchases_bp.route("/products", methods=["POST"])
 @jwt_required()
 def create_product():
@@ -139,14 +157,41 @@ def create_product():
         return jsonify({"error": "name and service_center_id required"}), 400
     if not is_purchase_admin(user_id, data["service_center_id"]):
         return jsonify({"error": "Access denied"}), 403
+
+    barcode = (data.get("barcode") or "").strip()
+    if barcode:
+        dup = Product.query.filter_by(service_center_id=data["service_center_id"], barcode=barcode).first()
+        if dup:
+            return jsonify({"error": "Штрихкод уже используется другим товаром"}), 409
+
     product = Product(
         service_center_id=data["service_center_id"],
+        supplier_id=data.get("supplier_id") or None,
         name=data["name"],
+        sku=(data.get("sku") or "").strip(),
+        barcode=barcode,
         unit=data.get("unit", "шт"),
-        default_price=data.get("default_price", 0),
+        default_price=float(data.get("default_price", 0) or 0),
+        min_quantity=float(data.get("min_quantity", 0) or 0),
+        location=(data.get("location") or "").strip(),
         description=data.get("description", ""),
+        stock_quantity=0.0,
     )
     db.session.add(product)
+    db.session.flush()
+
+    initial = float(data.get("stock_quantity", 0) or 0)
+    if initial > 0:
+        product.stock_quantity = initial
+        db.session.add(StockMovement(
+            service_center_id=product.service_center_id,
+            product_id=product.id,
+            user_id=user_id,
+            type="adjust",
+            quantity=initial,
+            reason="Начальный остаток при добавлении товара",
+        ))
+
     db.session.commit()
     return jsonify(product.to_dict()), 201
 
@@ -159,14 +204,49 @@ def update_product(product_id):
     if not is_purchase_admin(user_id, product.service_center_id):
         return jsonify({"error": "Access denied"}), 403
     data = request.get_json()
+
     if "name" in data:
         product.name = data["name"]
+    if "supplier_id" in data:
+        product.supplier_id = data.get("supplier_id") or None
     if "unit" in data:
         product.unit = data["unit"]
     if "default_price" in data:
-        product.default_price = data["default_price"]
+        product.default_price = float(data["default_price"] or 0)
+    if "min_quantity" in data:
+        product.min_quantity = float(data["min_quantity"] or 0)
+    if "location" in data:
+        product.location = (data["location"] or "").strip()
     if "description" in data:
         product.description = data["description"]
+    if "sku" in data:
+        product.sku = (data["sku"] or "").strip()
+    if "barcode" in data:
+        barcode = (data["barcode"] or "").strip()
+        if barcode:
+            dup = Product.query.filter(
+                Product.service_center_id == product.service_center_id,
+                Product.barcode == barcode,
+                Product.id != product.id,
+            ).first()
+            if dup:
+                return jsonify({"error": "Штрихкод уже используется другим товаром"}), 409
+        product.barcode = barcode
+
+    if "stock_quantity" in data:
+        new_qty = float(data["stock_quantity"] or 0)
+        if new_qty != product.stock_quantity:
+            delta = new_qty - product.stock_quantity
+            product.stock_quantity = new_qty
+            db.session.add(StockMovement(
+                service_center_id=product.service_center_id,
+                product_id=product.id,
+                user_id=user_id,
+                type="adjust",
+                quantity=abs(delta),
+                reason="Корректировка остатка вручную",
+            ))
+
     db.session.commit()
     return jsonify(product.to_dict())
 
@@ -181,6 +261,80 @@ def delete_product(product_id):
     db.session.delete(product)
     db.session.commit()
     return jsonify({"ok": True})
+
+
+# ─────────────────────────── STOCK ───────────────────────────
+
+@purchases_bp.route("/stock", methods=["GET"])
+@jwt_required()
+def stock_list():
+    user_id = int(get_jwt_identity())
+    sc_id = request.args.get("service_center_id", type=int)
+    if not sc_id:
+        return jsonify({"error": "service_center_id required"}), 400
+    if not user_belongs_to_center(user_id, sc_id):
+        return jsonify({"error": "Access denied"}), 403
+    products = Product.query.filter_by(service_center_id=sc_id).order_by(Product.name).all()
+    result = []
+    for p in products:
+        d = p.to_dict()
+        d["low_stock"] = p.stock_quantity <= p.min_quantity
+        result.append(d)
+    return jsonify(result)
+
+
+@purchases_bp.route("/stock/writeoff", methods=["POST"])
+@jwt_required()
+def write_off_stock():
+    user_id = int(get_jwt_identity())
+    data = request.get_json()
+    if not data or not data.get("service_center_id") or not isinstance(data.get("items"), list):
+        return jsonify({"error": "service_center_id and items required"}), 400
+    sc_id = data["service_center_id"]
+    if not is_purchase_admin(user_id, sc_id):
+        return jsonify({"error": "Access denied"}), 403
+
+    reason = (data.get("reason") or "").strip()
+    for item in data["items"]:
+        product_id = item.get("product_id")
+        qty = float(item.get("quantity", 0) or 0)
+        if not product_id or qty <= 0:
+            continue
+        product = Product.query.get(product_id)
+        if not product or product.service_center_id != sc_id:
+            return jsonify({"error": f"Товар {product_id} не найден"}), 404
+        if qty > product.stock_quantity:
+            return jsonify({"error": f"Недостаточно остатка для «{product.name}»"}), 400
+        product.stock_quantity -= qty
+        db.session.add(StockMovement(
+            service_center_id=sc_id,
+            product_id=product.id,
+            user_id=user_id,
+            type="writeoff",
+            quantity=qty,
+            reason=reason,
+        ))
+
+    db.session.commit()
+    emit_to_users_for_center(sc_id)
+    return jsonify({"ok": True})
+
+
+@purchases_bp.route("/movements", methods=["GET"])
+@jwt_required()
+def list_movements():
+    user_id = int(get_jwt_identity())
+    sc_id = request.args.get("service_center_id", type=int)
+    if not sc_id:
+        return jsonify({"error": "service_center_id required"}), 400
+    if not user_belongs_to_center(user_id, sc_id):
+        return jsonify({"error": "Access denied"}), 403
+    movements = (StockMovement.query
+                 .filter_by(service_center_id=sc_id)
+                 .order_by(StockMovement.created_at.desc())
+                 .limit(500)
+                 .all())
+    return jsonify([m.to_dict() for m in movements])
 
 
 # ─────────────────────────── PURCHASES (ORDERS) ───────────────────────────
@@ -246,7 +400,7 @@ def create_order():
         db.session.add(item)
 
     db.session.commit()
-    emit_to_users_for_order(order)
+    emit_to_users_for_center(order.service_center_id)
     return jsonify(order.to_dict()), 201
 
 
@@ -279,7 +433,7 @@ def update_order(order_id):
             db.session.add(item)
     order.updated_at = datetime.now(timezone.utc)
     db.session.commit()
-    emit_to_users_for_order(order)
+    emit_to_users_for_center(order.service_center_id)
     return jsonify(order.to_dict())
 
 
@@ -293,6 +447,46 @@ def delete_order(order_id):
     db.session.delete(order)
     db.session.commit()
     return jsonify({"ok": True})
+
+
+@purchases_bp.route("/orders/<int:order_id>/receive", methods=["POST"])
+@jwt_required()
+def receive_order(order_id):
+    user_id = int(get_jwt_identity())
+    order = Purchase.query.get_or_404(order_id)
+    if not is_purchase_admin(user_id, order.service_center_id):
+        return jsonify({"error": "Access denied"}), 403
+    if order.status == "received":
+        return jsonify({"error": "Заказ уже оприходован"}), 409
+
+    data = request.get_json() or {}
+    received_items = data.get("items", []) if isinstance(data.get("items"), list) else []
+
+    for item in order.items:
+        received = item.quantity - (item.returned_quantity or 0)
+        for r in received_items:
+            if r.get("item_id") == item.id:
+                received = float(r.get("quantity", received) or 0)
+        if received <= 0:
+            continue
+        product = Product.query.get(item.product_id)
+        if product:
+            product.stock_quantity = float(product.stock_quantity or 0) + received
+            db.session.add(StockMovement(
+                service_center_id=order.service_center_id,
+                product_id=product.id,
+                user_id=user_id,
+                type="receive",
+                quantity=received,
+                reason=f"Приёмка заказа №{order.id}",
+                related_purchase_id=order.id,
+            ))
+
+    order.status = "received"
+    order.updated_at = datetime.now(timezone.utc)
+    db.session.commit()
+    emit_to_users_for_center(order.service_center_id)
+    return jsonify(order.to_dict())
 
 
 # ─────────────────────────── RETURNS ───────────────────────────
@@ -349,21 +543,8 @@ def return_order_items(order_id):
             item.returned_quantity = item.quantity
 
     db.session.commit()
-    emit_to_users_for_order(order)
+    emit_to_users_for_center(order.service_center_id)
     return jsonify({"ok": True})
-
-
-def emit_to_users_for_order(order):
-    member_ids = [
-        r[0] for r in ServiceCenterMember.query
-        .filter(
-            ServiceCenterMember.service_center_id == order.service_center_id,
-            ServiceCenterMember.is_active == True,
-        )
-        .with_entities(ServiceCenterMember.user_id)
-        .all()
-    ]
-    emit_to_users(member_ids, "purchases:updated", {})
 
 
 # ─────────────────────────── TOGGLE / STATUS ───────────────────────────
@@ -450,146 +631,4 @@ def purchases_status():
         "is_admin": is_admin,
         "purchases_enabled": user.purchases_enabled,
         "is_owner": is_user_owner(user_id),
-    })
-
-
-# ─────────────────────────── PARSER ───────────────────────────
-
-@purchases_bp.route("/parser/config", methods=["GET"])
-@jwt_required()
-def get_parser_config():
-    user_id = int(get_jwt_identity())
-    supplier_id = request.args.get("supplier_id", type=int)
-    if not supplier_id:
-        return jsonify({"error": "supplier_id required"}), 400
-    supplier = Supplier.query.get_or_404(supplier_id)
-    if not is_purchase_admin(user_id, supplier.service_center_id):
-        return jsonify({"error": "Access denied"}), 403
-    config = ParserConfig.query.filter_by(supplier_id=supplier_id).first()
-    if not config:
-        return jsonify(None)
-    return jsonify(config.to_dict())
-
-
-@purchases_bp.route("/parser/config", methods=["POST"])
-@jwt_required()
-def save_parser_config():
-    user_id = int(get_jwt_identity())
-    data = request.get_json()
-    if not data or not data.get("supplier_id"):
-        return jsonify({"error": "supplier_id required"}), 400
-    supplier = Supplier.query.get_or_404(data["supplier_id"])
-    if not is_purchase_admin(user_id, supplier.service_center_id):
-        return jsonify({"error": "Access denied"}), 403
-
-    config = ParserConfig.query.filter_by(supplier_id=data["supplier_id"]).first()
-    if config:
-        config.login = data.get("login", config.login)
-        config.password = data.get("password", config.password)
-        config.base_url = data.get("base_url", config.base_url)
-        config.is_active = data.get("is_active", config.is_active)
-    else:
-        config = ParserConfig(
-            service_center_id=supplier.service_center_id,
-            supplier_id=data["supplier_id"],
-            parser_type="moba_ru",
-            login=data.get("login", ""),
-            password=data.get("password", ""),
-            base_url=data.get("base_url", "https://novosibirsk.moba.ru"),
-        )
-        db.session.add(config)
-    db.session.commit()
-    return jsonify(config.to_dict())
-
-
-@purchases_bp.route("/parser/run", methods=["POST"])
-@jwt_required()
-def run_parser():
-    user_id = int(get_jwt_identity())
-    data = request.get_json()
-    if not data or not data.get("config_id"):
-        return jsonify({"error": "config_id required"}), 400
-
-    config = ParserConfig.query.get_or_404(data["config_id"])
-    supplier = Supplier.query.get(config.supplier_id)
-    if not supplier or not is_purchase_admin(user_id, supplier.service_center_id):
-        return jsonify({"error": "Access denied"}), 403
-
-    action = data.get("action", "parse_catalog")
-    purchase_id = data.get("purchase_id", 0)
-
-    if config.sync_status in ("parsing", "placing"):
-        return jsonify({"error": "Parser already running"}), 409
-
-    config.sync_status = "parsing" if action == "parse_catalog" else "placing"
-    config.sync_progress = 0
-    config.sync_log = "[]"
-    db.session.commit()
-
-    worker_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "parsers_worker.py",
-    )
-    cmd = [
-        sys.executable, worker_path, "moba",
-        "--action", action,
-        "--config-id", str(config.id),
-    ]
-    if action == "parse_catalog":
-        cmd.extend(["--supplier-id", str(config.supplier_id or 0)])
-    elif action == "place_order":
-        cmd.extend(["--purchase-id", str(purchase_id)])
-
-    log_dir = "/data"
-    os.makedirs(log_dir, exist_ok=True)
-    log_file = open(os.path.join(log_dir, f"parser_{config.id}.log"), "a")
-
-    try:
-        import subprocess
-        subprocess.Popen(
-            cmd,
-            cwd=os.path.dirname(worker_path),
-            stdout=log_file,
-            stderr=subprocess.STDOUT,
-        )
-    except Exception as e:
-        return jsonify({"error": f"Failed to start parser: {e}"}), 500
-
-    return jsonify({"ok": True, "action": action})
-
-
-@purchases_bp.route("/parser/reset", methods=["POST"])
-@jwt_required()
-def reset_parser():
-    user_id = int(get_jwt_identity())
-    data = request.get_json()
-    if not data or not data.get("config_id"):
-        return jsonify({"error": "config_id required"}), 400
-    config = ParserConfig.query.get_or_404(data["config_id"])
-    supplier = Supplier.query.get(config.supplier_id)
-    if not supplier or not is_purchase_admin(user_id, supplier.service_center_id):
-        return jsonify({"error": "Access denied"}), 403
-    config.sync_status = "idle"
-    config.sync_progress = 0
-    config.sync_log = "[]"
-    db.session.commit()
-    return jsonify({"ok": True})
-
-
-@purchases_bp.route("/parser/status", methods=["GET"])
-@jwt_required()
-def parser_status():
-    user_id = int(get_jwt_identity())
-    config_id = request.args.get("config_id", type=int)
-    if not config_id:
-        return jsonify({"error": "config_id required"}), 400
-    config = ParserConfig.query.get_or_404(config_id)
-    supplier = Supplier.query.get(config.supplier_id)
-    if not supplier or not is_purchase_admin(user_id, supplier.service_center_id):
-        return jsonify({"error": "Access denied"}), 403
-    return jsonify({
-        "status": config.sync_status,
-        "progress": config.sync_progress,
-        "log": config.sync_log,
-        "last_sync_at": config.last_sync_at.isoformat() if config.last_sync_at else None,
     })

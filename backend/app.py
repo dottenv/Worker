@@ -10,8 +10,8 @@ from extensions import db, jwt, socketio
 from models import (User, ServiceCenter, ServiceCenterMember, Shift,
                     ScheduleEntry, SwapRequest, PushSubscription,
                     Notification, FinanceOperation, TimeEntry,
-                    CustomField, CustomFieldValue, ShiftDocument,
-                    Supplier, Product, Purchase, PurchaseItem, ParserConfig)
+                     CustomField, CustomFieldValue, ShiftDocument,
+                     Supplier, Product, Purchase, PurchaseItem, StockMovement)
 from models.user import USER_COLORS
 import random
 from routes import (auth_bp, service_centers_bp, members_bp, shifts_bp,
@@ -178,19 +178,15 @@ def create_app():
                 "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
             ),
             (
-                "parser_configs",
+                "stock_movements",
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                 "service_center_id INTEGER NOT NULL REFERENCES service_centers(id), "
-                "supplier_id INTEGER REFERENCES suppliers(id), "
-                "parser_type VARCHAR(50) NOT NULL, "
-                "login VARCHAR(200) NOT NULL, "
-                "password VARCHAR(500) NOT NULL, "
-                "base_url VARCHAR(300) DEFAULT 'https://novosibirsk.moba.ru', "
-                "is_active BOOLEAN DEFAULT 1, "
-                "last_sync_at DATETIME, "
-                "sync_status VARCHAR(20) DEFAULT 'idle', "
-                "sync_log TEXT DEFAULT '', "
-                "sync_progress INTEGER DEFAULT 0, "
+                "product_id INTEGER NOT NULL REFERENCES products(id), "
+                "user_id INTEGER REFERENCES users(id), "
+                "type VARCHAR(16) NOT NULL, "
+                "quantity NUMERIC(12,2) NOT NULL DEFAULT 0, "
+                "reason TEXT DEFAULT '', "
+                "related_purchase_id INTEGER REFERENCES purchases(id), "
                 "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
             ),
             (
@@ -229,6 +225,18 @@ def create_app():
             db.session.commit()
         except Exception:
             db.session.rollback()
+        for col in [
+            "sku VARCHAR(64)",
+            "barcode VARCHAR(64)",
+            "stock_quantity NUMERIC(12,2) DEFAULT 0",
+            "min_quantity NUMERIC(12,2) DEFAULT 0",
+            "location VARCHAR(128)",
+        ]:
+            try:
+                db.session.execute(db.text(f"ALTER TABLE products ADD COLUMN {col}"))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
         # backfill widget tokens for existing centers
         try:
             for sc in ServiceCenter.query.filter_by(widget_token=None).all():

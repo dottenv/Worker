@@ -319,19 +319,6 @@ export const api = {
     delete: (docId: number) =>
       request<any>(`/shift-documents/${docId}`, { method: 'DELETE' }),
   },
-  parser: {
-    config: {
-      get: (supplierId: number) => request<any>(`/purchases/parser/config?supplier_id=${supplierId}`),
-      save: (data: any) => request<any>('/purchases/parser/config', { method: 'POST', body: JSON.stringify(data) }),
-    },
-    run: (configId: number, action: string, purchaseId?: number) =>
-      request<any>('/purchases/parser/run', {
-        method: 'POST',
-        body: JSON.stringify({ config_id: configId, action, purchase_id: purchaseId || 0 }),
-      }),
-    status: (configId: number) => request<any>(`/purchases/parser/status?config_id=${configId}`),
-    reset: (configId: number) => request<any>('/purchases/parser/reset', { method: 'POST', body: JSON.stringify({ config_id: configId }) }),
-  },
   purchases: {
     status: () => request<{ available: boolean; is_admin: boolean; purchases_enabled: boolean; is_owner: boolean }>('/purchases/status'),
     toggle: (enabled: boolean) =>
@@ -344,6 +331,11 @@ export const api = {
     },
     products: {
       list: (scId: number) => request<any[]>(`/purchases/products?service_center_id=${scId}`),
+      byBarcode: (scId: number, barcode: string) =>
+        request<any>(`/purchases/products/by-barcode?service_center_id=${scId}&barcode=${encodeURIComponent(barcode)}`),
+      create: (data: any) => request<any>('/purchases/products', { method: 'POST', body: JSON.stringify(data) }),
+      update: (id: number, data: any) => request<any>(`/purchases/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+      delete: (id: number) => request<any>(`/purchases/products/${id}`, { method: 'DELETE' }),
     },
     orders: {
       list: (scId?: number) => request<any[]>(`/purchases/orders${scId ? `?service_center_id=${scId}` : ''}`),
@@ -351,11 +343,22 @@ export const api = {
       create: (data: any) => request<any>('/purchases/orders', { method: 'POST', body: JSON.stringify(data) }),
       update: (id: number, data: any) => request<any>(`/purchases/orders/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
       delete: (id: number) => request<any>(`/purchases/orders/${id}`, { method: 'DELETE' }),
+      receive: (id: number, items?: { item_id: number; quantity: number }[]) =>
+        request<any>(`/purchases/orders/${id}/receive`, { method: 'POST', body: JSON.stringify({ items: items || [] }) }),
       returnItems: (orderId: number, items: { item_id: number; quantity: number }[]) =>
         request<any>(`/purchases/orders/${orderId}/return`, { method: 'POST', body: JSON.stringify({ items }) }),
     },
     returns: {
       list: (scId: number) => request<any[]>(`/purchases/returns?service_center_id=${scId}`),
+    },
+    stock: {
+      list: (scId: number) => request<any[]>(`/purchases/stock?service_center_id=${scId}`),
+      writeOff: (scId: number, items: { product_id: number; quantity: number }[], reason?: string) =>
+        request<any>('/purchases/stock/writeoff', {
+          method: 'POST',
+          body: JSON.stringify({ service_center_id: scId, items, reason: reason || '' }),
+        }),
+      movements: (scId: number) => request<any[]>(`/purchases/movements?service_center_id=${scId}`),
     },
   },
   update: {
