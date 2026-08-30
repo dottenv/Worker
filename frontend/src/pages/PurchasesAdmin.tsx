@@ -46,6 +46,7 @@ export default function PurchasesAdmin() {
   const [supplierModal, setSupplierModal] = useState<{ open: boolean; supplier: Supplier | null }>({ open: false, supplier: null });
   const [orderModal, setOrderModal] = useState(false);
   const [writeoffModal, setWriteoffModal] = useState<{ open: boolean; prefill?: number }>({ open: false });
+  const [writeoffScan, setWriteoffScan] = useState<number | null>(null);
   const [returnModal, setReturnModal] = useState<{ open: boolean; order: Order | null }>({ open: false, order: null });
   const [scanner, setScanner] = useState<{ open: boolean; target: 'product' | 'writeoff' }>({ open: false, target: 'product' });
 
@@ -353,6 +354,7 @@ export default function PurchasesAdmin() {
 
       {supplierModal.open ? (
         <SupplierModal
+          scId={scId}
           supplier={supplierModal.supplier}
           onClose={() => setSupplierModal({ open: false, supplier: null })}
           onSaved={() => { setSupplierModal({ open: false, supplier: null }); flash('success', 'Сохранено'); reload(); }}
@@ -374,6 +376,8 @@ export default function PurchasesAdmin() {
           scId={scId}
           products={products}
           prefillProductId={writeoffModal.prefill}
+          scanProductId={writeoffScan}
+          onConsumeScan={() => setWriteoffScan(null)}
           onClose={() => setWriteoffModal({ open: false })}
           onSaved={() => { setWriteoffModal({ open: false }); flash('success', 'Списание выполнено'); reload(); }}
           onScan={() => setScanner({ open: true, target: 'writeoff' })}
@@ -405,7 +409,8 @@ export default function PurchasesAdmin() {
               try {
                 const p = await api.purchases.products.byBarcode(scId, code);
                 if (p?.id) {
-                  setWriteoffModal({ open: true, prefill: p.id });
+                  setWriteoffModal({ open: true });
+                  setWriteoffScan(p.id);
                   flash('success', `Найден товар: ${p.name}`);
                 } else {
                   flash('error', 'Товар с таким штрихкодом не найден');
@@ -529,7 +534,7 @@ function ProductModal({ scId, product, suppliers, onClose, onSaved, onScan }: an
   );
 }
 
-function SupplierModal({ supplier, onClose, onSaved }: any) {
+function SupplierModal({ scId, supplier, onClose, onSaved }: any) {
   const [form, setForm] = useState({
     name: supplier?.name || '',
     contact_person: supplier?.contact_person || '',
@@ -545,7 +550,7 @@ function SupplierModal({ supplier, onClose, onSaved }: any) {
     const payload = { ...form };
     try {
       if (supplier) await api.purchases.suppliers.update(supplier.id, payload);
-      else await api.purchases.suppliers.create({ ...payload, service_center_id: supplier?.service_center_id });
+      else await api.purchases.suppliers.create({ ...payload, service_center_id: scId });
       onSaved();
     } catch (e: any) { setError(e?.message || 'Ошибка'); }
   };
@@ -623,12 +628,21 @@ function OrderModal({ scId, suppliers, products, onClose, onSaved }: any) {
   );
 }
 
-function WriteOffModal({ scId, products, prefillProductId, onClose, onSaved, onScan }: any) {
+function WriteOffModal({ scId, products, prefillProductId, scanProductId, onConsumeScan, onClose, onSaved, onScan }: any) {
   const [rows, setRows] = useState<any[]>(
     prefillProductId ? [{ product_id: prefillProductId, quantity: 1 }] : [{ product_id: '', quantity: 1 }]
   );
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (scanProductId) {
+      setRows((r: any[]) => r.some((x) => x.product_id === scanProductId)
+        ? r
+        : [...r, { product_id: scanProductId, quantity: 1 }]);
+      if (onConsumeScan) onConsumeScan();
+    }
+  }, [scanProductId]);
 
   const addRow = () => setRows((r: any[]) => [...r, { product_id: '', quantity: 1 }]);
   const update = (idx: number, k: string, v: any) => setRows((r: any[]) => r.map((x, n) => n === idx ? { ...x, [k]: v } : x));
