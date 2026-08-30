@@ -22,6 +22,7 @@ class Product(db.Model):
     min_quantity = db.Column(db.Float, default=0.0, nullable=False)
     location = db.Column(db.String(128), nullable=True)
     description = db.Column(db.Text, nullable=True)
+    photo = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
 
     supplier = relationship("Supplier", backref="products")
@@ -42,5 +43,6 @@ class Product(db.Model):
             "min_quantity": self.min_quantity,
             "location": self.location or "",
             "description": self.description or "",
+            "photo": self.photo or "",
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

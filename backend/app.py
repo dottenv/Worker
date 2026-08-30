@@ -231,6 +231,7 @@ def create_app():
             "stock_quantity NUMERIC(12,2) DEFAULT 0",
             "min_quantity NUMERIC(12,2) DEFAULT 0",
             "location VARCHAR(128)",
+            "photo VARCHAR(255)",
         ]:
             try:
                 db.session.execute(db.text(f"ALTER TABLE products ADD COLUMN {col}"))
@@ -266,6 +267,7 @@ def create_app():
                 db.session.rollback()
         # ensure upload dir
         os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'shift_docs'), exist_ok=True)
+        os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'product_photos'), exist_ok=True)
 
     socketio.init_app(app)
     register_socket_handlers(socketio)

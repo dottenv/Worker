@@ -8,6 +8,7 @@ import {
   Bell,
   Settings,
   FileText,
+  Package,
   ShoppingCart,
 } from 'lucide-react';
 
@@ -32,7 +33,7 @@ export const ALL_NAV_ITEMS: NavItemDef[] = [
   { id: 'finance',           label: 'Финансы',             icon: Wallet,      path: '/finance',            requiresFinance: true, hideForOwner: true },
   { id: 'finance_admin',     label: 'Финансы (админ)',     icon: Wallet,      path: '/finance/admin',      requiresAdmin: true, requiresFinance: true },
   { id: 'purchases',         label: 'Закупки',             icon: ShoppingCart, path: '/purchases',          requiresPurchases: true, hideForOwner: true },
-  { id: 'purchases_admin',   label: 'Закупки (админ)',     icon: ShoppingCart, path: '/purchases/admin',    requiresAdmin: true, requiresPurchases: true },
+  { id: 'purchases_admin',   label: 'Склад',               icon: Package,      path: '/purchases/admin',    requiresAdmin: true, requiresPurchases: true },
   { id: 'shift_documents',   label: 'Документы смен',      icon: FileText,    path: '/shift-documents' },
   { id: 'notifications',     label: 'Уведомления',         icon: Bell,        path: '/notifications' },
   { id: 'settings',          label: 'Настройки',           icon: Settings,    path: '/settings' },

@@ -336,6 +336,24 @@ export const api = {
       create: async (data: any) => { const r = await request<any>('/purchases/products', { method: 'POST', body: JSON.stringify(data) }); invalidate('/purchases'); return r; },
       update: async (id: number, data: any) => { const r = await request<any>(`/purchases/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }); invalidate('/purchases'); return r; },
       delete: async (id: number) => { const r = await request<any>(`/purchases/products/${id}`, { method: 'DELETE' }); invalidate('/purchases'); return r; },
+      uploadPhoto: async (id: number, file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/purchases/products/${id}/photo`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+          throw new Error(err.error || 'Upload failed');
+        }
+        const data = await res.json();
+        invalidate('/purchases');
+        return data;
+      },
+      deletePhoto: async (id: number) => { const r = await request<any>(`/purchases/products/${id}/photo`, { method: 'DELETE' }); invalidate('/purchases'); return r; },
     },
     orders: {
       list: (scId?: number) => request<any[]>(`/purchases/orders${scId ? `?service_center_id=${scId}` : ''}`),

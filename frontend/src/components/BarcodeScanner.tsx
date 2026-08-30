@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
-import { Camera, X, Keyboard, ScanLine, CheckCircle2 } from 'lucide-react';
+import { Camera, X, ScanLine, Loader2, CheckCircle2, RefreshCw } from 'lucide-react';
 
 interface BarcodeScannerProps {
   onResult: (code: string) => void;
@@ -21,12 +21,19 @@ export default function BarcodeScanner({
   children,
 }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const controlsRef = useRef<any>(null);
   const handledRef = useRef(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [mode, setMode] = useState<'camera' | 'manual'>('camera');
-  const [error, setError] = useState('');
+  const startedRef = useRef(false);
+
+  const onResultRef = useRef(onResult);
+  onResultRef.current = onResult;
+  const continuousRef = useRef(continuous);
+  continuousRef.current = continuous;
+
+  const [camState, setCamState] = useState<'idle' | 'requesting' | 'running' | 'error'>('idle');
+  const [camError, setCamError] = useState('');
   const [value, setValue] = useState('');
 
   const stop = useCallback(() => {
@@ -36,64 +43,74 @@ export default function BarcodeScanner({
     streamRef.current = null;
   }, []);
 
-  useEffect(() => {
+  const startCamera = useCallback(async () => {
+    stop();
     handledRef.current = false;
-    if (mode !== 'camera') { stop(); return; }
-    let cancelled = false;
-    (async () => {
-      try {
-        if (!navigator.mediaDevices?.getUserMedia) {
-          setError('Камера не поддерживается браузером');
-          setMode('manual');
-          return;
-        }
-        let stream: MediaStream;
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-            audio: false,
-          });
-        } catch {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        }
-        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
-        streamRef.current = stream;
-        if (!videoRef.current) { stream.getTracks().forEach((t) => t.stop()); return; }
-        const video = videoRef.current;
-        video.srcObject = stream;
-        try { await video.play(); } catch { /* noop */ }
-
-        const reader = new BrowserMultiFormatReader();
-        try { (reader as any).timeBetweenScansMillis = 500; } catch { /* noop */ }
-        controlsRef.current = await reader.decodeFromStream(stream, video, (result: any) => {
-          if (!result) return;
-          const code = String(result.getText()).trim();
-          if (!code) return;
-          if (!continuous) {
-            if (handledRef.current) return;
-            handledRef.current = true;
-            stop();
-          }
-          onResult(code);
-        });
-      } catch (e: any) {
-        setError(e?.message || 'Не удалось запустить камеру');
-        setMode('manual');
+    setCamError('');
+    setCamState('requesting');
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setCamError('Камера не поддерживается браузером. Используйте внешний сканер или ручной ввод.');
+        setCamState('error');
+        return;
       }
-    })();
-    return () => { cancelled = true; stop(); };
-  }, [mode, continuous, onResult, stop]);
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
+      const video = videoRef.current;
+      if (!video) {
+        stream.getTracks().forEach((t) => t.stop());
+        setCamState('error');
+        return;
+      }
+      streamRef.current = stream;
+      video.srcObject = stream;
+      video.muted = true;
+      video.playsInline = true;
+      try { await video.play(); } catch { /* noop */ }
+
+      const reader = new BrowserMultiFormatReader();
+      try { (reader as any).timeBetweenScansMillis = 500; } catch { /* noop */ }
+      controlsRef.current = await reader.decodeFromStream(stream, video, (result: any) => {
+        if (!result) return;
+        const code = String(result.getText()).trim();
+        if (!code) return;
+        if (!continuousRef.current) {
+          if (handledRef.current) return;
+          handledRef.current = true;
+          stop();
+        }
+        onResultRef.current(code);
+      });
+      setCamState('running');
+    } catch (e: any) {
+      setCamError(e?.message || 'Не удалось запустить камеру. Разрешите доступ в настройках браузера.');
+      setCamState('error');
+    }
+  }, [stop]);
+
+  useEffect(() => {
+    if (!startedRef.current) { startedRef.current = true; startCamera(); }
+  }, [startCamera]);
+
+  useEffect(() => () => stop(), [stop]);
 
   const submitManual = () => {
     const code = value.trim();
     if (!code) return;
     setValue('');
-    if (!continuous) {
-      handledRef.current = true;
-      onResult(code);
-    } else {
-      onResult(code);
+    if (continuousRef.current) {
+      onResultRef.current(code);
       inputRef.current?.focus();
+    } else {
+      handledRef.current = true;
+      onResultRef.current(code);
     }
   };
 
@@ -112,20 +129,37 @@ export default function BarcodeScanner({
           </button>
         </div>
 
-        {mode === 'camera' ? (
-          <div className="relative bg-black">
-            <video ref={videoRef} muted playsInline className="w-full aspect-[3/4] sm:aspect-video object-cover" />
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="h-24 w-56 rounded-md border-2 border-white/70" />
-            </div>
-          </div>
-        ) : null}
-
-        {error && mode === 'camera' ? (
-          <div className="px-4 py-2 text-sm text-red-600 dark:text-red-400">{error}</div>
-        ) : null}
-
         <div className="p-4 space-y-3">
+          {camState === 'running' ? (
+            <div className="relative overflow-hidden rounded-xl bg-black">
+              <video ref={videoRef} className="w-full aspect-video object-cover" />
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className="h-20 w-52 rounded-md border-2 border-white/70" />
+              </div>
+            </div>
+          ) : camState === 'requesting' ? (
+            <div className="flex h-28 items-center justify-center gap-2 rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-sm">
+              <Loader2 size={18} className="animate-spin" /> Запрашиваем доступ к камере…
+            </div>
+          ) : camState === 'error' ? (
+            <div className="rounded-xl bg-red-50 dark:bg-red-900/30 p-3 text-sm">
+              <p className="text-red-700 dark:text-red-300">{camError}</p>
+              <button
+                onClick={startCamera}
+                className="mt-2 flex items-center gap-1 rounded-lg bg-red-600 px-3 py-1.5 font-medium text-white hover:bg-red-700"
+              >
+                <RefreshCw size={15} /> Попробовать снова
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={startCamera}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 font-medium text-white hover:bg-blue-700"
+            >
+              <Camera size={18} /> Включить камеру
+            </button>
+          )}
+
           {children}
 
           <div className="flex gap-2">
@@ -138,35 +172,21 @@ export default function BarcodeScanner({
               placeholder="Введите или отсканируйте штрихкод"
               className="flex-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <button
-              onClick={submitManual}
-              className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
-            >
+            <button onClick={submitManual} className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700">
               OK
             </button>
           </div>
+          <div className="text-center text-xs text-slate-400 dark:text-slate-500">
+            Внешний сканер вводит код как с клавиатуры — просто отсканируйте в поле выше и нажмите Enter
+          </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-            <span className="text-slate-500 dark:text-slate-400">
-              {mode === 'camera'
-                ? 'Наведите камеру на штрихкод'
-                : 'Внешний сканер вводит код как с клавиатуры'}
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => { setError(''); stop(); setMode(m => m === 'camera' ? 'manual' : 'camera'); }}
-                className="flex items-center gap-1 rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
-              >
-                {mode === 'camera' ? <Keyboard size={16} /> : <Camera size={16} />}
-                {mode === 'camera' ? 'Вручную' : 'Камера'}
-              </button>
-              <button
-                onClick={onClose}
-                className="flex items-center gap-1 rounded-lg bg-green-600 px-4 py-1.5 font-medium text-white hover:bg-green-700"
-              >
-                <CheckCircle2 size={16} /> {finishLabel}
-              </button>
-            </div>
+          <div className="flex items-center justify-end">
+            <button
+              onClick={onClose}
+              className="flex items-center gap-1 rounded-lg bg-green-600 px-4 py-1.5 font-medium text-white hover:bg-green-700"
+            >
+              <CheckCircle2 size={16} /> {finishLabel}
+            </button>
           </div>
         </div>
       </div>

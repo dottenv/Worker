@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_from_directory, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.supplier import Supplier
 from models.product import Product
@@ -12,8 +12,12 @@ from extensions import db
 from helpers import is_manager
 from datetime import datetime, timezone
 from socket_events import emit_to_users
+import os
+import uuid
 
 purchases_bp = Blueprint("purchases", __name__, url_prefix="/api/purchases")
+
+IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp", "bmp"}
 
 PURCHASE_STATUSES = {
     "draft": "Черновик",
@@ -146,6 +150,70 @@ def product_by_barcode():
     if not product:
         return jsonify({"error": "not found"}), 404
     return jsonify(product.to_dict())
+
+
+def _product_photo_dir():
+    return os.path.join(current_app.config["UPLOAD_FOLDER"], "product_photos")
+
+
+def _remove_photo_file(product):
+    if not product.photo:
+        return
+    try:
+        p = os.path.join(_product_photo_dir(), product.photo)
+        if os.path.isfile(p):
+            os.remove(p)
+    except Exception:
+        pass
+
+
+@purchases_bp.route("/products/<int:product_id>/photo", methods=["POST"])
+@jwt_required()
+def upload_product_photo(product_id):
+    user_id = int(get_jwt_identity())
+    product = Product.query.get_or_404(product_id)
+    if not is_purchase_admin(user_id, product.service_center_id):
+        return jsonify({"error": "Access denied"}), 403
+
+    if "file" not in request.files or not request.files["file"].filename:
+        return jsonify({"error": "Файл не передан"}), 400
+    file = request.files["file"]
+    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    if ext not in IMAGE_EXTENSIONS:
+        return jsonify({"error": "Допустимы изображения: png, jpg, jpeg, gif, webp, bmp"}), 400
+
+    upload_dir = _product_photo_dir()
+    os.makedirs(upload_dir, exist_ok=True)
+    unique_name = f"{uuid.uuid4().hex}.{ext}"
+    file.save(os.path.join(upload_dir, unique_name))
+
+    _remove_photo_file(product)
+    product.photo = unique_name
+    db.session.commit()
+
+    emit_to_users_for_center(product.service_center_id)
+    return jsonify(product.to_dict())
+
+
+@purchases_bp.route("/products/<int:product_id>/photo", methods=["DELETE"])
+@jwt_required()
+def delete_product_photo(product_id):
+    user_id = int(get_jwt_identity())
+    product = Product.query.get_or_404(product_id)
+    if not is_purchase_admin(user_id, product.service_center_id):
+        return jsonify({"error": "Access denied"}), 403
+    _remove_photo_file(product)
+    product.photo = None
+    db.session.commit()
+    return jsonify(product.to_dict())
+
+
+@purchases_bp.route("/products/<int:product_id>/photo", methods=["GET"])
+def get_product_photo(product_id):
+    product = Product.query.get_or_404(product_id)
+    if not product.photo:
+        return jsonify({"error": "no photo"}), 404
+    return send_from_directory(_product_photo_dir(), product.photo)
 
 
 @purchases_bp.route("/products", methods=["POST"])
