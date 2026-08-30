@@ -303,8 +303,9 @@ def update_product(product_id):
 
     if "stock_quantity" in data:
         new_qty = float(data["stock_quantity"] or 0)
-        if new_qty != product.stock_quantity:
-            delta = new_qty - product.stock_quantity
+        cur = float(product.stock_quantity or 0)
+        if new_qty != cur:
+            delta = new_qty - cur
             product.stock_quantity = new_qty
             db.session.add(StockMovement(
                 service_center_id=product.service_center_id,
@@ -371,9 +372,10 @@ def write_off_stock():
         product = Product.query.get(product_id)
         if not product or product.service_center_id != sc_id:
             return jsonify({"error": f"Товар {product_id} не найден"}), 404
-        if qty > product.stock_quantity:
+        cur = float(product.stock_quantity or 0)
+        if qty > cur:
             return jsonify({"error": f"Недостаточно остатка для «{product.name}»"}), 400
-        product.stock_quantity -= qty
+        product.stock_quantity = cur - qty
         db.session.add(StockMovement(
             service_center_id=sc_id,
             product_id=product.id,
@@ -531,7 +533,7 @@ def receive_order(order_id):
     received_items = data.get("items", []) if isinstance(data.get("items"), list) else []
 
     for item in order.items:
-        received = item.quantity - (item.returned_quantity or 0)
+        received = float(item.quantity - (item.returned_quantity or 0))
         for r in received_items:
             if r.get("item_id") == item.id:
                 received = float(r.get("quantity", received) or 0)
