@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useCenters } from '../contexts/CenterContext';
 import { api } from '../api/client';
 import { useSocketEvent } from '../contexts/SocketContext';
@@ -578,10 +578,39 @@ function OrderModal({ scId, suppliers, products, onClose, onSaved }: any) {
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<any[]>([{ product_id: '', quantity: 1, price_per_unit: 0 }]);
   const [error, setError] = useState('');
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanMsg, setScanMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [quick, setQuick] = useState<any>(null);
+  const lastRef = useRef<{ code: string; at: number }>({ code: '', at: 0 });
 
   const addRow = () => setItems((i: any[]) => [...i, { product_id: '', quantity: 1, price_per_unit: 0 }]);
   const updateRow = (idx: number, k: string, v: any) => setItems((i: any[]) => i.map((r, n) => n === idx ? { ...r, [k]: v } : r));
   const removeRow = (idx: number) => setItems((i: any[]) => i.filter((_, n) => n !== idx));
+
+  const mergeItem = (product: any) => {
+    setItems((i: any[]) => {
+      const idx = i.findIndex((r) => Number(r.product_id) === product.id);
+      if (idx >= 0) return i.map((r, n) => n === idx ? { ...r, quantity: Number(r.quantity) + 1 } : r);
+      return [...i, { product_id: product.id, quantity: 1, price_per_unit: Number(product.default_price) || 0 }];
+    });
+  };
+
+  const handleScan = async (code: string) => {
+    const now = Date.now();
+    if (lastRef.current.code === code && now - lastRef.current.at < 1200) return;
+    lastRef.current = { code, at: now };
+    let product: any = null;
+    try {
+      product = await api.purchases.products.byBarcode(scId, code);
+    } catch { product = null; }
+    if (product?.id) {
+      mergeItem(product);
+      setScanMsg({ ok: true, text: `+ ${product.name}` });
+    } else {
+      setQuick({ barcode: code });
+      setScanMsg({ ok: false, text: `Штрихкод ${code} не найден — создайте товар` });
+    }
+  };
 
   const save = async () => {
     setError('');
@@ -593,6 +622,9 @@ function OrderModal({ scId, suppliers, products, onClose, onSaved }: any) {
       onSaved();
     } catch (e: any) { setError(e?.message || 'Ошибка'); }
   };
+
+  const listedCount = items.filter((i: any) => i.product_id).length;
+  const listedUnits = items.reduce((s: number, i: any) => s + (i.product_id ? Number(i.quantity) || 0 : 0), 0);
 
   return (
     <Modal onClose={onClose} title="Новый приход">
@@ -617,12 +649,96 @@ function OrderModal({ scId, suppliers, products, onClose, onSaved }: any) {
             <button onClick={() => removeRow(idx)} className="text-red-600"><Minus size={16} /></button>
           </div>
         ))}
-        <button onClick={addRow} className="flex items-center gap-1 text-sm text-blue-600"><Plus size={14} /> Добавить позицию</button>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={addRow} className="flex items-center gap-1 text-sm text-blue-600"><Plus size={14} /> Добавить позицию</button>
+          <button onClick={() => { setScannerOpen(true); setScanMsg(null); }} className="flex items-center gap-1 rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700">
+            <ScanLine size={16} /> Сканировать штрихкоды
+          </button>
+        </div>
       </div>
       {error ? <div className="mt-3 text-sm text-red-600">{error}</div> : null}
       <div className="mt-4 flex justify-end gap-2">
         <button onClick={onClose} className="rounded-lg border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm text-slate-700 dark:text-slate-200">Отмена</button>
-        <button onClick={save} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Создать</button>
+        <button onClick={save} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Создать приход</button>
+      </div>
+
+      {scannerOpen ? (
+        <BarcodeScanner
+          title="Приход · сканирование"
+          continuous
+          finishLabel="Завершить"
+          onClose={() => setScannerOpen(false)}
+          onResult={handleScan}
+        >
+          <div className="rounded-lg bg-slate-100 dark:bg-slate-900 px-3 py-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-medium text-slate-700 dark:text-slate-200">В списке: {listedCount} поз. · {listedUnits} ед.</span>
+            </div>
+            {scanMsg ? (
+              <div className={`mt-1 text-sm ${scanMsg.ok ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {scanMsg.text}
+              </div>
+            ) : (
+              <div className="mt-1 text-sm text-slate-400">Сканируйте — товары добавляются автоматически</div>
+            )}
+          </div>
+        </BarcodeScanner>
+      ) : null}
+
+      {quick ? (
+        <QuickProductModal
+          scId={scId}
+          barcode={quick.barcode}
+          onClose={() => setQuick(null)}
+          onCreated={(p: any) => { mergeItem(p); setQuick(null); setScanMsg({ ok: true, text: `+ ${p.name}` }); }}
+        />
+      ) : null}
+    </Modal>
+  );
+}
+
+function QuickProductModal({ scId, barcode, onClose, onCreated }: any) {
+  const [name, setName] = useState('');
+  const [bar, setBar] = useState(barcode || '');
+  const [price, setPrice] = useState('');
+  const [unit, setUnit] = useState('шт');
+  const [err, setErr] = useState('');
+
+  const save = async () => {
+    setErr('');
+    if (!name.trim()) { setErr('Укажите название'); return; }
+    try {
+      const p = await api.purchases.products.create({
+        service_center_id: scId,
+        name: name.trim(),
+        barcode: bar.trim(),
+        unit,
+        default_price: Number(price) || 0,
+        min_quantity: 0,
+        location: '',
+        stock_quantity: 0,
+      });
+      onCreated(p);
+    } catch (e: any) { setErr(e?.message || 'Ошибка'); }
+  };
+
+  return (
+    <Modal onClose={onClose} title="Новый товар (не найден в каталоге)">
+      <div className="grid gap-3">
+        <Field label="Название *"><input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} autoFocus /></Field>
+        <Field label="Штрихкод"><input value={bar} onChange={(e) => setBar(e.target.value)} className={inputCls} /></Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Цена"><input type="number" value={price} onChange={(e) => setPrice(e.target.value)} className={inputCls} /></Field>
+          <Field label="Ед. изм."><input value={unit} onChange={(e) => setUnit(e.target.value)} className={inputCls} /></Field>
+        </div>
+      </div>
+      {err ? <div className="mt-3 text-sm text-red-600">{err}</div> : null}
+      <div className="mt-4 flex items-center justify-between gap-2">
+        <span className="text-xs text-slate-400">Создать и добавить в приход</span>
+        <div className="flex gap-2">
+          <button onClick={onClose} className="rounded-lg border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm text-slate-700 dark:text-slate-200">Отмена</button>
+          <button onClick={save} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Сохранить</button>
+        </div>
       </div>
     </Modal>
   );

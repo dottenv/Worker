@@ -1,78 +1,106 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
-import { Camera, X, Keyboard, ScanLine } from 'lucide-react';
+import { Camera, X, Keyboard, ScanLine, CheckCircle2 } from 'lucide-react';
 
 interface BarcodeScannerProps {
   onResult: (code: string) => void;
   onClose: () => void;
   title?: string;
+  continuous?: boolean;
+  finishLabel?: string;
+  children?: ReactNode;
 }
 
-export default function BarcodeScanner({ onResult, onClose, title = 'Сканер штрихкода' }: BarcodeScannerProps) {
+export default function BarcodeScanner({
+  onResult,
+  onClose,
+  title = 'Сканер штрихкода',
+  continuous = false,
+  finishLabel = 'Готово',
+  children,
+}: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const controlsRef = useRef<any>(null);
   const handledRef = useRef(false);
-  const [mode, setMode] = useState<'camera' | 'manual'>('manual');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [mode, setMode] = useState<'camera' | 'manual'>('camera');
   const [error, setError] = useState('');
   const [value, setValue] = useState('');
 
   const stop = useCallback(() => {
     try { controlsRef.current?.stop?.(); } catch { /* noop */ }
     controlsRef.current = null;
+    try { streamRef.current?.getTracks().forEach((t) => t.stop()); } catch { /* noop */ }
+    streamRef.current = null;
   }, []);
 
   useEffect(() => {
     handledRef.current = false;
-    if (mode !== 'camera') {
-      stop();
-      return;
-    }
+    if (mode !== 'camera') { stop(); return; }
     let cancelled = false;
     (async () => {
       try {
-        const reader = new BrowserMultiFormatReader();
-        const devices = await BrowserMultiFormatReader.listVideoInputDevices();
-        const deviceId =
-          devices.find((d: any) => /back|rear|environment|тыль/i.test(d.label))?.deviceId ||
-          devices[0]?.deviceId;
-        if (!deviceId || !videoRef.current) {
-          setError('Камера не найдена');
+        if (!navigator.mediaDevices?.getUserMedia) {
+          setError('Камера не поддерживается браузером');
           setMode('manual');
           return;
         }
-        controlsRef.current = await reader.decodeFromVideoDevice(
-          deviceId,
-          videoRef.current,
-          (result: any) => {
-            if (result && !handledRef.current) {
-              const code = String(result.getText()).trim();
-              if (code) {
-                handledRef.current = true;
-                stop();
-                onResult(code);
-              }
-            }
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: false,
+          });
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        }
+        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
+        streamRef.current = stream;
+        if (!videoRef.current) { stream.getTracks().forEach((t) => t.stop()); return; }
+        const video = videoRef.current;
+        video.srcObject = stream;
+        try { await video.play(); } catch { /* noop */ }
+
+        const reader = new BrowserMultiFormatReader();
+        try { (reader as any).timeBetweenScansMillis = 500; } catch { /* noop */ }
+        controlsRef.current = await reader.decodeFromStream(stream, video, (result: any) => {
+          if (!result) return;
+          const code = String(result.getText()).trim();
+          if (!code) return;
+          if (!continuous) {
+            if (handledRef.current) return;
+            handledRef.current = true;
+            stop();
           }
-        );
+          onResult(code);
+        });
       } catch (e: any) {
         setError(e?.message || 'Не удалось запустить камеру');
         setMode('manual');
       }
     })();
-    return () => { if (!cancelled) stop(); cancelled = true; };
-  }, [mode, onResult, stop]);
+    return () => { cancelled = true; stop(); };
+  }, [mode, continuous, onResult, stop]);
 
   const submitManual = () => {
     const code = value.trim();
     if (!code) return;
-    onResult(code);
     setValue('');
+    if (!continuous) {
+      handledRef.current = true;
+      onResult(code);
+    } else {
+      onResult(code);
+      inputRef.current?.focus();
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-800 shadow-xl overflow-hidden"
+        className="w-full max-w-lg rounded-2xl bg-white dark:bg-slate-800 shadow-xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 px-4 py-3">
@@ -85,8 +113,11 @@ export default function BarcodeScanner({ onResult, onClose, title = 'Скане�
         </div>
 
         {mode === 'camera' ? (
-          <div className="bg-black">
-            <video ref={videoRef} className="w-full aspect-square object-cover" />
+          <div className="relative bg-black">
+            <video ref={videoRef} muted playsInline className="w-full aspect-[3/4] sm:aspect-video object-cover" />
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div className="h-24 w-56 rounded-md border-2 border-white/70" />
+            </div>
           </div>
         ) : null}
 
@@ -95,8 +126,11 @@ export default function BarcodeScanner({ onResult, onClose, title = 'Скане�
         ) : null}
 
         <div className="p-4 space-y-3">
+          {children}
+
           <div className="flex gap-2">
             <input
+              ref={inputRef}
               autoFocus
               value={value}
               onChange={(e) => setValue(e.target.value)}
@@ -112,19 +146,27 @@ export default function BarcodeScanner({ onResult, onClose, title = 'Скане�
             </button>
           </div>
 
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
             <span className="text-slate-500 dark:text-slate-400">
               {mode === 'camera'
                 ? 'Наведите камеру на штрихкод'
-                : 'Внешний сканер вводит код как с клавиатуры — просто отсканируйте в поле выше'}
+                : 'Внешний сканер вводит код как с клавиатуры'}
             </span>
-            <button
-              onClick={() => { setError(''); setMode(m => m === 'camera' ? 'manual' : 'camera'); }}
-              className="flex items-center gap-1 rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
-            >
-              {mode === 'camera' ? <Keyboard size={16} /> : <Camera size={16} />}
-              {mode === 'camera' ? 'Вручную' : 'Камера'}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { setError(''); stop(); setMode(m => m === 'camera' ? 'manual' : 'camera'); }}
+                className="flex items-center gap-1 rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+              >
+                {mode === 'camera' ? <Keyboard size={16} /> : <Camera size={16} />}
+                {mode === 'camera' ? 'Вручную' : 'Камера'}
+              </button>
+              <button
+                onClick={onClose}
+                className="flex items-center gap-1 rounded-lg bg-green-600 px-4 py-1.5 font-medium text-white hover:bg-green-700"
+              >
+                <CheckCircle2 size={16} /> {finishLabel}
+              </button>
+            </div>
           </div>
         </div>
       </div>
