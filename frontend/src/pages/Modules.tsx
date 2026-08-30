@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  Wallet, ShoppingCart, CheckCircle2, AlertCircle, Zap
+  Wallet, CheckCircle2, AlertCircle, Zap
 } from 'lucide-react';
 import { api } from '../api/client';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -13,13 +13,6 @@ const MODULES = [
     icon: Wallet,
     description: 'Управление балансом, операциями и детализацией по сотрудникам',
     features: ['Просмотр баланса', 'История операций', 'Авансы и выплаты', 'Корректировки'],
-  },
-  {
-    id: 'purchases',
-    name: 'Закупки',
-    icon: ShoppingCart,
-    description: 'Управление закупками товаров у поставщиков',
-    features: ['Поставщики', 'Товары и номенклатура', 'Заказы поставщикам', 'Статусы заказов'],
   },
 ];
 
@@ -34,7 +27,6 @@ export default function Modules() {
     if (user) {
       setModuleStates({
         finance: user.finance_enabled || false,
-        purchases: (user as any).purchases_enabled || false,
       });
     }
   }, [user]);
@@ -59,9 +51,6 @@ export default function Modules() {
       if (moduleId === 'finance') {
         const res = await api.finance.toggle(!enabled);
         setModuleStates(prev => ({ ...prev, finance: res.finance_enabled }));
-      } else if (moduleId === 'purchases') {
-        const res = await api.purchases.toggle(!enabled);
-        setModuleStates(prev => ({ ...prev, purchases: res.purchases_enabled }));
       }
       setIsSuccess(true);
       setMessage('Сохранено');

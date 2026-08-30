@@ -319,63 +319,6 @@ export const api = {
     delete: (docId: number) =>
       request<any>(`/shift-documents/${docId}`, { method: 'DELETE' }),
   },
-  purchases: {
-    status: () => request<{ available: boolean; is_admin: boolean; purchases_enabled: boolean; is_owner: boolean }>('/purchases/status'),
-    toggle: (enabled: boolean) =>
-      request<{ purchases_enabled: boolean }>('/purchases/toggle', { method: 'PUT', body: JSON.stringify({ enabled }) }),
-    suppliers: {
-      list: (scId: number) => request<any[]>(`/purchases/suppliers?service_center_id=${scId}`),
-      create: async (data: any) => { const r = await request<any>('/purchases/suppliers', { method: 'POST', body: JSON.stringify(data) }); invalidate('/purchases'); return r; },
-      update: async (id: number, data: any) => { const r = await request<any>(`/purchases/suppliers/${id}`, { method: 'PUT', body: JSON.stringify(data) }); invalidate('/purchases'); return r; },
-      delete: async (id: number) => { const r = await request<any>(`/purchases/suppliers/${id}`, { method: 'DELETE' }); invalidate('/purchases'); return r; },
-    },
-    products: {
-      list: (scId: number) => request<any[]>(`/purchases/products?service_center_id=${scId}`),
-      byBarcode: (scId: number, barcode: string) =>
-        request<any>(`/purchases/products/by-barcode?service_center_id=${scId}&barcode=${encodeURIComponent(barcode)}`),
-      create: async (data: any) => { const r = await request<any>('/purchases/products', { method: 'POST', body: JSON.stringify(data) }); invalidate('/purchases'); return r; },
-      update: async (id: number, data: any) => { const r = await request<any>(`/purchases/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }); invalidate('/purchases'); return r; },
-      delete: async (id: number) => { const r = await request<any>(`/purchases/products/${id}`, { method: 'DELETE' }); invalidate('/purchases'); return r; },
-      uploadPhoto: async (id: number, file: File) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        const token = localStorage.getItem('token');
-        const res = await fetch(`/api/purchases/products/${id}/photo`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: 'Upload failed' }));
-          throw new Error(err.error || 'Upload failed');
-        }
-        const data = await res.json();
-        invalidate('/purchases');
-        return data;
-      },
-      deletePhoto: async (id: number) => { const r = await request<any>(`/purchases/products/${id}/photo`, { method: 'DELETE' }); invalidate('/purchases'); return r; },
-    },
-    orders: {
-      list: (scId?: number) => request<any[]>(`/purchases/orders${scId ? `?service_center_id=${scId}` : ''}`),
-      get: (id: number) => request<any>(`/purchases/orders/${id}`),
-      create: async (data: any) => { const r = await request<any>('/purchases/orders', { method: 'POST', body: JSON.stringify(data) }); invalidate('/purchases'); return r; },
-      update: async (id: number, data: any) => { const r = await request<any>(`/purchases/orders/${id}`, { method: 'PUT', body: JSON.stringify(data) }); invalidate('/purchases'); return r; },
-      delete: async (id: number) => { const r = await request<any>(`/purchases/orders/${id}`, { method: 'DELETE' }); invalidate('/purchases'); return r; },
-      receive: async (id: number, items?: { item_id: number; quantity: number }[]) => { const r = await request<any>(`/purchases/orders/${id}/receive`, { method: 'POST', body: JSON.stringify({ items: items || [] }) }); invalidate('/purchases'); return r; },
-      returnItems: async (orderId: number, items: { item_id: number; quantity: number }[]) => { const r = await request<any>(`/purchases/orders/${orderId}/return`, { method: 'POST', body: JSON.stringify({ items }) }); invalidate('/purchases'); return r; },
-    },
-    returns: {
-      list: (scId: number) => request<any[]>(`/purchases/returns?service_center_id=${scId}`),
-    },
-    stock: {
-      list: (scId: number) => request<any[]>(`/purchases/stock?service_center_id=${scId}`),
-      writeOff: async (scId: number, items: { product_id: number; quantity: number }[], reason?: string) => { const r = await request<any>('/purchases/stock/writeoff', {
-          method: 'POST',
-          body: JSON.stringify({ service_center_id: scId, items, reason: reason || '' }),
-        }); invalidate('/purchases'); return r; },
-      movements: (scId: number) => request<any[]>(`/purchases/movements?service_center_id=${scId}`),
-    },
-  },
   update: {
     check: (current: string) =>
       request<{ current: string; latest: string; behind: number; commits: any[]; update_available: boolean }>(
